@@ -1009,3 +1009,73 @@ The original entry's rhetoric about intent and reality diverging unnoticed
 should be read as applying to **this project's own documentation**, which
 assigned an isolation role to a node without checking what that node was already
 doing. Not to the network, which was doing something sensible.
+
+---
+
+## D-020 — Tagging via the console does **not** disable key expiry. The handoff expected it would.
+
+**Status:** measured. First node tagged; result differs from the documented
+expectation, so the remaining nodes are paused on a decision this raises.
+
+The appliance was tagged from the console. Four things were checked afterwards
+rather than assumed, and one came back against expectation.
+
+| Checked | Result |
+|---|---|
+| Tag applied, ownership moved from the user to the tag | yes — the console states this explicitly before you confirm |
+| Node still online and reachable | yes, direct connection, unchanged latency |
+| Household paths unaffected | yes — automation UI and broker both answer as before |
+| **Key expiry disabled** | **no — expiry is unchanged and still set** |
+
+### Why the difference, and why it matters
+
+The handoff instructs: *note in the inventory that key expiry is disabled by
+default on tagged devices, and which nodes that now applies to.* The honest
+answer for this tailnet is **none of them**.
+
+The behaviour it describes belongs to the *other* method. Key expiry is turned
+off when a node **authenticates with a tagged auth key** — the identity is
+minted as a machine identity from the start. Assigning a tag to a node that has
+already authenticated under a person changes its ownership, but the node keeps
+the credential and the expiry it already had.
+
+So D-018's choice of method quietly avoided a side effect the handoff treated as
+unavoidable. That is good — an infrastructure node whose key never expires never
+re-proves anything — but it is not free, and the cost lands later.
+
+### The trade-off this creates, which needs deciding rather than drifting
+
+A tagged node with expiry still enabled **will drop off the tailnet when the key
+expires**, in roughly six months for every node here. Re-authenticating it then
+requires a tagged auth key — precisely the credential D-018 avoided minting.
+
+Two defensible positions:
+
+- **Leave expiry on.** Better posture: machine identities re-attest on a
+  schedule instead of living forever. Cost: a calendar item, and an outage for
+  any node nobody re-authenticates in time. For a gateway the household depends
+  on, "nobody got to it in time" is a real failure mode, not a hypothetical.
+- **Disable expiry on tagged nodes**, as Tailscale does by default for machine
+  identities. Cost: the identity never expires, which is exactly the property
+  the lab argues against elsewhere.
+
+Neither is obviously right, and the handoff's list of actions to confirm with
+the owner includes disabling key expiry — so this is not a decision to take
+silently on the way past.
+
+**Recorded as open.** The expiry dates are known and months away, so nothing
+forces the choice today. What would be wrong is to let it be settled by
+whichever method happens to get used next.
+
+### The contradiction from D-017 is now live and confirmed
+
+The appliance's approved route into the home network **survived tagging**, as
+predicted but now verified. The tailnet currently contains a node tagged as an
+appliance — a role defined as originating nothing — that is a standing backup
+gateway into the entire home LAN.
+
+Nothing is broken by that today, because the grants are still allow-all and
+constrain nothing. It becomes a live contradiction the moment Phase 2 writes a
+policy that says one thing while the routing table does another. Which is the
+argument for treating the route migration as part of the same piece of work,
+not as a later tidy-up.
