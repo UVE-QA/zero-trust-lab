@@ -1,0 +1,84 @@
+name: evidence-page
+
+# Builds the live evidence page and publishes it to GitHub Pages.
+#
+# The page states what this lab claims and, for each claim, the latest CI run
+# that checked it -- read from GitHub's own record of this repository's
+# Actions, at build time. No status on it is typed by hand (D-044).
+#
+# What this workflow can touch: it reads public CI metadata, and it writes the
+# Pages site. It holds no tailnet credential and no cloud credential. The
+# deploy job's `pages: write` and `id-token: write` are GitHub's Pages
+# deployment mechanism and reach nothing else; the `github-pages` environment
+# accepts deployments from main only.
+
+on:
+  schedule:
+    # Daily, half an hour after tailnet-check's own schedule, so the page
+    # reports that morning's reading rather than yesterday's.
+    - cron: "47 6 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-page
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build evidence page
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write        # read run history; re-enable scheduled workflows
+      checks: read          # the negative-control pull request's check result
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: read the latest checks and render the page
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/evidence_page.py --out site
+
+      - name: sweep the page before it is published
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+          LEAK_SWEEP_EXTRA_DIR: site
+        run: ./scripts/leak-sweep.sh
+
+      # GitHub disables scheduled workflows in a public repository after 60
+      # days without activity. The page shows the age of every reading, so a
+      # stalled schedule would show as amber, not as a false green -- this
+      # keeps it from stalling in the first place. Re-enabling an enabled
+      # workflow is a no-op otherwise.
+      - name: keep the scheduled checks alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in tailnet-check.yml terraform-plan.yml evidence-page.yml; do
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/$wf/enable" \
+              && echo "enabled: $wf" || echo "::warning::could not re-enable $wf"
+          done
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: publish to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

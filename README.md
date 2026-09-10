@@ -9,6 +9,9 @@ physically.
 The deliverable is a repository from which the whole access model can be rebuilt
 from scratch, with tests that block unsafe policy from ever being applied.
 
+**Live evidence:** [uve-qa.github.io/zero-trust-lab](https://uve-qa.github.io/zero-trust-lab/)
+— every claim, with the CI run that checked it.
+
 **Start here:** [`STATUS.md`](STATUS.md) — what is done, what is open, what is
 next. Then [`docs/00-handoff.md`](docs/00-handoff.md) for the design and its
 constraints, and [`docs/02-decisions.md`](docs/02-decisions.md) for why things

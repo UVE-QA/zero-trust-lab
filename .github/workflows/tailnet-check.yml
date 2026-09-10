@@ -45,7 +45,8 @@ concurrency:
 jobs:
   validate:
     name: tailnet tests (validate, read-only)
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    # Every trigger, the daily schedule included: the evidence page reports
+    # this job's latest result on main, so it has to keep producing one.
     runs-on: ubuntu-latest
     environment: tailnet-read
     permissions:
