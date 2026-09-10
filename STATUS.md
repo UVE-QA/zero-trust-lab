@@ -120,8 +120,19 @@ lives, and tagging is the step that assigns it.
 1. **The phone check.** One minute. It gates everything after it.
 2. **Re-run the actuator mDNS check from the gateway node**, not from the
    operator laptop — and use a direct multicast query, not the service-discovery
-   CLI, for the reason in D-007. Same flat segment so it should agree, but the
-   check as written says from the gateway.
+   CLI, for the reason in D-007.
+
+   Attempted this session and abandoned as inconclusive, which is recorded
+   rather than papered over. The gateway has no shell access available, and the
+   automation hub's own discovery state cannot answer it: an accessory that is
+   already paired produces no discovery flow by design, so its absence is what
+   you would see either way. Concluding from that would repeat exactly the
+   mistake D-007 documents.
+
+   The cheapest way to settle it is to let it fall out of work that has to
+   happen anyway — adopt the actuator after unpairing and see whether the hub
+   resolves it by name. Failing that, a shell on the gateway and a direct
+   multicast query.
 3. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
    key, and record in the inventory which nodes now have key expiry disabled by
    default as a result.
