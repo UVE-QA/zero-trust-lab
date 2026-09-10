@@ -1,0 +1,41 @@
+name: terraform
+
+# Guards on the AWS stack that need no credential and no Terraform binary.
+#
+# `terraform plan` is NOT run here yet. Planning needs credentials, which is
+# what the OIDC role in this stack exists to provide -- so the workflow that
+# plans can only exist after the stack it plans has been applied once by hand.
+# That ordering is stated rather than worked around.
+#
+# What runs instead catches the failure this pattern is known for: a trust
+# policy that does not pin the token subject, which fails open and looks fine.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: terraform guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: OIDC subject pinning and account-id literals
+        run: ./scripts/tf-lint.py
+
+      - name: terraform fmt
+        run: |
+          if command -v terraform >/dev/null 2>&1; then
+            terraform fmt -check -recursive terraform/
+          else
+            echo "terraform not on this runner; formatting not checked"
+          fi

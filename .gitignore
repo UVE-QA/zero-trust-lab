@@ -7,6 +7,14 @@ local/*
 policy/.rendered/
 
 *.tfstate*
+# Terraform: state holds secrets in plaintext, tfvars holds the account id.
+terraform.tfvars
+backend.hcl
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+
 *.pem
 *.key
 .env

@@ -1517,3 +1517,123 @@ This is explicitly **not** a substitute for the tailnet's tests, and the workflo
 says so in its own header. It catches a different class: the mistakes visible in
 the text. The reachability assertions still only run at apply time, and closing
 that gap is what the credential in Q-003 is for.
+
+---
+
+# Phase 5 — AWS without static credentials
+
+## D-028 — The OIDC subject constraint is guarded three ways, because it fails open
+
+**Status:** written and committed. **Not applied** — see D-031.
+
+The handoff calls an unconstrained `sub` claim *the single most common
+misconfiguration of this pattern* and asks for it to be called out. A comment
+is a weak way to call something out, so it is guarded instead.
+
+**Why this particular mistake deserves three layers.** The OIDC provider is
+shared across all of GitHub. A trust policy that pins only the audience proves
+one thing: the token came from GitHub Actions. It does not say *whose* Actions.
+Any repository belonging to anyone can mint a token that satisfies it.
+
+And it **fails open**. A missing or wildcarded subject does not break the
+workflow — the deploy works, the pipeline is green, and the account is open to
+the internet. Nothing surfaces it. Compare a mistyped role ARN, which fails
+immediately and loudly; that error is self-correcting and this one is not.
+
+So:
+
+1. The policy uses `StringEquals` against one exact subject — not `StringLike`,
+   which is the operator that makes a wildcard possible in the first place.
+2. The variable supplying the ref **rejects wildcards** in its own validation,
+   so the mistake cannot be made through configuration either.
+3. `scripts/tf-lint.py` fails the build if the operator is loosened or a
+   wildcard appears, and was negative-tested against both before being trusted.
+
+Three layers is not belt-and-braces for its own sake. It is proportionate to a
+failure that is invisible, silent, and total.
+
+---
+
+## D-029 — Join the existing state bucket instead of creating one
+
+**Status:** accepted, and it removes more than it adds.
+
+The first draft created a state bucket and a lock table, and documented the
+bootstrap loop that follows — a stack holding the state that describes it must
+be applied once with local state and then migrated.
+
+Read-only reconnaissance made that unnecessary. **The account already has a
+Terraform state bucket**, versioned and encrypted, carrying several projects
+under prefixes. This stack joins it under its own prefix.
+
+That deletes about ninety lines, and it deletes the bootstrap loop entirely —
+which mattered more, because the loop is invisible until it bites and its error
+on a fresh clone looks like a typo.
+
+The deploy role is scoped to **this stack's prefix**, not the whole bucket.
+Other projects keep their state there and this role has no business reading it.
+
+Locking uses the S3 lock file rather than a DynamoDB table. The account has no
+lock table; adding one would create something to pay for and maintain in order
+to replace a feature that now exists natively.
+
+This is the same instinct as Phase 1.5: look at what is already there before
+building.
+
+---
+
+## D-030 — Identity Center is not built here, and the reason is architectural
+
+**Status:** accepted. The file exists and is deliberately empty.
+
+Identity Center lives in the organisation's management account. This stack
+deploys into a workload account and its credentials cannot administer the
+organisation. Writing the permission sets here would produce a plan that cannot
+be applied by the identity it is written for — which is worse than not writing
+it, because it looks finished.
+
+The design intent is recorded in the file so it is not lost: **permission sets
+are assigned to groups in the internal identity store, never to individuals.**
+When a real identity provider eventually arrives, only the *source* of the
+groups changes; the assignments do not.
+
+Worth noticing for its own sake: the tailnet has **no** identity provider at all
+and cannot do group-based assignment. AWS can. The same principle is available
+on one side of this system and not the other, which is a more honest picture of
+a real environment than a design where it is available everywhere.
+
+---
+
+## D-031 — Acceptance measured, not asserted; and what blocks applying
+
+**The criterion:** *no long-lived AWS access key exists anywhere in the lab.*
+
+**Measured, read-only:** the target account has **zero IAM users**, therefore
+zero long-lived access keys. Not "we did not create any" — none exist to begin
+with, and the stack adds none: the GitHub role is assumed with a token, the
+collector role with a certificate.
+
+The operator host does hold a static key, for an unrelated account outside the
+organisation. Confirmed with the owner as out of scope — it belongs to a
+separate system the lab does not use. Recorded here rather than omitted, because
+a criterion that quietly excludes the one counterexample in sight is not worth
+claiming.
+
+### Not applied, and the two reasons are different
+
+**Terraform is not installed on the operator host.** Nothing has been planned or
+applied, so every resource in this directory is unverified against a real API.
+Committed anyway: the code is the artifact the phase is judged on, and the
+handoff explicitly says scripts and stacks are worth committing whether or not
+they can run today.
+
+**Applying creates and modifies infrastructure**, which needs the owner's
+go-ahead with the exact commands shown, per the operating rules. It has not been
+sought yet because the first reason blocks it regardless.
+
+What *was* verified against the real account, read-only: the session, the
+absence of IAM users, the absence of conflicting roles, the existing state
+bucket's configuration, and — usefully — that **a GitHub OIDC provider already
+exists**. An account holds only one per URL, so creating a second fails. The
+stack adopts the existing one through a toggle that was written before the check
+and set by it.

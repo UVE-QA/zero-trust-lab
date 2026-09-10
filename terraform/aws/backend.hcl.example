@@ -1,0 +1,15 @@
+# Copy to backend.hcl and fill in. backend.hcl is GITIGNORED -- the bucket
+# name embeds the account id.
+
+bucket = "your-existing-tfstate-bucket"
+key    = "zero-trust-lab/aws/terraform.tfstate"
+region = "us-west-2"
+
+# There is no default profile on the operator host by design.
+profile = "your-sso-profile"
+
+encrypt = true
+
+# S3-native locking. Avoids a DynamoDB table that would exist only to be
+# maintained; requires Terraform 1.10 or newer.
+use_lockfile = true
