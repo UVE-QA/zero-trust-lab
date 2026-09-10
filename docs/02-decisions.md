@@ -2322,3 +2322,106 @@ The `tailnet-read` environment holds the two non-secret identifiers and the four
 values, set from the inventory through standard input so none reached a command
 line. Revoking the credential in the console ends CI's access at once; there is
 no secret to rotate.
+
+---
+
+## D-042 — Production was reachable by SSH from the whole internet, around the tailnet
+
+Found while verifying that the development host came back after a reboot. Not
+looked for — which is the point worth making about it.
+
+### What was found
+
+The production host is a small cloud instance. Its provider firewall allowed
+`22/tcp` from `0.0.0.0/0` and `::/0`, and sshd listened on every interface. So
+there were two SSH paths to production:
+
+| path | what answers | what decides who gets in |
+|---|---|---|
+| over the tailnet | Tailscale SSH, `check` mode | tailnet identity, plus a periodic browser re-authentication |
+| over the public address | OpenSSH | possession of a key — nothing the tailnet policy can see |
+
+Every grant, test and `ssh` rule in this repository governs only the first
+path. The owner's own workstation, and the desktop application's remote
+sessions on the host, all used the second.
+
+The same firewall had `80/tcp` open to `::/0`. That one is inert today: nothing
+listens on 80, and the instance has no public IPv6 address — the only global
+IPv6 on the box is the tailnet's private one. It is recorded because it is the
+kind of rule that becomes live the day someone enables IPv6 or starts a web
+server.
+
+sshd accepts keys only: password and keyboard-interactive authentication are
+off, and root may log in only with a key. That keeps this a finding rather than
+an incident.
+
+### Why the uncontrolled path was the one in use
+
+This is the part worth keeping. The tailnet path was protected by Tailscale SSH
+in `check` mode, which periodically stops a connection until someone completes a
+browser sign-in. A person at a terminal can do that. A program cannot: a
+non-interactive `ssh` over the tailnet simply hung on the prompt, and so would
+the desktop application's remote sessions. The stricter control made the
+controlled path unusable for the clients that actually needed it — so they used
+the uncontrolled one, and the strictness bought nothing.
+
+A control that is too strict for its real clients does not make them safer. It
+routes them around itself.
+
+### A correction to earlier entries
+
+D-040 and the Phase 3 commit record "SSH to production" as verified. What was
+verified was a TCP connection to port 22 over the tailnet. A real login on that
+path would have stopped at the browser check. The network grant was correct;
+the claim that SSH worked was broader than the evidence.
+
+### What was changed
+
+In order, each step verified before the next, with a way back at each point:
+
+1. **Tailscale SSH turned off on the production host.** sshd now answers on the
+   tailnet address as well. Its host key was compared with the key already
+   trusted on the public path and is identical, so nothing has been substituted.
+   On the tailnet path, the control is now OpenSSH key authentication, reachable
+   only by those the `tag:prod:22` grant admits — the policy tests that deny
+   `tag:prod:22` to every other role still hold. Undo: one command on the host.
+2. **The workstation's SSH alias now resolves to the host's tailnet name.** The
+   public address is kept under a separate break-glass alias. The tailnet name's
+   host key was added to `known_hosts` only after its fingerprint matched the
+   trusted one. A non-interactive login over the new path was verified, and the
+   host sees it arriving from a tailnet address. Undo: restore the backed-up
+   config.
+
+### What did not go as expected
+
+The desktop application does not use the system `ssh` binary. Its connection is
+held by the application process itself, which had resolved the alias earlier
+and kept the address. The live test — ending only the application's public
+connection, with the host's SSH daemon and the remote session left untouched —
+showed it reconnect within seconds, **over the public address again**. My
+inference is that it picks up the new address only when the application
+restarts. That is not verified.
+
+### Not yet done, and why
+
+**Port 22 is still open to the internet.** Closing it now would cut the desktop
+application off from the host, because its tailnet path is not proven. The
+order stays:
+
+1. restart the application, confirm its connection arrives from a tailnet
+   address, confirm the remote session still works;
+2. only then replace the provider firewall rules: `22/tcp` closed to the
+   internet, the stale `80/tcp` rule removed.
+
+Closing 22 does not lock anyone out of the host for good. The provider firewall
+is controlled through the cloud provider's API, which does not depend on the
+host being reachable. Reopening 22 is one call from anywhere with the account's
+single-sign-on access. That is the break-glass path, and it should be tested
+once before it is needed.
+
+**The policy's `ssh` rule for `tag:prod` is now dead configuration.** It still
+says production SSH requires a periodic browser check, and nothing enforces that
+any more, because Tailscale SSH is off on the only host with the tag. A rule that
+reads like a control and is not one is the same failure this entry is about. It
+should be removed or rewritten against a host that still runs Tailscale SSH.
+That is a policy change, left for the owner to decide.
