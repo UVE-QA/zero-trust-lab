@@ -1942,3 +1942,24 @@ The general form: a boundary defined as "what is in the repository" misses
 everything the repository *produces*. Logs, artifacts, published plan output,
 issue comments from automation. Worth carrying into Phase 6, where drills
 generate exactly that kind of output.
+
+### D-037 addendum — the same lesson, twice in an hour
+
+Minutes after writing the entry above, the apply left two working files on the
+host that ran it — the binary plan and the apply log. **Both contain the account
+id in full, both were untracked, and both were one `git add -A` from being
+staged.** That command is used routinely here.
+
+The sweep would have caught them at that point, since staged files are tracked.
+But that is the second line of defence working, not the first, and it only
+works because the sweep runs before every commit rather than in CI alone.
+
+Added to `.gitignore`. The point is not the two filenames — it is that this
+class keeps appearing and will keep appearing: **the outputs of running the
+thing, rather than the thing.** Plan files, logs, rendered templates, captured
+drill results. Each one arrives looking like a temporary artefact and sits in
+the working tree exactly where a broad `add` will find it.
+
+Phase 6 produces this class deliberately — a drill's value *is* its recorded
+output. The habit to carry there: decide where a run's output goes before
+running it, not after looking at it.
