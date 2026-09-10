@@ -1,0 +1,31 @@
+name: policy-check
+
+# Structural checks on the policy template. No credential required.
+#
+# This is NOT the tailnet's own `tests` section. Those evaluate real
+# reachability and run when the policy is applied; wiring them into CI needs an
+# API credential that does not exist yet. What runs here catches the mistakes
+# visible without evaluating anything -- including the one rule the design
+# states absolutely: grants by port, never `*:*`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: policy-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: policy template lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: lint the policy template
+        run: ./scripts/policy-lint.py

@@ -1,0 +1,229 @@
+// Tailnet policy — SOURCE OF TRUTH.
+//
+// This file is a TEMPLATE. Render it with scripts/render-policy.py before
+// applying; the rendered output is gitignored because it contains real
+// addresses. Never edit the rendered file — edits go here.
+//
+// Placeholders are the only real-world values the policy needs. Everything
+// else is expressed in roles, which is the point: a tag is a role in the
+// system, and roles are what the model is about.
+{
+	// ------------------------------------------------------------------
+	// Tag taxonomy. Declaring a tag makes it usable; it grants nothing.
+	// ------------------------------------------------------------------
+	// Owned by autogroup:admin rather than a named identity, so the taxonomy
+	// survives a change of account.
+	"tagOwners": {
+		// Held by a real device:
+		"tag:prod":         ["autogroup:admin"], // production server stand-in
+		"tag:gateway-home": ["autogroup:admin"], // subnet router for the IoT segment
+		"tag:appliance":    ["autogroup:admin"], // attached to the network, originates nothing
+
+		// Declared but UNHOMED -- filled by simulated units the fleet scripts
+		// create in later phases. Saying so avoids implying a fleet exists.
+		"tag:collector": ["autogroup:admin"], // telemetry sink; awaits dedicated hardware
+		"tag:sensor":    ["autogroup:admin"], // simulated sensors: push-only telemetry
+		"tag:drone":     ["autogroup:admin"], // simulated mobile units: telemetry AND control
+	},
+
+	// ------------------------------------------------------------------
+	// Hosts behind the gateway. The ONLY real values in the policy.
+	// ------------------------------------------------------------------
+	// These are devices that cannot run a client. They are reachable only
+	// through the gateway, one host route each -- never a subnet.
+	//
+	// Naming them here means the grants and tests below read as roles rather
+	// than as addresses, and it confines every templated value to three lines.
+	"hosts": {
+		"camera-stream":    "{{camera_stream}}",
+		"actuator-granted": "{{actuator_granted}}",
+		"actuator-control": "{{actuator_control}}",
+	},
+
+	// ------------------------------------------------------------------
+	// Grants. Deny-by-default: anything not written here is refused.
+	// Every grant names a port. There is no `*` anywhere in this section.
+	// ------------------------------------------------------------------
+	"grants": [
+		// --- The household guarantee -------------------------------------
+		// Remote access to the automation UI is the entire blast radius of
+		// this project. It is the first grant in the file and it carries an
+		// accept assertion below. If a later change breaks it, the build
+		// fails rather than someone's evening.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["tag:gateway-home"],
+			"ip":  ["tcp:8123"],
+		},
+
+		// --- Operator to the production stand-in --------------------------
+		// Phase 4 replaces this with a time-boxed grant. Until then it is a
+		// standing one, which is exactly the thing JIT is meant to remove.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["tag:prod"],
+			"ip":  ["tcp:22"],
+		},
+
+		// --- Telemetry tier: collector subscribes to the broker -----------
+		// The broker sits on the gateway, so the grant runs collector ->
+		// gateway. It was located rather than assumed; see D-004.
+		{
+			"src": ["tag:collector"],
+			"dst": ["tag:gateway-home"],
+			"ip":  ["tcp:1883"],
+		},
+
+		// --- Telemetry tier: field units report in ------------------------
+		// Push-only. Sensors originate a stream and nothing else.
+		{
+			"src": ["tag:sensor", "tag:drone"],
+			"dst": ["tag:collector"],
+			"ip":  ["tcp:8443"],
+		},
+
+		// --- Stream tier: camera, routed through the declared gateway -----
+		// `via` pins the path: traffic reaches the camera through the gateway
+		// or not at all.
+		{
+			"src": ["tag:collector"],
+			"dst": ["camera-stream"],
+			"ip":  ["tcp:554"],
+			"via": ["tag:gateway-home"],
+		},
+
+		// --- Action tier: ONE actuator, not the class ---------------------
+		// The granted unit and the control unit are the same model on the
+		// same port behind the same gateway. Only one is named. That is what
+		// makes the assertion below a demonstration rather than a claim.
+		//
+		// Phase 3 adds source posture here; Phase 4 makes it time-boxed.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["actuator-granted"],
+			"ip":  ["tcp:52432"],
+			"via": ["tag:gateway-home"],
+		},
+
+		// --- Control channel to mobile units ------------------------------
+		// The distinction that makes a drone not a sensor: it can be
+		// commanded. This is the grant Phase 4 exists to constrain.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["tag:drone"],
+			"ip":  ["tcp:8444"],
+		},
+
+		// NOTE what is absent, deliberately:
+		//   - tag:appliance appears in no `src`. It originates nothing.
+		//   - "actuator-control" appears in no grant at all.
+		//   - No grant reaches the site gateway's administration interface.
+		//   - No grant is wider than a single port.
+	],
+
+	// ------------------------------------------------------------------
+	// Tailscale SSH
+	// ------------------------------------------------------------------
+	// The baseline allowed check-mode SSH to autogroup:self as root. Tagging
+	// the infrastructure removed those nodes from `self`, so this restates it
+	// narrowly: members may reach the production stand-in, in check mode.
+	"ssh": [
+		{
+			"action": "check",
+			"src":    ["autogroup:member"],
+			"dst":    ["tag:prod"],
+			"users":  ["autogroup:nonroot", "root"],
+		},
+	],
+
+	// ------------------------------------------------------------------
+	// Tests. THE DELIVERABLE OF THIS PHASE.
+	// ------------------------------------------------------------------
+	// These run on every save; a failing assertion causes the tailnet to
+	// reject the file. The `deny` entries carry most of the value: an
+	// `accept` regression announces itself when someone's connection breaks,
+	// a silent privilege expansion does not.
+	"tests": [
+		// The household guarantee, asserted. This is the one that must never
+		// regress, and the reason it is first.
+		{
+			// The grant above says autogroup:member; the test must name a
+			// concrete principal. Tailscale accepts the autogroup in a grant
+			// and rejects it here -- "unknown user or host" -- so the identity
+			// is templated like the addresses rather than committed.
+			"src":    "{{operator_identity}}",
+			"accept": ["tag:gateway-home:8123"],
+			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
+		},
+
+		// Action tier: identical devices, same port, same gateway, opposite
+		// outcomes. Least privilege here is per host, not per protocol.
+		{
+			"src":    "{{operator_identity}}",
+			"accept": ["actuator-granted:52432"],
+			"deny":   ["actuator-control:52432"],
+		},
+
+		// Sensors are push-only and reach exactly one port on one role.
+		{
+			"src":    "tag:sensor",
+			"accept": ["tag:collector:8443"],
+			"deny": [
+				"tag:prod:22", // cannot reach production
+				"tag:collector:22", // cannot administer its own sink
+				"tag:sensor:8443", // cannot reach a peer sensor
+				"tag:gateway-home:1883", // cannot talk to the broker directly
+				"tag:gateway-home:8123", // cannot reach the automation UI
+				"camera-stream:554", // cannot reach the stream tier
+				"actuator-granted:52432", // cannot change physical state
+			],
+		},
+
+		// The appliance originates nothing. Its tag says so; this proves it.
+		{
+			"src": "tag:appliance",
+			"deny": [
+				"tag:gateway-home:8123",
+				"tag:gateway-home:1883",
+				"tag:prod:22",
+				"tag:collector:8443",
+				"camera-stream:554",
+				"actuator-granted:52432",
+				"actuator-control:52432",
+			],
+		},
+
+		// The collector reaches the stream and the broker, and nothing else
+		// on the IoT side -- in particular no actuator, ever.
+		{
+			"src":    "tag:collector",
+			"accept": ["tag:gateway-home:1883", "camera-stream:554"],
+			"deny": [
+				"camera-stream:80", // one port on that host, not the host
+				"actuator-granted:52432", // reading a stream is not commanding a socket
+				"actuator-control:52432",
+				"tag:prod:22",
+				"tag:gateway-home:8123",
+			],
+		},
+
+		// Drones report like sensors. Being commandable does not make them
+		// privileged.
+		{
+			"src":    "tag:drone",
+			"accept": ["tag:collector:8443"],
+			"deny":   ["tag:prod:22", "tag:gateway-home:1883", "actuator-granted:52432"],
+		},
+
+		// Production is a destination, not a source. A compromised prod host
+		// must not become a route into the home.
+		{
+			"src": "tag:prod",
+			"deny": [
+				"tag:gateway-home:8123",
+				"camera-stream:554",
+				"actuator-granted:52432",
+			],
+		},
+	],
+}

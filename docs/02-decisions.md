@@ -1398,3 +1398,122 @@ would make it visible.
 If that proves wrong, the escalation path is recorded and cheap: the reconciler,
 or the loopback forwarder — and the Service defined during D-022's investigation
 is still in place for the latter.
+
+---
+
+# Phase 2 — Deny-by-default with tests
+
+## D-025 — Deny-by-default is live. The tests are the deliverable, and they earned it twice.
+
+**Status:** applied and verified.
+
+The tailnet's policy is now written from zero. **No grant is wider than a single
+port and there is no `*` anywhere in the grants section.** Anything not written
+down is refused.
+
+### What is granted, and what is conspicuously not
+
+Seven grants, each naming a source role, a destination and one port. The
+household's remote access to the automation UI is the first of them, carrying an
+`accept` assertion, because it is the entire blast radius of this project.
+
+What is absent is the more interesting half:
+
+- The **network appliance appears in no `src`.** Its tag says it originates
+  nothing; now the policy says so too.
+- **One of the two identical actuators is named. The other appears in no grant
+  at all.** Same model, same port, same gateway — and the difference is
+  asserted, not asserted-about.
+- **Nothing reaches the site gateway's administration interface**, which the
+  earlier wide route had published to every node.
+
+### The tests rejected the policy twice, and both were valuable
+
+**Once by accident.** The first version used an autogroup as a test principal.
+The tailnet refused the whole file: valid in a grant, rejected in a test as an
+unknown principal. Nothing was applied. That is the mechanism working on a
+mistake nobody planned — which is better evidence than a staged one, because
+nobody chose the failure.
+
+**Once on purpose**, to satisfy the acceptance criterion. A grant was added that
+would let the sensor role reach the production stand-in, contradicting an
+assertion. The refusal named both problems precisely:
+
+```
+test(s) failed for user: tag:sensor
+  "tag:prod:22" (tcp): want: Drop, got: Accept
+test(s) failed for user: tag:collector
+  "tag:prod:22" (tcp): want: Accept, got: Drop
+```
+
+The first line is the case the design cares about most: **a silent widening of
+access**. Nobody's connection would have broken; nothing would have looked
+wrong. The assertion is the only thing that notices. The second is the mirror
+image — an assertion claiming access that does not exist.
+
+The file was not applied either time. The live policy was verified unchanged
+afterwards, by hash.
+
+### Verified after applying
+
+The household guarantee holds — the automation UI answers over the tailnet. The
+operator path to the production stand-in works. And deny-by-default bites where
+it should: the broker port, granted only to the collector role, is now refused
+from an operator laptop that could reach it an hour ago.
+
+### The route table follows the policy, which is worth seeing
+
+After applying, the operator laptop installs a route to **only** the granted
+actuator. The denied control and the camera get no route at all — the policy
+grants this node nothing to them, so no path is offered.
+
+All three still answer, because the laptop is physically on the same network.
+That is not a failure; it is the documented limitation, visible on one machine:
+**remote access is controlled, the local segment is not.**
+
+---
+
+## D-026 — The formatting drift from D-021 is deterministic, and now closed
+
+D-021 recorded that the service reformats the policy on save, and warned that a
+byte-wise comparison in a future GitOps workflow would report drift that is not
+drift.
+
+The drift was measured rather than worked around. It is exactly one rule:
+**inline comment spacing inside arrays is collapsed to a single space**, while
+column alignment between an object's keys and values is preserved. Thirty-seven
+bytes across seven lines, all of them aligned comments in test assertion lists.
+
+The template was changed to match. **The rendered output is now byte-identical
+to what the tailnet stores**, verified by hash, so the repository and the live
+policy agree exactly and a future drift check can be a plain comparison.
+
+Writing the template in the formatter's own style is cheaper than teaching every
+future check to forgive the difference.
+
+---
+
+## D-027 — A structural lint that needs no credential
+
+Phase 2's acceptance asks for the tests to run in CI. They cannot yet: the
+tailnet's own test evaluation happens when the policy is applied, and wiring
+that into CI needs an API credential that does not exist (Q-003).
+
+Rather than leave the gap empty, `scripts/policy-lint.py` runs on every pull
+request and checks what can be checked without evaluating reachability:
+
+- **no `*` in any grant** — the one rule the design states absolutely;
+- every grant names a port;
+- every tag referenced is declared, every host alias referenced is declared;
+- no literal address anywhere outside the `hosts` block;
+- braces and brackets balance.
+
+**It was negative-tested before being trusted** — a wildcard grant and an
+undeclared tag were each introduced and each caught, and the template restored
+and re-verified by hash afterwards. A lint nobody has watched fail is a lint
+nobody should rely on.
+
+This is explicitly **not** a substitute for the tailnet's tests, and the workflow
+says so in its own header. It catches a different class: the mistakes visible in
+the text. The reachability assertions still only run at apply time, and closing
+that gap is what the credential in Q-003 is for.

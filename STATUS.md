@@ -1,21 +1,20 @@
 # Status
 
-**Phase 0 complete** — merged. **Phase 1 complete** — merged.
-**Phase 1.5 applied**, in review. Last updated 2026-09-09.
+**Phases 0, 1, 1.5 complete** — merged. **Phase 2 applied**, in review.
+Last updated 2026-09-09.
 
-Phase 2 has not been started.
+Eight phases in total: 0, 1, 1.5, 2, 3, 4, 5, 6. Phases 3 and 4 are gated
+behind a paid plan or trial and run as one time-boxed sprint; 5 and 6 are
+available on the current plan.
 
-> **The headline change (D-024).** The tailnet no longer has a wide route into
-> the home network. It was served by *two* nodes; both are retired. Exposure went
-> from every host on the network to **three**, each named deliberately — one
-> camera for the stream tier, two actuators for the action tier's granted/denied
-> pair. Household paths verified unaffected before and after.
+> **The tailnet is deny-by-default.** Seven grants, each naming a source role,
+> a destination and **one port**. No `*` anywhere in the grants section.
+> Anything not written down is refused. The household guarantee is the first
+> grant in the file and carries an assertion (D-025).
 
-> **Phase 1 residue, now resolved by Phase 1.5.** Phase 1's acceptance —
-> *no infrastructure node authenticated under a personal identity* — was not met,
-> because the primary subnet router was a personal workstation the design forbids
-> tagging (D-021). Moving the routing role was the only fix, and Phase 1.5 did
-> exactly that: routes now come from the tagged gateway alone.
+> **Exposure into the home network is three hosts.** It was every host on the
+> network, reachable through two wide routes; both are retired and the gateway
+> now serves one route per exposed device (D-024).
 
 ---
 
@@ -126,6 +125,14 @@ that rewrites the global policy file.
 | **D-023** | accepted | **Correction.** The forwarding target is validated against loopback only, so it cannot reach another device at all. Fourth confident wrong answer from a partial signal in this project, and the first *optimistic* one — a false positive would have surfaced during cutover on a household gateway. New clause: do not conclude capability from a permissive-looking type or an example; submit what you intend to use and see whether the system takes it. |
 | **D-024** | applied | **Both wide routes retired; three per-host routes serve from the tagged gateway.** The simple answer won: the premise that addresses move had never been checked, and the automation platform showed two integrations pinned to addresses and hostnames working for months. Records that I inverted the importance — the finding was the wide routes, not the naming mechanism. |
 
+### Phase 2
+
+| id | state | summary |
+|---|---|---|
+| **D-025** | applied | **Deny-by-default is live.** Seven grants, one port each, no wildcard. The tests rejected the policy **twice** — once by accident on an invalid test principal, once deliberately on a grant that would have widened access silently. The second is the case the design cares about most: nobody's connection breaks, nothing looks wrong, and only the assertion notices. |
+| **D-026** | closed | The formatting drift warned about in D-021 was measured rather than worked around: one rule, inline comment spacing inside arrays. The template now matches, so rendered output is **byte-identical** to what the tailnet stores and a future drift check can be a plain comparison. |
+| **D-027** | applied | A structural lint needing no credential, guarding the one rule stated absolutely — no `*` in a grant. Negative-tested before being trusted. Explicitly *not* a substitute for the tailnet's own tests, which still only run at apply time until Q-003's credential exists. |
+
 ## The starting state, stated plainly
 
 Phase 2 is judged against this, so it belongs in one place:
@@ -146,6 +153,11 @@ the deny-by-default work.
 ---
 
 ## Primer for the next session
+
+**Before starting a phase:** `gh pr list --state open`. If the previous phase is
+still in review, merge it or branch from its branch — not from `main`. This was
+got wrong twice; the handoff's "one phase per PR" rule exists for exactly this.
+
 
 **Read first:** this file, then `docs/02-decisions.md` (D-003 and D-005 are the
 live ones), then `local/questions-for-review.md` for anything answered since.

@@ -3,6 +3,9 @@
 local/*
 !local/inventory.example.yaml
 
+# Rendered policy: contains real addresses. The template is the source.
+policy/.rendered/
+
 *.tfstate*
 *.pem
 *.key
