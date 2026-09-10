@@ -586,3 +586,55 @@ the accessory's setup code. That code is a pairing secret printed on the device,
 and entering it is left to the owner in the hub's own interface. There is
 nothing to gain from routing a credential through this session, and the step
 takes them seconds.
+
+---
+
+## D-013 — The actuator is qualified, and adopting it did not close the hole
+
+**Status:** Phase 0 actuator qualification **complete**. All three checks pass.
+
+The actuator was released from the previous ecosystem and adopted by the
+automation hub. Qualification now reads:
+
+| Check | Result | How |
+|---|---|---|
+| Transport | **pass** | HomeKit-over-WiFi, an ordinary IP host with an open accessory port — read from its own advertised records, not inferred from the product |
+| Local control | **pass** | The integration's declared class is *local push*: no cloud polling, no vendor round trip |
+| Name resolution | **pass** | Resolves by name, verified from the operator host **and** from the gateway itself (D-012) |
+
+The local-control result was predicted to be a formality, and it was. It was
+still read off the integration's own manifest rather than asserted. This phase
+has already paid once for an assumption.
+
+### The finding survives adoption, and that is the point
+
+D-011 recorded that this unit answers its vendor HTTP interface, over plaintext,
+to a request signed with an empty key. That was re-tested **after** the device
+was paired to the hub.
+
+**It still works.** Pairing the device to a platform we control did not close
+it. The accessory protocol layer is properly encrypted and authenticated, but
+the vendor's own interface sits alongside it and is indifferent to who the
+controller is.
+
+This is worth more than the original finding. The intuitive move — "we brought
+it onto a platform we manage, so it is handled now" — is **false comfort**. The
+pairing is not the control. A second, unauthenticated control plane remains on
+the device, and nothing about adoption, the accessory protocol, or the choice of
+controller touches it.
+
+What *can* touch it is reachability. Which is precisely the argument for putting
+the action tier behind a host-specific grant, source posture and a time-boxed
+window: those constrain who can open a socket to the device at all, and that is
+the only layer with any authority over the interface the vendor left open.
+
+So the action tier is not a stricter control applied to a device that was
+already safe. It is the only control that exists.
+
+### Consequence for the threat model
+
+`docs/00-threat-model.md` should carry this as a worked example rather than a
+line item: an inherited device, brought onto a managed platform, still exposing
+an unauthenticated path — and the network being the only place that is
+answerable. It pairs naturally with the vendor-cloud limitation already noted,
+since the same device also holds an outbound session no policy here touches.

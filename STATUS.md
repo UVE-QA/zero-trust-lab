@@ -50,7 +50,7 @@ routing table.
 sign in and reach the policy editor. One minute, and it is what makes a bad
 policy recoverable.
 
-### 2. Actuator — checks 1 and 3 pass; adoption is one step from done (Q-002)
+### ~~2. Actuator~~ — **DONE.** All three checks pass (D-013)
 
 **Resolved since the last update.** The transport check passes: the device is a
 HomeKit-over-WiFi accessory, an ordinary IP host on the LAN, confirmed from its
@@ -100,6 +100,7 @@ that rewrites the global policy file.
 | **D-010** | — | Both actuators are free for the lab, so they are used as a matched granted/denied pair rather than one plus a spare. Proves least privilege is per-host, not per-protocol. Costs one device change, not two — the control needs no changes at all. |
 | **D-011** | high | The granted actuator answers its local API over plaintext to a request signed with an **empty key** — no meaningful authentication at all, while its identical twin rejects the same request. The only thing between the local network and a physical state change is reachability. This is the lab's action-tier argument with evidence behind it, not a defect to patch. An addendum records that the unauthenticated read is **live state**, so anything on the LAN can watch the actuator in real time. |
 | **D-012** | — | Closes the gateway-vantage discovery check left open by D-007 — and it closed itself, as a side effect of releasing the actuator. The hub raised a zeroconf-sourced pairing flow, which is the check answered from the right vantage point. Recording it as open rather than guessing was the cheaper plan. |
+| **D-013** | — | Actuator qualification **complete**, all three checks pass. And the D-011 hole **survives adoption**: pairing the device to a managed platform did not close its unauthenticated vendor interface. "We moved it onto a platform we control, so it is handled" is false comfort — the network grant is the only control with authority over that path. |
 
 ## The starting state, stated plainly
 
