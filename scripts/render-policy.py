@@ -24,16 +24,22 @@ OUT_DIR = ROOT / "policy" / ".rendered"
 OUT = OUT_DIR / "policy.hujson"
 INVENTORY = ROOT / "local" / "inventory.yaml"
 
-# placeholder -> the inventory key whose lan_address supplies it.
-# Explicit so that adding an exposed device is a visible, reviewable edit
-# rather than a silent consequence of the inventory changing.
-MAPPING = {
-    "camera_stream":    ("lan_observed", "camera exposed for the stream tier"),
-    "actuator_granted": ("socket_qualification", "granted actuator"),
-    "actuator_control": ("socket_qualification", "denied control"),
+# Every placeholder the template may use, and how its value is checked.
+# Explicit rather than inferred: adding one is a visible, reviewable edit, and
+# a typo in the inventory fails here instead of reaching the tailnet.
+SPEC = {
+    "camera_stream":     "ipv4",      # stream tier
+    "actuator_granted":  "ipv4",      # action tier, granted
+    "actuator_control":  "ipv4",      # action tier, denied control
+    "operator_identity": "identity",  # tests need a concrete principal:
+                                      # autogroup:member is valid in grants but
+                                      # NOT in the tests section
 }
 
-IPV4 = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$")
+VALIDATORS = {
+    "ipv4":     re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$"),
+    "identity": re.compile(r"^[^\s@]+@[^\s@]+$"),
+}
 
 
 def load_values():
@@ -47,15 +53,16 @@ def load_values():
         sys.exit(f"error: {INVENTORY} not found. It is gitignored by design -- "
                  "this script cannot run from a fresh clone without it.")
     text = INVENTORY.read_text()
-    block = re.search(r"^exposed_hosts:\s*$(.*?)(?=^\S|\Z)", text, re.M | re.S)
+    block = re.search(r"^policy_values:\s*$(.*?)(?=^\S|\Z)", text, re.M | re.S)
     if not block:
-        sys.exit("error: local/inventory.yaml has no `exposed_hosts:` block.\n"
-                 "Add one mapping each placeholder to an address, e.g.\n"
-                 "  exposed_hosts:\n"
-                 "    camera_stream: <address>\n")
+        sys.exit("error: local/inventory.yaml has no `policy_values:` block.\n"
+                 "Add one entry per placeholder, e.g.\n"
+                 "  policy_values:\n"
+                 "    camera_stream: <address>\n"
+                 "    operator_identity: <who@example>\n")
     values = {}
     for line in block.group(1).splitlines():
-        m = re.match(r"\s+([a-z_]+):\s*([0-9.]+)\s*(?:#.*)?$", line)
+        m = re.match(r"\s+([a-z_]+):\s*(\S+)\s*(?:#.*)?$", line)
         if m:
             values[m.group(1)] = m.group(2)
     return values
@@ -75,13 +82,22 @@ def main():
     if missing:
         sys.exit("error: no value for placeholder(s): " + ", ".join(missing))
 
-    bad = sorted(k for k in needed if not IPV4.match(values[k]))
+    unknown = sorted(k for k in needed if k not in SPEC)
+    if unknown:
+        sys.exit("error: template uses placeholder(s) with no entry in SPEC: "
+                 + ", ".join(unknown))
+
+    bad = []
+    for k in sorted(needed):
+        kind = SPEC[k]
+        if not VALIDATORS[kind].match(values[k]):
+            bad.append(f"{k} (expected {kind})")
     if bad:
-        sys.exit("error: value is not an IPv4 address for: " + ", ".join(bad))
+        sys.exit("error: value fails validation for: " + "; ".join(bad))
 
     unused = sorted(values.keys() - needed)
     if unused:
-        print(f"note: inventory defines unused exposed_hosts: {', '.join(unused)}",
+        print(f"note: inventory defines unused policy_values: {', '.join(unused)}",
               file=sys.stderr)
 
     out = tmpl

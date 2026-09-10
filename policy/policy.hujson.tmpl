@@ -147,7 +147,11 @@
 		// The household guarantee, asserted. This is the one that must never
 		// regress, and the reason it is first.
 		{
-			"src":    "autogroup:member",
+			// The grant above says autogroup:member; the test must name a
+			// concrete principal. Tailscale accepts the autogroup in a grant
+			// and rejects it here -- "unknown user or host" -- so the identity
+			// is templated like the addresses rather than committed.
+			"src":    "{{operator_identity}}",
 			"accept": ["tag:gateway-home:8123"],
 			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
 		},
@@ -155,7 +159,7 @@
 		// Action tier: identical devices, same port, same gateway, opposite
 		// outcomes. Least privilege here is per host, not per protocol.
 		{
-			"src":    "autogroup:member",
+			"src":    "{{operator_identity}}",
 			"accept": ["actuator-granted:52432"],
 			"deny":   ["actuator-control:52432"],
 		},
@@ -165,12 +169,12 @@
 			"src":    "tag:sensor",
 			"accept": ["tag:collector:8443"],
 			"deny": [
-				"tag:prod:22",            // cannot reach production
-				"tag:collector:22",       // cannot administer its own sink
-				"tag:sensor:8443",        // cannot reach a peer sensor
-				"tag:gateway-home:1883",  // cannot talk to the broker directly
-				"tag:gateway-home:8123",  // cannot reach the automation UI
-				"camera-stream:554",      // cannot reach the stream tier
+				"tag:prod:22", // cannot reach production
+				"tag:collector:22", // cannot administer its own sink
+				"tag:sensor:8443", // cannot reach a peer sensor
+				"tag:gateway-home:1883", // cannot talk to the broker directly
+				"tag:gateway-home:8123", // cannot reach the automation UI
+				"camera-stream:554", // cannot reach the stream tier
 				"actuator-granted:52432", // cannot change physical state
 			],
 		},
@@ -195,7 +199,7 @@
 			"src":    "tag:collector",
 			"accept": ["tag:gateway-home:1883", "camera-stream:554"],
 			"deny": [
-				"camera-stream:80",       // one port on that host, not the host
+				"camera-stream:80", // one port on that host, not the host
 				"actuator-granted:52432", // reading a stream is not commanding a socket
 				"actuator-control:52432",
 				"tag:prod:22",
