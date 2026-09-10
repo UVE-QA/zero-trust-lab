@@ -812,3 +812,76 @@ The method notes in `STATUS.md` carry the general form. This entry records the
 specific variant that is easiest to miss, because it does not feel like
 measuring at all — inheriting a fact from documentation rather than from the
 system.
+
+---
+
+# Phase 1.5 — Segmentation on a flat network
+
+## D-022 — Option B verified. Both checks pass, and one of them nearly failed for the wrong reason.
+
+**Status:** verification complete. **Nothing changed yet** — the cutover is
+sequenced after Phase 2, per the ordering correction in D-008.
+
+The handoff requires two things confirmed before building on Option B, *neither
+assumed*. Both are now answered from the gateway itself.
+
+### Check 1 — what forwarding the gateway can actually do
+
+**Result: natively supported.** The handoff feared the add-on might be "too
+constrained" and prepared Option D as the fallback. It is not constrained; the
+capability is purpose-built. The add-on exposes a service list where each entry
+names a target, a protocol — including raw TCP, which covers both the camera
+stream and the actuator's control port — and a port to expose it on. Each
+service gets a stable name on the tailnet side, which is exactly what Option B
+asks for.
+
+**Phase 1 turned out to be a prerequisite, not just a predecessor.** The add-on
+documentation states the mechanism requires the device to be tagged. It is,
+since Phase 1. Had the phases run in the other order this check would have
+failed and Option D would have been adopted for no good reason.
+
+One thing is *likely* rather than proven: the console offers the feature with no
+upgrade prompt, which suggests it is available on the current plan. Proving it
+means creating one, which is a change. Recorded as likely — the handoff's own
+rule is not to design around a feature without confirming availability, so this
+gets confirmed before it is depended on.
+
+### Check 2 — whether each device resolves by name from the gateway
+
+**Result: pass, for every device in the proposed set** — and verified by
+*connecting*, not merely by looking up. A name that resolves but does not carry
+a connection would have passed a weaker test and failed in production.
+
+The actuator answers on its HTTP port when addressed by name. The camera accepts
+a stream connection when addressed by name. Both from the gateway, which is the
+only vantage point that matters.
+
+**This check nearly produced a false blocker.** The first lookup command
+returned only an IPv6 link-local address — which needs a zone identifier and
+would plausibly have broken forwarding. It looked like Option B was dead. The
+broader form of the same command shows both families with the IPv4 first, and
+the connection test settles it outright. That is the third time this project has
+had a narrow command produce a confident wrong negative; the standing rule
+holds — do not conclude absence from a tool until you have made that tool find
+something.
+
+### A third naming mechanism, deliberately not used
+
+The site gateway runs a DNS server handing out names derived from DHCP
+hostnames, and those names resolve and connect too. They would work.
+
+**They are not used.** Depending on them means depending on the one piece of
+infrastructure the handoff explicitly says is not ours and cannot be configured
+— the same device whose inability to reserve addresses caused this whole
+problem. Multicast name resolution is peer-to-peer and depends on nothing
+outside our control. Recorded as an available fallback that is being declined
+on purpose, so nobody later "fixes" a problem by reaching for it.
+
+### What is still open
+
+Whether the add-on passes a name through to its forwarding target, or resolves
+it once and caches, or requires an address. The host can plainly resolve and
+connect by name; whether the add-on preserves that is untested, and testing it
+means a configuration change and an add-on restart — which briefly drops the
+household's remote access. That is an ask-first change, not a proceed-and-record
+one.
