@@ -353,3 +353,60 @@ Confirming the exposure end-to-end from an off-LAN node requires enabling route
 acceptance on that node, which temporarily widens what it can reach. That is a
 change to a node's configuration made in order to demonstrate a weakness, so it
 was not done unilaterally.
+
+---
+
+## D-009 — The blast-radius measurement uses a disposable node, not a trusted one
+
+**Status:** accepted. Execution deferred to the Phase 2 window — see
+`docs/runbooks/blast-radius.md`.
+
+D-008 established what the subnet route exposes, measured from inside the LAN.
+The open question was how to confirm it from outside, where no local path can
+confound the result.
+
+The obvious instrument was an existing off-premises node: enable route
+acceptance on it, measure, turn it back off. **Rejected**, for three reasons
+that are worth keeping because they generalise.
+
+**1. An undo step is a step someone can forget.** The risk in "turn it straight
+back off" is not the interval of widened reach — it is that the undo depends on
+a person remembering it while distracted by the result they just got. An
+ephemeral node deletes itself when it stops. There is no undo to forget, so no
+exposure outlives the measurement. Prefer a mechanism that cannot be left half
+done over a procedure that must be completed correctly.
+
+**2. It would measure a weaker claim than the one being made.** The finding is
+that *any node a leaked auth key could register* already reaches the whole home
+LAN. A node registered with an auth key, accepting routes, **is** that scenario.
+Demonstrating instead that a node already trusted can reach the LAN proves
+something less interesting and is easy for a reader to wave away. Measure the
+claim, not a proxy for it.
+
+**3. It exercises the fleet tooling early**, on a task small enough that getting
+it wrong is free — and that tooling is needed for later phases anyway.
+
+The disposable node runs on the off-premises host, so the property that made
+that host attractive is preserved: it has no local path to the home LAN either,
+and the result is just as unconfounded.
+
+### The sequencing hazard — the part that must not be got wrong
+
+Deferring the measurement into the Phase 2 window creates one trap.
+
+**The "before" reading only exists while the tailnet is still allow-all.** Both
+readings therefore have to sit in a single window around the policy apply: bring
+the node up, measure, apply the policy, measure again, tear the node down.
+
+**Do not let the policy land first and plan to reconstruct the baseline
+afterwards.** Reverting a production tailnet to allow-all in order to take a
+reading is a far worse act than anything this decision is weighing — it would
+deliberately re-expose a household network for the sake of a number. If the
+before-reading is missed, it is missed; write that down and move on with the
+after-reading alone.
+
+### Cost control
+
+Every node in the fleet consumes a tagged resource, and the plan in use caps
+them. Teardown is not housekeeping — it is what keeps the cap from blocking
+unrelated work. This is the first exercise of that discipline.

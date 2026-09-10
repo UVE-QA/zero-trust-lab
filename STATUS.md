@@ -5,10 +5,9 @@ owner.** Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-Q-001 … Q-003 have been answered and folded in. **One new question, Q-004**, is
-open in `local/questions-for-review.md`; it does not block anything. The
-substance of all of them is mirrored below and in `docs/02-decisions.md`, so
-this repo is readable without that private file.
+Q-001 … Q-004 have all been answered and folded in. **No open questions.** Their
+substance is mirrored below and in `docs/02-decisions.md`, so this repo is
+readable without the private question log.
 
 **One finding was reversed on review: D-005 was wrong, see D-007.** The actuator
 does publish an mDNS name; the earlier negative was a silent tool failure. That
@@ -86,6 +85,7 @@ that rewrites the global policy file.
 | **D-006** | info | The baseline is the stock default: allow-all, plus root SSH to `autogroup:self`, which on a single-user tailnet is every machine. |
 | **D-007** | — | Correction to D-005. The actuator publishes a stable mDNS name that resolves, so **Option B is viable**. The firmware is confirmed to be the HomeKit variant, so the handoff's §5 reasoning stands unamended and my earlier "standard firmware" inference was wrong. Both units are already paired, so adoption does require unpairing. |
 | **D-008** | high | Measures what the subnet route is load-bearing for: **almost nothing.** Everything used remotely is already a tailnet node in its own right. The one real exposure is the site gateway's admin interface, published to the whole tailnet. Also establishes that route acceptance is a client-side toggle — not an access control. Corrects the ordering: policy first, then migrate, then withdraw. |
+| **D-009** | — | The blast-radius measurement uses a disposable ephemeral node, not a loosened trusted one: nothing has to be remembered and undone, and it measures the leaked-key claim rather than a proxy for it. Deferred to the Phase 2 window, with the sequencing hazard written up. |
 
 ## The starting state, stated plainly
 
@@ -122,11 +122,21 @@ lives, and tagging is the step that assigns it.
    operator laptop — and use a direct multicast query, not the service-discovery
    CLI, for the reason in D-007. Same flat segment so it should agree, but the
    check as written says from the gateway.
-3. **Answer Q-004** — whether to take the off-premises "before" measurement now
-   or fold it into Phase 2 as a before/after pair. Nothing depends on it.
-4. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
+3. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
    key, and record in the inventory which nodes now have key expiry disabled by
    default as a result.
+
+**Carry into Phase 2:** `docs/runbooks/blast-radius.md` must be executed *around*
+the first policy apply, not after it. The before-reading only exists while the
+tailnet is still allow-all, and it is not recoverable later — reverting a
+production tailnet to allow-all to take a reading is never the trade. Read that
+runbook before scheduling the apply, not while doing it.
+
+`scripts/fleet-up.sh` / `fleet-down.sh` are needed for that runbook and do not
+exist yet. They cannot be written usefully until the policy file declares
+`tagOwners`, since an ephemeral node needs a tagged auth key — so they belong at
+the start of Phase 2, not earlier. Teardown must be reliable: every node
+consumes a tagged resource and the plan caps them.
 
 **Ordering that changed on review (D-008):** the route is not the lever, the
 policy is. Do Phase 2 with the route untouched, then migrate the gateway with
