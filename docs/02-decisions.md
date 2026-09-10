@@ -885,3 +885,87 @@ connect by name; whether the add-on preserves that is untested, and testing it
 means a configuration change and an add-on restart — which briefly drops the
 household's remote access. That is an ask-first change, not a proceed-and-record
 one.
+
+---
+
+## D-023 — Correction: D-022's check 1 was wrong. Option B via the add-on is dead.
+
+**Status:** accepted. **Supersedes D-022's "natively supported" conclusion.**
+Nothing was changed on the gateway — the attempt was rejected by validation
+before it took effect.
+
+D-022 reported that the gateway's forwarding capability was "natively supported,
+not too constrained", and that Option B was viable. That was based on the option
+schema declaring the target as a free-form string, and on documentation
+describing it as "a local address reachable from this app."
+
+**The schema enforces a pattern the documentation only hinted at.** Submitting a
+hostname target came back rejected against a regular expression that permits
+exactly one host: **loopback**.
+
+So the service mechanism can expose things running *on the gateway itself*. It
+cannot forward to another device on the network, by name or by address. It is
+not a forwarding proxy at all, and Option B as the handoff describes it cannot
+be built on it.
+
+The handoff anticipated precisely this — *"if it is too constrained, go to
+Option D"* — and it was right to keep the fallback.
+
+### How I got it wrong, which is the useful part
+
+Three signals were available and I weighted them badly:
+
+- The schema said the field was a **string**. That is a *type*, not a
+  *constraint*, and I read it as permission.
+- The documentation said **"a local address"** and gave a **loopback example**.
+  Both were accurate descriptions of a loopback-only field. I read "local" as
+  "on your network" when it meant "on this machine".
+- The one authoritative source — what the system accepts — was a single API call
+  away and I reached for it only after building a conclusion on the other two.
+
+This is the fourth time this project has produced a confident wrong answer from
+a partial signal, and the first where the wrong answer was *optimistic*. The
+previous three were false negatives caught before they cost anything. This one
+was a false positive, and a false positive is worse: it would have been
+discovered during the cutover, on a household gateway, rather than during
+verification.
+
+**The rule stands and gains a clause:** do not conclude capability from a
+permissive-looking type or an example. Submit the thing you intend to use and
+see whether the system takes it. Validation is documentation that cannot be out
+of date.
+
+### What survives from D-022
+
+The name-resolution finding is unaffected and remains solid: the gateway
+resolves the relevant devices by multicast name and **connects** to them, which
+was verified by connection rather than lookup. Whatever mechanism ends up doing
+the forwarding, it will be running on a host that can reach those devices by
+name.
+
+Also confirmed along the way, and worth keeping: **Tailscale Services are
+available on the current plan** — one was defined successfully, and it received
+its own tailnet address and a stable name of its own, independent of whichever
+node hosts it. That is a stronger stable identifier than the handoff assumed was
+available. It is simply not a way to reach a *different* device.
+
+### Where this leaves Phase 1.5
+
+Two live paths, both consistent with the constraint:
+
+1. **Option D, as the handoff predicted.** The gateway already knows every
+   device's current address; a scheduled reconciler syncs per-host routes
+   through the API. It converts a missing DHCP feature into an automation
+   problem, is fully reproducible from the repo, and needs no forwarding
+   configuration at all.
+2. **A loopback forwarder.** Because the constraint is *loopback only* rather
+   than *no forwarding*, a small proxy on the gateway listening on loopback and
+   resolving the device by name would satisfy it — and the Service mechanism
+   would then publish that loopback port under a stable tailnet name. This keeps
+   the property Option B was chosen for: **no advertised routes at all**, which
+   is stricter than any `/32` scheme.
+
+The second is more faithful to the design intent and adds a component. The first
+is what the handoff already chose as the fallback and adds a script. Neither is
+started here; the ordering correction in D-008 puts the cutover after Phase 2
+regardless.
