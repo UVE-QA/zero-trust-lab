@@ -83,12 +83,25 @@ resource "aws_iam_role" "github_deploy" {
   max_session_duration = 3600
 }
 
-# What the workflow may actually do. Deliberately narrow: it manages the
-# lab's own stack and nothing else in the account.
+# What the workflow may actually do.
+#
+# CI PLANS. A HUMAN APPLIES. That split is deliberate, and it follows from
+# there being no approval gate on this repository (D-033): a role that can
+# create IAM roles unattended, with nobody required to look, is a worse trade
+# than typing a command. When the repository is published and a required
+# reviewer becomes available, this can be revisited.
+#
+# So the permissions below are read plus state. Terraform needs to READ every
+# resource it manages in order to produce a plan -- which is more than it first
+# appears, and is why the first attempt failed.
+#
+# Deliberately NOT the ReadOnlyAccess managed policy. That grants read across
+# the entire account, and this account holds another project's state and
+# secrets. "Read-only" is not the same as "harmless", and a lab about least
+# privilege should not reach for an account-wide grant because scoping is
+# tedious.
 data "aws_iam_policy_document" "github_deploy_permissions" {
-  # Scoped to this stack's prefix, not the whole shared bucket. Other
-  # projects keep their state in the same bucket and this role has no
-  # business reading it.
+  # --- Terraform state: the only writes this role has -------------------
   statement {
     sid    = "TerraformStateForThisStackOnly"
     effect = "Allow"
@@ -112,14 +125,64 @@ data "aws_iam_policy_document" "github_deploy_permissions" {
     }
   }
 
+  # --- Reading the stack, to plan it -----------------------------------
   statement {
-    sid    = "ReadArchive"
+    sid    = "ReadTheArchiveBucketItManages"
     effect = "Allow"
     actions = [
-      "s3:ListBucket",
-      "s3:GetBucketLocation",
+      "s3:Get*",
+      "s3:List*",
     ]
-    resources = [aws_s3_bucket.archive.arn]
+    resources = [
+      aws_s3_bucket.archive.arn,
+      "${aws_s3_bucket.archive.arn}/*",
+    ]
+  }
+
+  statement {
+    sid    = "ReadTheRolesItManages"
+    effect = "Allow"
+    actions = [
+      "iam:GetRole",
+      "iam:GetRolePolicy",
+      "iam:ListRolePolicies",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRoleTags",
+    ]
+    resources = [
+      aws_iam_role.github_deploy.arn,
+      aws_iam_role.collector.arn,
+    ]
+  }
+
+  statement {
+    sid       = "ReadTheOidcProvider"
+    effect    = "Allow"
+    actions   = ["iam:GetOpenIDConnectProvider"]
+    resources = [local.github_oidc_arn]
+  }
+
+  # The only unscoped action here. Listing providers has no resource to scope
+  # to -- IAM requires "*" for it -- and Terraform's data source calls it
+  # before it can call Get. It reveals which providers exist, and nothing else.
+  statement {
+    sid       = "ListProvidersCannotBeScoped"
+    effect    = "Allow"
+    actions   = ["iam:ListOpenIDConnectProviders"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ReadRolesAnywhereWhenItExists"
+    effect = "Allow"
+    actions = [
+      "rolesanywhere:ListTrustAnchors",
+      "rolesanywhere:GetTrustAnchor",
+      "rolesanywhere:ListProfiles",
+      "rolesanywhere:GetProfile",
+      "rolesanywhere:ListTagsForResource",
+    ]
+    resources = ["*"]
   }
 }
 

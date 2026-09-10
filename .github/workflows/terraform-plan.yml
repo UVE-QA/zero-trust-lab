@@ -1,8 +1,17 @@
-name: terraform-apply
+name: terraform-plan
 
-# Applies the AWS stack. No access key: the job assumes a role by presenting
-# an OIDC token, and the role trusts exactly one subject --
-# repo:OWNER/REPO:environment:<this environment>.
+# PLANS the AWS stack. It cannot apply, and that is the design.
+#
+# No access key: the job assumes a role by presenting an OIDC token, and the
+# role trusts exactly one subject. The role it assumes holds read permissions
+# plus writes to this stack's state prefix -- nothing that can create or change
+# infrastructure.
+#
+# Applying is done by a person, from a terminal, after reading the plan. That
+# follows from there being no approval gate here: a role that can create IAM
+# roles unattended, with nobody required to look, is a worse trade than typing
+# a command. Revisit when the repository is public and a required reviewer
+# becomes available.
 #
 # The `environment:` below is what makes that subject match. On a PUBLIC
 # repository it would also allow a required reviewer to gate the apply.
@@ -15,13 +24,6 @@ name: terraform-apply
 
 on:
   workflow_dispatch:
-    inputs:
-      action:
-        description: "plan or apply"
-        required: true
-        default: plan
-        type: choice
-        options: [plan, apply]
 
 permissions:
   contents: read
@@ -44,12 +46,12 @@ permissions:
 # logs harder to read for no gain.
 
 concurrency:
-  group: terraform-apply
-  cancel-in-progress: false   # never interrupt an apply
+  group: terraform-plan
+  cancel-in-progress: true
 
 jobs:
   terraform:
-    name: ${{ inputs.action }}
+    name: plan
     runs-on: ubuntu-latest
     environment: aws-apply
     steps:
@@ -81,21 +83,6 @@ jobs:
         working-directory: terraform/aws
         run: |
           terraform plan -input=false \
-            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
-            -var="profile=" \
-            -var="region=${{ vars.AWS_REGION }}" \
-            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
-            -var="github_owner=${{ github.repository_owner }}" \
-            -var="github_repo=${{ github.event.repository.name }}" \
-            -var="github_owner_id=${{ github.repository_owner_id }}" \
-            -var="github_repo_id=${{ github.repository_id }}" \
-            -var="github_oidc_provider_exists=true"
-
-      - name: apply
-        if: inputs.action == 'apply'
-        working-directory: terraform/aws
-        run: |
-          terraform apply -input=false -auto-approve \
             -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="profile=" \
             -var="region=${{ vars.AWS_REGION }}" \
