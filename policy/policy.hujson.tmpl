@@ -19,9 +19,11 @@
 		"tag:gateway-home": ["autogroup:admin"], // subnet router for the IoT segment
 		"tag:appliance":    ["autogroup:admin"], // attached to the network, originates nothing
 
-		// Declared but UNHOMED -- filled by simulated units the fleet scripts
-		// create in later phases. Saying so avoids implying a fleet exists.
-		"tag:collector": ["autogroup:admin"], // telemetry sink; awaits dedicated hardware
+		// The collector is a live node: a container on the cloud dev host
+		// (D-048). The other two are declared but UNHOMED -- filled by units
+		// the fleet scripts create in later phases. Saying so avoids implying
+		// a fleet exists.
+		"tag:collector": ["autogroup:admin"], // telemetry sink, outside the house
 		"tag:sensor":    ["autogroup:admin"], // simulated sensors: push-only telemetry
 		"tag:drone":     ["autogroup:admin"], // simulated mobile units: telemetry AND control
 	},
@@ -88,13 +90,16 @@
 			"ip":  ["tcp:22"],
 		},
 
-		// --- Telemetry tier: collector subscribes to the broker -----------
-		// The broker sits on the gateway, so the grant runs collector ->
-		// gateway. It was located rather than assumed; see D-004.
+		// --- Telemetry tier: the hub pushes out ---------------------------
+		// The machine that has the data sends it; nothing outside the house
+		// needs a way in. The collector used to be granted the hub's broker;
+		// that grant is gone, and the collector now reaches nothing inside
+		// the home at all (D-049). The connection's tailnet identity is the
+		// credential: this port is reachable only from the roles named here.
 		{
-			"src": ["tag:collector"],
-			"dst": ["tag:gateway-home"],
-			"ip":  ["tcp:1883"],
+			"src": ["tag:gateway-home"],
+			"dst": ["tag:collector"],
+			"ip":  ["tcp:8443"],
 		},
 
 		// --- Telemetry tier: field units report in ------------------------
@@ -251,18 +256,27 @@
 			],
 		},
 
-		// The collector reaches the broker, and nothing else on the IoT side
-		// -- in particular no actuator, ever.
+		// The collector lives outside the house and reaches nothing inside
+		// it -- not the broker, not the UI, not an actuator, ever.
 		{
-			"src":    "tag:collector",
-			"accept": ["tag:gateway-home:1883"],
+			"src": "tag:collector",
 			"deny": [
-				"tag:gateway-home:22", // one port on the hub, not the hub
-				"actuator-granted:52432", // reading telemetry is not commanding a socket
+				"tag:gateway-home:8443", // the push port, the other way: refused
+				"tag:gateway-home:1883", // it is pushed to; it does not pull
+				"tag:gateway-home:8123",
+				"tag:gateway-home:22",
+				"actuator-granted:52432",
 				"actuator-control:52432",
 				"tag:prod:22",
-				"tag:gateway-home:8123",
 			],
+		},
+
+		// The hub may deliver telemetry to the collector, and do nothing
+		// else to it -- delivering data is not administering the machine.
+		{
+			"src":    "tag:gateway-home",
+			"accept": ["tag:collector:8443"],
+			"deny":   ["tag:collector:22", "tag:prod:22"],
 		},
 
 		// Drones report like sensors. Being commandable does not make them
