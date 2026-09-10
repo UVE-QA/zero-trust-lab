@@ -1,0 +1,6 @@
+local/
+*.tfstate*
+*.pem
+*.key
+.env
+.DS_Store
