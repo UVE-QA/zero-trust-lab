@@ -191,3 +191,165 @@ a test for it: a line containing both the vendor example and a real address
 still fails the build. An allowlist is the one place a scanner like this can be
 talked into missing something, so it stays tiny and every entry is justified
 where it is defined.
+
+---
+
+## D-007 — Correction: D-005 was wrong. The actuator does publish an mDNS name.
+
+**Status:** accepted. **Supersedes the central claim of D-005.** D-005 is left
+standing above because this file is append-only and a retracted finding is more
+useful than a deleted one.
+
+### What D-005 claimed, and what is actually true
+
+D-005 reported that the chosen actuator publishes no mDNS name, concluded that
+Option B's second verification step had failed, and pushed Phase 1.5 toward
+Option D. **That conclusion was an artifact of the measuring tool, not a
+property of the network.**
+
+A direct multicast DNS query — a PTR question sent to the mDNS group and the
+responses parsed in-process, with no shell tooling between the wire and the
+result — returns eight HomeKit accessory instances on this LAN. **Two of them
+are the actuator units**, matched to the hardware addresses found earlier by
+vendor prefix. Each resolves to a hostname, each hostname resolves to the
+device's current address, and the accessory port is open on both.
+
+So Option B's requirement is met: these devices have stable names that survive a
+lease change, which is exactly what the flat-network workaround needs.
+
+### How the wrong answer happened
+
+The service-discovery CLI buffers its output when stdout is not a terminal. A
+browse that finds instances writes enough to flush; a browse that finds nothing
+writes only a short header that never leaves the buffer and is lost when the
+process is killed. The result is an empty file that looks identical to a
+genuine "nothing is advertising."
+
+The guard added after the first occurrence — treat a capture with no header line
+as invalid — was necessary but **not sufficient**. It cannot distinguish "the
+tool never flushed" from "the tool ran and found nothing," because both produce
+a headerless empty file. A later attempt to force a terminal failed outright
+with an ioctl error on a socket, and that failure was itself nearly read as
+another zero result.
+
+**The rule that actually works:** do not infer absence from a tool that can fail
+silently. Establish the tool works by making it find something known to exist,
+in the same invocation style, or bypass it and speak the protocol directly. The
+browse for a known-present service returning results is the control; without a
+control, an empty result is not evidence.
+
+### What this changes
+
+- **Option B is viable** for the actuator, and by extension the mDNS-based
+  approach is not disqualified for the other non-tailnet devices. Phase 1.5
+  should evaluate it on its merits rather than falling back to Option D because
+  of a broken measurement.
+- **mDNS is healthy on this LAN**, verified against several services known to
+  exist. Any future claim that a device is not discoverable needs the same
+  control.
+- The rest of D-005 stands: every existing Matter actuator is Thread-attached
+  and none is an IP host, so the WiFi actuator remains the only candidate for
+  the action tier.
+
+### The firmware question is also settled, against my earlier inference
+
+D-005 noted an open HTTP port and suggested it pointed at the vendor's standard
+firmware rather than the HomeKit variant — which, if true, would have reopened
+the local-integration option the handoff rules out.
+
+**It is the HomeKit variant.** The accessory records advertise the model, an
+accessory category of "outlet", and a HomeKit protocol version. The HTTP port is
+present on this firmware too, so it never distinguished the variants. The
+handoff's reasoning in §5 stands unamended and the local-integration route stays
+closed.
+
+Both units also report a status flag of paired — they are bound to a controller
+already, consistent with the handoff. Adoption therefore does require unpairing
+first; it is not a case of a free device waiting to be claimed.
+
+### Standing correction to the method notes
+
+"Verify by digest, not by reading" was already recorded. Add: **verify a
+negative result against a positive control.** Two findings in this phase were
+nearly wrong in the same direction, both because a silent tool failure reads
+exactly like a real absence.
+
+---
+
+## D-008 — What the subnet route is actually load-bearing for: almost nothing
+
+**Status:** measured. Amends D-003 with evidence. **The route is still not
+touched.**
+
+D-003 recorded that an approved subnet route into the home LAN is live and that
+the effective policy is allow-all. This entry answers the question that follows:
+if the route were withdrawn, what would break?
+
+### Method
+
+Every live host on the LAN was enumerated and port-profiled from an on-LAN host,
+then classified into two groups: hosts that are already tailnet nodes in their
+own right, and hosts that are reachable *only* through the route. The second
+group is the only thing the route buys.
+
+### Result
+
+**Everything the household actually uses remotely belongs to the first group.**
+The automation UI, the NVR, and the operator machines are each tailnet nodes at
+their own address; traffic to them never traverses the subnet route. The camera
+streams are consumed by the NVR, which sits on the LAN itself. The actuators are
+driven by a hub that is also on the LAN.
+
+The second group — devices reachable only via the route — consists of appliances
+that nothing remote depends on, plus one item that matters:
+
+**The site gateway's administration interface is exposed to the entire tailnet.**
+It is the control plane for the whole network, and the route publishes it to
+every node that accepts routes — including the media appliance the design wants
+isolated, and including any node that a leaked auth key could register. Remote
+administration of the site gateway is the only capability the route genuinely
+provides, and it is a liability rather than a feature.
+
+**So withdrawing the route should be close to free.** That is the opposite of
+the assumption the phase plan was built on, and it is worth knowing before the
+migration is designed rather than after.
+
+### Whether the route is *used* is a client-side toggle, and that is the point
+
+Accepting an advertised subnet route is a per-client setting. The operator
+laptop was verified to have the route installed on its tunnel interface; a Linux
+node was verified not to. Apple platforms accept routes by default, so the nodes
+most likely to be carrying the whole home LAN are the appliances and handhelds,
+not the servers.
+
+**A setting the receiving node controls is not an access control.** The node
+being restricted is the one deciding whether the restriction applies, and it
+flips with one command. With an allow-all policy there is nothing else in the
+path. This is the clearest statement of the problem the project exists to fix:
+the current arrangement is not a weak policy, it is the absence of one, with a
+client-side convenience toggle standing in for it.
+
+### Ordering — corrected
+
+The route was previously treated as the lever that fixes D-003. It is not.
+Migrating the gateway to another node changes *which* node advertises the route;
+with the policy still allow-all, the exposure afterwards is identical.
+
+The policy is the lever. Revised order:
+
+1. **Phase 2 first, route untouched.** A deny-by-default policy constrains who
+   may use the route without removing it — one commit, reversible with one
+   revert, and it collapses the exposure to what is explicitly granted.
+2. **Then the gateway migration**, with both nodes overlapping.
+3. **Then withdraw the route**, once the narrow paths are proven.
+
+That sequence never removes household access before a replacement works, and it
+reduces real exposure considerably earlier than withdrawing the route first
+would.
+
+### Not done, deliberately
+
+Confirming the exposure end-to-end from an off-LAN node requires enabling route
+acceptance on that node, which temporarily widens what it can reach. That is a
+change to a node's configuration made in order to demonstrate a weakness, so it
+was not done unilaterally.

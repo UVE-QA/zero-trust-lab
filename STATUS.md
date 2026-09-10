@@ -5,9 +5,15 @@ owner.** Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-Open work: **3 questions** in `local/questions-for-review.md` (Q-001 … Q-003).
-None of them blocks the rest of Phase 0. Their substance is mirrored below and
-in `docs/02-decisions.md`, so this repo is readable without that private file.
+Q-001 … Q-003 have been answered and folded in. **One new question, Q-004**, is
+open in `local/questions-for-review.md`; it does not block anything. The
+substance of all of them is mirrored below and in `docs/02-decisions.md`, so
+this repo is readable without that private file.
+
+**One finding was reversed on review: D-005 was wrong, see D-007.** The actuator
+does publish an mDNS name; the earlier negative was a silent tool failure. That
+correction is the reason the method note at the bottom of this file now says to
+verify negatives against a positive control.
 
 ---
 
@@ -45,18 +51,21 @@ routing table.
 sign in and reach the policy editor. One minute, and it is what makes a bad
 policy recoverable.
 
-### 2. Actuator checks 1 and 2 — blocked, and the premise is in question (Q-002)
+### 2. Actuator — checks 1 and 3 now pass; check 2 needs adoption first (Q-002)
 
-The device is not in the automation hub at all, so both hub-UI checks are
-unrunnable. Decided: **confirm the firmware variant before unpairing anything.**
-Two observations sit against the handoff's assumption that this is the HomeKit
-firmware variant — it publishes no HomeKit advertisement at all, and it serves
-an HTTP endpoint more characteristic of the standard firmware. If it is
-standard firmware, the local-LAN integration the handoff rules out may work
-directly and nothing needs unpairing.
+**Resolved since the last update.** The transport check passes: the device is a
+HomeKit-over-WiFi accessory, an ordinary IP host on the LAN, confirmed from its
+own advertised records rather than inferred. The mDNS check passes too — see
+D-007 for why it was first reported as failing.
 
-D-005 is explicit that this is an inference, not an identification. Confirm
-against the physical unit before acting on it.
+The firmware question is settled **against** my earlier inference: it is the
+HomeKit variant, so the handoff's §5 reasoning needs no amendment and the
+local-integration route stays closed.
+
+**What is still needed from the owner:** two candidate units are on the network
+and both report as already paired. Say which one is the seasonal spare and what
+it drives, then unpair that one. Adoption via HomeKit Controller follows, and
+check 2 is a formality after it — the protocol is local by construction.
 
 ### 3. Tailscale OAuth client — not blocking Phase 0 (Q-003)
 
@@ -73,8 +82,10 @@ that rewrites the global policy file.
 |---|---|---|
 | **D-003** | high | An approved `/24` route into the home LAN is already live, served by a user-owned personal desktop. The gateway role is not unassigned as the handoff assumes — Phase 1.5 is a migration, not a build. Not touched. Decision needed: Q-001. |
 | **D-004** | info | MQTT broker located, not assumed. On the intended gateway node, plaintext on all interfaces, anonymous refused, no TLS. Settles the grant direction. LAN exposure documented as residual risk, deliberately not fixed. |
-| **D-005** | medium | The actuator publishes no mDNS name — Option B's own verification step failing. Every existing Matter actuator ruled out as a substitute: all Thread, verified per node. |
+| **D-005** | ~~medium~~ | **RETRACTED — see D-007.** Claimed the actuator publishes no mDNS name. It does. The negative was a tool artifact. The rest of D-005 (all existing Matter actuators are Thread, so none is an IP host) still stands. |
 | **D-006** | info | The baseline is the stock default: allow-all, plus root SSH to `autogroup:self`, which on a single-user tailnet is every machine. |
+| **D-007** | — | Correction to D-005. The actuator publishes a stable mDNS name that resolves, so **Option B is viable**. The firmware is confirmed to be the HomeKit variant, so the handoff's §5 reasoning stands unamended and my earlier "standard firmware" inference was wrong. Both units are already paired, so adoption does require unpairing. |
+| **D-008** | high | Measures what the subnet route is load-bearing for: **almost nothing.** Everything used remotely is already a tailnet node in its own right. The one real exposure is the site gateway's admin interface, published to the whole tailnet. Also establishes that route acceptance is a client-side toggle — not an access control. Corrects the ordering: policy first, then migrate, then withdraw. |
 
 ## The starting state, stated plainly
 
@@ -107,18 +118,21 @@ lives, and tagging is the step that assigns it.
 **In order:**
 
 1. **The phone check.** One minute. It gates everything after it.
-2. **Re-run the actuator mDNS browse from the gateway node**, not from the
-   operator laptop. The Phase 0 result was taken from the wrong vantage point —
-   same L2 segment so it should agree, but the check as written says from the
-   gateway, and D-005 turns on it.
-3. **Read the answers** to Q-001 … Q-003 and fold them into
-   `docs/02-decisions.md` as amendments, not edits. The decisions file is
-   append-only.
-4. **Q-001 first among them.** The live `/24` is the largest gap in the current
-   state and retiring it can remove access the household uses daily.
-5. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
+2. **Re-run the actuator mDNS check from the gateway node**, not from the
+   operator laptop — and use a direct multicast query, not the service-discovery
+   CLI, for the reason in D-007. Same flat segment so it should agree, but the
+   check as written says from the gateway.
+3. **Answer Q-004** — whether to take the off-premises "before" measurement now
+   or fold it into Phase 2 as a before/after pair. Nothing depends on it.
+4. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
    key, and record in the inventory which nodes now have key expiry disabled by
    default as a result.
+
+**Ordering that changed on review (D-008):** the route is not the lever, the
+policy is. Do Phase 2 with the route untouched, then migrate the gateway with
+both nodes overlapping, then withdraw the route. Withdrawing it first would
+remove household access before a replacement works, and would reduce real
+exposure later, not sooner.
 
 **Before every commit:**
 
@@ -145,4 +159,11 @@ Each of these nearly produced a wrong answer in Phase 0:
   committed file.
 - **Probe rather than assume.** The broker's location, the actuator's transport
   and every Matter node's network type were all established by measurement.
-  Two of the three contradicted the specification.
+- **Verify a negative against a positive control.** This one cost a wrong
+  finding. The service-discovery CLI buffers off a tty: a browse that finds
+  nothing never flushes, producing a file identical to one from a browse that
+  never ran. Checking for the header line is necessary but not sufficient, since
+  both failure modes produce a headerless empty file. Either prove the tool
+  works by making it find something known to exist in the same invocation style,
+  or bypass it and speak the protocol directly. D-007 is what happens without
+  this rule.
