@@ -91,3 +91,25 @@ jobs:
         run: ./scripts/render-policy.py --from-env
       - name: compare with the policy in force
         run: ./scripts/tailnet-api.py drift policy/.rendered/policy.hujson
+
+      # Counts only -- nodes by role, OS and state, routes by prefix length --
+      # for the public evidence page, which holds no tailnet credential of its
+      # own and reads this artifact instead. The file is swept before upload:
+      # an artifact of a public repository can be downloaded by anyone.
+      - name: count the network (aggregates only)
+        if: ${{ !cancelled() }}
+        run: ./scripts/tailnet-api.py inventory tailnet-aggregate/aggregate.json
+
+      - name: sweep the aggregate before it is uploaded
+        if: ${{ !cancelled() }}
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+          LEAK_SWEEP_EXTRA_DIR: tailnet-aggregate
+        run: ./scripts/leak-sweep.sh
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: tailnet-aggregate
+          path: tailnet-aggregate/aggregate.json
+          retention-days: 14

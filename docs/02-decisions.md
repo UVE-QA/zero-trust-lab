@@ -2575,3 +2575,74 @@ page now says only what the record says.
 The page is served from GitHub Pages at the project address. The custom domain
 needs one DNS record in a zone this repository's cloud access cannot reach, so
 it waits on the owner.
+
+---
+
+## D-045 — The evidence page gets a picture, and the picture is parsed
+
+A reviewer's first question is not "is it green" but "what is this". The page
+answered the second question only in prose. It now opens with one diagram of
+the whole lab: the contours (CI, the network's control plane, the cloud
+account, the tailnet overlay, the home network), each subnet by size and
+purpose, which tool manages each part and why, and who may reach what.
+
+### What on it is drawn, and what is parsed
+
+Contours, positions and the words on each tile are drawn by hand, like any
+architecture diagram. The access arrows are not:
+
+- every green arrow is a grant parsed from the policy template, labelled with
+  the port the grant names, and a grant routed through the hub is drawn
+  through the hub;
+- every red arrow is a refusal asserted by the policy's tests;
+- a grant between roles the layout does not know is listed under the diagram
+  rather than silently left out.
+
+So the picture cannot show a path the policy does not grant, and a grant added
+tomorrow appears on the next build. A table under the diagram says what each
+part is for, how it is managed and which decision explains it.
+
+### Live counts, without giving the page a credential
+
+The tiles carry live node counts. The page still holds no network credential:
+the job that already reads the tailnet with its read-only identity now also
+writes an aggregate — nodes by role, OS and state, routes by prefix length —
+and publishes it as a build artifact that the page reads. The aggregate is built
+from an allowlist of derived numbers; nothing from a device record is copied
+through. An artifact of a public repository can be downloaded by anyone, so it
+is swept before upload, and the aggregator was tested offline against a device
+list full of names, addresses and routes: none reached the output.
+
+### A parser bug caught by counting
+
+The diagram's parser first found 25 refusals. The template has 30. The missing
+five were the operator's tests: the `{{operator_identity}}` placeholder is itself
+made of braces, and the block parser read it as nesting and lost those blocks.
+Placeholders are now named before parsing, and the count matches. Without the
+cross-check the diagram would have looked complete while leaving out the one
+refusal it most wanted to show — the identical smart plug an operator is denied.
+
+### The Phase 0 inventory
+
+`docs/01-inventory.md` is now marked as the Phase 0 snapshot it always was, and
+points to the live counts. It had become a trap: a public document still naming
+a tag that was renamed and a sign-in method that was corrected.
+
+### Layout, layers, and where the lab could grow
+
+The first version routed arrows as diagonal curves, and the result looked busy
+even when every arrow was correct. The layout was redrawn around the flows
+instead: the hub sits directly above the devices it routes to, the operators and
+the production host share a row so the SSH grant is one straight line, the
+planned roles form their own block, and every arrow runs horizontally and
+vertically with rounded corners. No contour title sits where an arrow lands.
+Three toggles — granted, refused, who changes what — let a reader strip the
+picture down to the access map alone.
+
+A band along the bottom shows the growth path, explicitly marked as not built:
+an identity provider for many users and their groups, device management as the
+source of posture, just-in-time access, log streaming to a SIEM, IAM Identity
+Center for people's cloud access, and the certificate authority that would
+switch Roles Anywhere on. Each tile says what it plugs into and which phase or
+decision it belongs to. None of them has an arrow: a diagram that draws
+connections to things that do not exist invites reading them as real.
