@@ -7,11 +7,18 @@ contains real addresses and is gitignored -- it exists only to be applied.
     ./scripts/render-policy.py                 # -> policy/.rendered/policy.hujson
     ./scripts/render-policy.py --check         # verify placeholders resolve, write nothing
     ./scripts/render-policy.py --stdout        # print, do not write
+    ./scripts/render-policy.py --from-env      # CI: values from POLICY_VALUE_* only
 
-Values come from local/inventory.yaml, which never leaves the machine. The
-mapping is deliberately explicit rather than clever: a policy is not the place
-for a lookup you cannot read.
+Locally, values come from local/inventory.yaml, which never leaves the machine.
+In CI there is no inventory: each value arrives as an environment secret named
+POLICY_VALUE_<PLACEHOLDER>. The two sources are never mixed -- a render that
+silently took half its values from each would be a render nobody can reason
+about.
+
+The mapping is deliberately explicit rather than clever: a policy is not the
+place for a lookup you cannot read.
 """
+import os
 import argparse
 import hashlib
 import pathlib
@@ -68,15 +75,40 @@ def load_values():
     return values
 
 
+def env_name(key):
+    return "POLICY_VALUE_" + key.upper()
+
+
+def load_values_from_env():
+    """Pull every SPEC value from the environment, and nothing else.
+
+    Missing names are reported by NAME only. The values are secrets in CI and
+    must never reach a log, including an error message about themselves.
+    """
+    values, missing = {}, []
+    for key in SPEC:
+        v = os.environ.get(env_name(key), "").strip()
+        if v:
+            values[key] = v
+        else:
+            missing.append(env_name(key))
+    if missing:
+        sys.exit("error: --from-env set but these are unset or empty: "
+                 + ", ".join(missing))
+    return values
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="verify only, write nothing")
     ap.add_argument("--stdout", action="store_true", help="print instead of writing")
+    ap.add_argument("--from-env", action="store_true",
+                    help="take values from POLICY_VALUE_* only; never read the inventory")
     args = ap.parse_args()
 
     tmpl = TEMPLATE.read_text()
     needed = set(re.findall(r"\{\{\s*([a-z_]+)\s*\}\}", tmpl))
-    values = load_values()
+    values = load_values_from_env() if args.from_env else load_values()
 
     missing = sorted(needed - values.keys())
     if missing:

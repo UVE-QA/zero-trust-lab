@@ -2181,3 +2181,116 @@ Two things are worth keeping from this:
 locating that difference by inspection. The routine that works is to render the
 template and upload the whole file, then compare hashes — not to reconcile
 fragments. Reconciling by hand is what produced the drift in the first place.
+
+---
+
+## D-041 — CI reaches the tailnet by federation, read-only; no write credential exists
+
+Supersedes the earlier answer to the credentials question, which was two OAuth
+clients: a read-only one for pull-request checks, and a write-scoped one for
+applying, placed behind a GitHub Environment with a required reviewer.
+
+### What changed the answer
+
+Three facts, each checked against the system rather than taken from the
+handoff.
+
+**Federation exists, and on this plan.** The console offers *OpenID Connect*
+trust credentials alongside OAuth ones, with GitHub as a preset issuer, on the
+free plan. A workflow presents the OIDC token GitHub signs for that job;
+Tailscale exchanges it for a short-lived API token. Nothing is stored, so
+nothing needs rotating, and there is nothing to leak. This is the same move
+Phase 5 made for AWS, and it removes the whole class of problem the OAuth answer
+was managing — secret storage, issue dates, rotate-on-departure.
+
+**Read scope is enough to run the real tests.** `policy_file:read` covers the
+validate endpoint, which takes a proposed policy, parses it, and runs its `tests`
+section against the live tailnet without applying anything. The pull-request
+check can therefore exercise exactly the evaluation that refuses a bad save in
+the console — and it needs no write access to do so.
+
+**The read scope does not come alone.** Selecting `policy_file:read` makes the
+console also select, and lock, `devices:core:read` and
+`devices:posture_attributes:read`. They cannot be cleared while the policy read
+is selected, and they clear with it. The reason is visible in this very policy:
+its tests name devices and assert on posture, and the validator cannot evaluate
+those without reading both. Both extra scopes sit in a section the form shows
+collapsed, so a credential created by ticking one box and generating would carry
+three scopes while its creator believed it carried one. The form was checked
+section by section before anything was generated.
+
+**The safeguard for the write client is not available.** The design put the
+write credential behind a required reviewer, so applying would need an approval
+separate from merging. On a private repository that control needs an Enterprise
+plan (D-033). Without it, a write credential in CI is a credential to the
+tailnet's global access control, obtainable by any workflow that names the
+environment. The control that justified building it is missing. So it is not
+built.
+
+This is the same answer the owner chose for AWS in Phase 5: **CI verifies, a
+person applies.**
+
+### What CI does
+
+| trigger | job | effect |
+|---|---|---|
+| pull request touching the policy | `validate` | the real tailnet parses the render and runs every test; nothing is applied |
+| push to main, daily, manual | `drift` | the policy in force is compared byte for byte with the render of main |
+
+The drift check is only meaningful because of D-040: the console stores the file
+verbatim, so any difference is a real one — an apply is pending, or someone
+edited the console. The check prints hashes and sizes, never content: the live
+file carries the real values.
+
+### Details that matter
+
+- **The subject is exact.** The console accepts `*` in the subject field. That
+  is the same trap as `StringLike` in an AWS trust policy, which `tf-lint.py`
+  refuses there. The subject is the id-bearing form GitHub actually issues for
+  this repository (found the hard way in Phase 5), pinned to one environment:
+  `repo:<owner>@<owner-id>/<repo>@<repo-id>:environment:tailnet-read`.
+- **A failed validation is HTTP 200.** The only difference from a pass is a
+  non-empty body. A check keyed on the status code would pass a policy the
+  tailnet itself refuses. The script tests the body, and that path was tested
+  offline against a simulated failure before any credential existed.
+- **The values reach CI as environment secrets**, four of them, one per template
+  placeholder. The renderer's CI mode reads only the environment and never falls
+  back to the inventory; it names missing values without printing any. The API
+  script redacts them from its own output as well, so the log masker is the
+  second layer rather than the only one.
+- **When the exchange fails, the script prints the `sub` and `aud` claims** the
+  token actually carried — never the token. That one diagnostic is what resolved
+  the Phase 5 federation failure; this time it is built in rather than added
+  under pressure.
+- **Leak sweep versus Tailscale key shapes, measured.** Fabricated
+  `tskey-client-`, `tskey-auth-` and `tskey-api-` strings were each committed to a
+  throwaway repository with the sweep; each was caught. The first attempt at this
+  was invalid — the control file failed too, because the sweep excludes itself by
+  path and had been copied to the wrong one. Only once the control passed clean
+  did the three catches mean anything.
+
+### Residual risk, stated
+
+- **Any workflow on any branch that names `tailnet-read` obtains the token and the
+  four values.** Deployment-branch restrictions, which would narrow that, are not
+  available on this plan for a private repository. Today the only person who can
+  push a branch is the owner. Pull requests from forks receive neither OIDC tokens
+  nor secrets, so this holds when the repository goes public.
+- **What that token reaches is disclosure, not control.** It can read the live
+  policy, which contains the real addresses and the operator identity, and the
+  device inventory with each device's posture attributes — names, tailnet
+  addresses, operating systems and versions, tags. That is a map of the tailnet
+  and of which devices are behind on updates. Nothing reachable with it changes
+  what anyone can connect to.
+- **Unverified until the first run:** that the exchange request, mirrored from
+  Tailscale's own client source, is accepted as written; and that reading the
+  policy through the API returns the same bytes the console editor holds. If the
+  second fails, the drift check fails on its first run, and that goes here as a
+  finding rather than being tuned away.
+
+### Not done
+
+The trust credential, the `tailnet-read` environment and its secrets do not
+exist yet. Each widens what something other than the owner can reach, and is
+created only on the owner's go-ahead. The steps are in
+`docs/runbooks/tailnet-ci-credential.md`.
