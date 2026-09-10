@@ -24,6 +24,10 @@ name: terraform-plan
 
 on:
   workflow_dispatch:
+  # Weekly, so "the cloud matches its code" on the evidence page stays a
+  # current reading rather than a months-old one. A plan changes nothing.
+  schedule:
+    - cron: "37 6 * * 1"
 
 permissions:
   contents: read

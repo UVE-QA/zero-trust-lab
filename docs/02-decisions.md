@@ -2491,3 +2491,87 @@ here on. The five existing logs were left as they are.
 Secrets stay secret on a public repository. Pull requests from forks get no
 secrets and no federated identity tokens, so neither the tailnet check nor the
 cloud plan can run for them — they fail closed.
+
+---
+
+## D-044 — A live evidence page, built from CI's own record
+
+The repository is public, and the question a reader actually has is whether any
+of it is true now. A status file answers that only as of when someone last
+edited it. So the lab publishes a page on which every status is read, not
+written.
+
+### How it works
+
+A scheduled workflow asks GitHub, at build time, for the latest result of each
+check on `main`, and renders what comes back: pass, fail or "no data", when it
+ran, which commit, and a link to the run. The claims it covers:
+
+- the policy in force is byte-identical to `main`;
+- every policy test passes on the live network;
+- the tests can fail — the pull request that was broken on purpose, whose
+  expected result is a refusal;
+- the cloud infrastructure matches its code — a read-only plan whose log must
+  say "No changes", not merely a job that succeeded;
+- nothing real can merge, and no secret is in history;
+- `main` accepts only changes that passed its checks, for everyone — as stated
+  by GitHub's public record of the branch, and no more than that record says.
+
+Each reading shows its age, and one older than its schedule turns amber in the
+visitor's browser. A stalled schedule therefore shows up as stale, never as a
+standing green. Figures that come from the code rather than from a run — grant
+and assertion counts, decisions and corrections — sit in a section labelled
+"from the code, not measured".
+
+### What the page can reach
+
+The job that builds the page holds no tailnet credential and no cloud
+credential. It reads public CI metadata and writes the Pages site; the
+`github-pages` environment accepts deployments from `main` only. This keeps the
+property the rest of the lab is built on: nothing in CI can change the network
+or the cloud.
+
+The page is swept for real-world values before it is published, like source
+code. It is built from API data, and API data is input.
+
+### Three false results caught while building it
+
+Each one would have put a wrong status on a page whose whole claim is that its
+statuses are right.
+
+- **A passing plan rendered as a failure.** A job log is served by redirecting
+  to a signed storage URL, which rejects the API token. Following the redirect
+  automatically carried the token along; the download failed, and the plan
+  check read as failed. Now the redirect is followed by hand, without the token.
+- **The same plan, still failing, once the log arrived.** Terraform colours its
+  output, and the escape codes sit between the words of the sentence being
+  matched. They are stripped first. The matcher was then tested against a
+  no-changes log, a log with changes, and an empty one.
+- **The page's own links read as leaked account ids.** GitHub Actions job ids
+  are twelve digits, the same shape as a cloud account id, so the disclosure
+  sweep flagged every "open the run" link. The sweep now blanks GitHub Actions
+  run and job URLs before matching — the URL only, not the line. A control
+  confirmed that an account id placed on the same line as such a link is still
+  caught.
+
+One overstatement was also removed before it shipped: the branch card first said
+`main` "requires a pull request". The public branch record lists the required
+checks and who they apply to, but not whether a pull request is required, so the
+page now says only what the record says.
+
+### Also changed
+
+- `validate` now runs on every trigger, including the daily schedule — before,
+  it ran only on pull requests, so there was no current reading of it on `main`.
+- The cloud plan runs weekly as well as by hand.
+- The build job re-enables the scheduled workflows on each run. GitHub disables
+  schedules in a public repository after 60 days without activity. Whether
+  re-enabling an already enabled workflow resets that clock is GitHub's
+  behaviour to confirm, not something verified here; if it does not, the page's
+  ageing makes the stall visible.
+
+### Still open
+
+The page is served from GitHub Pages at the project address. The custom domain
+needs one DNS record in a zone this repository's cloud access cannot reach, so
+it waits on the owner.

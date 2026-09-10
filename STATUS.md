@@ -2,6 +2,9 @@
 
 **Work in progress, built in the open.** Last updated 2026-09-10.
 
+**Live evidence:** every check below, read from CI when the page was built —
+[uve-qa.github.io/zero-trust-lab](https://uve-qa.github.io/zero-trust-lab/) (D-044).
+
 Phases 0, 1, 1.5, 2 and 5 are done; Phase 3 is largely done. Phase 4 needs a
 paid plan and is deliberately deferred. Phase 6 — the drills — is next. Every
 claim below links to the decision that records it, and most to the CI run or
@@ -56,21 +59,20 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **Next few days**
 
-1. Open the repository, with the gaps a public repository opens closed as
-   part of the same step: commit messages swept as well as files, the sweep fails
-   rather than skipping when its denylist is unavailable, identifiers masked in
-   logs (D-043).
+1. ~~Open the repository~~ — done, with the gaps a public repository opens
+   closed in the same step: commit messages swept as well as files, the sweep
+   fails rather than skipping when its denylist is unavailable, identifiers
+   masked in logs, `main` protected for everyone (D-043).
 2. Finish D-042: prove the remaining client on the tailnet path, then close
    production SSH to the internet and remove a stale firewall rule, then remove
    the dead `ssh` rule from the policy.
 
 **Next one to two weeks**
 
-3. **A live evidence page.** Every number on it produced by a scheduled,
-   read-only CI job and linked to the run that produced it: policy in force
-   equals `main`, tests passing on the live tailnet, stored credentials 0, cloud
-   IAM users 0, routes into the home network wider than `/32`: 0.
-4. `validate` on a schedule, not only on pull requests.
+3. ~~A live evidence page~~ — done (D-044); custom domain pending one DNS
+   record. Next on it: cloud IAM users counted, and routes into the home
+   network wider than `/32` counted, each by a read-only job of its own.
+4. ~~`validate` on a schedule~~ — done.
 
 **Weeks two to three — Phase 6**
 

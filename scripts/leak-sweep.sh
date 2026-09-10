@@ -8,6 +8,7 @@
 #
 #   ./scripts/leak-sweep.sh
 #   LEAK_SWEEP_COMMITS=origin/main..HEAD ./scripts/leak-sweep.sh
+#   LEAK_SWEEP_EXTRA_DIR=site ./scripts/leak-sweep.sh      # also a build output
 #
 # Device names and any other site-specific strings are supplied out-of-band
 # via $LEAK_DENYLIST (newline-separated); they are never written into this
@@ -37,7 +38,14 @@ SELF_EXCLUDE='^(scripts/leak-sweep\.sh|\.github/workflows/leak-scan\.yml)$'
 #                    it. policy/policy.baseline.hujson is a rollback target
 #                    and must stay byte-identical to what the tailnet served,
 #                    so the file cannot be edited to satisfy the scanner.
-ALLOW_LITERALS='100\.101\.102\.103'
+#
+#   github.com/<owner>/<repo>/actions/runs/<id>/job/<id>
+#                    GitHub Actions job ids are twelve digits, the same shape
+#                    as a cloud account id. The evidence page links to the
+#                    jobs that proved each claim, so without this every link
+#                    reads as a leaked account. Only the URL is blanked; an
+#                    account id elsewhere on the same line is still caught.
+ALLOW_LITERALS='100\.101\.102\.103|github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/actions/runs/[0-9]+(/job/[0-9]+)?'
 
 report() {
   local label="$1" file="$2" line="$3" text="$4"
@@ -57,6 +65,9 @@ fi
 targets() {
   git ls-files
   find "$MSGDIR" -type f 2>/dev/null
+  # A generated artefact about to be published (the evidence page) is swept
+  # like source: it is built from API data, and API data is input.
+  if [ -n "${LEAK_SWEEP_EXTRA_DIR:-}" ]; then find "$LEAK_SWEEP_EXTRA_DIR" -type f; fi
 }
 shown() {
   case "$1" in "$MSGDIR"/*) echo "commit-message:$(basename "$1" | cut -c1-7)" ;; *) echo "$1" ;; esac
@@ -67,7 +78,7 @@ scan() {
   while IFS= read -r file; do
     [[ "$file" =~ $SELF_EXCLUDE ]] && continue
     [ -f "$file" ] || continue
-    sed -E "s/${ALLOW_LITERALS}/<vendor-example>/g" -- "$file" 2>/dev/null \
+    sed -E "s#${ALLOW_LITERALS}#<allowed-literal>#g" -- "$file" 2>/dev/null \
       | grep -InE "$pattern" 2>/dev/null | while IFS=: read -r line text; do
       printf '%s\t%s\t%s\n' "$(shown "$file")" "$line" "${text:0:200}"
     done
