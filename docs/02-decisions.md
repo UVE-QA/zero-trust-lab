@@ -1888,3 +1888,57 @@ The habit that follows: when quoting the source document, quote the reasoning
 and paraphrase the subject. If the exact wording matters, run the sweep before
 staging rather than after — which is what happened here only by luck of shell
 ordering, since the sweep sat in an `&&` chain ahead of `git add`.
+
+---
+
+## D-037 — Phase 5 applied. And the account id belongs in secrets, not variables.
+
+**Status:** applied and verified against the API.
+
+Eleven resources created, nothing changed, nothing destroyed. **Verified by
+reading AWS back**, not by trusting the apply log — the log says what Terraform
+attempted, which is a different claim:
+
+| Checked | Result |
+|---|---|
+| Deploy role's trust policy, read from IAM | `StringEquals` on both subject and audience; one exact subject; no wildcard |
+| IAM users in the account, after the apply | **zero** — so zero long-lived access keys |
+| Archive bucket | public access blocked, versioning on, lifecycle into both Glacier classes |
+| Collector role's permissions | `PutObject` and `ListBucket`. Nothing else — it uploads and cannot read back |
+
+Roles Anywhere created nothing, as intended: no certificate authority exists
+yet, so the role sits with nothing able to assume it. That is the correct
+resting state, not a half-built one.
+
+### The mistake nearly made at the last step
+
+The workflow originally read the account id, the state bucket and the role ARN
+from repository **variables**. That is the ordinary choice, and none of the three
+is secret in the usual sense — an account id is semi-public and an ARN appears
+in every policy that references it.
+
+**Repository variables are printed in workflow logs verbatim.** This repository
+is private today and is intended to become public (D-035). Run logs become
+readable when it does. So the arrangement would have published the account id
+*retroactively*, out of logs nobody thinks to review at the moment of flipping
+visibility — long after the decision that made it visible.
+
+They are secrets now. GitHub masks secret values wherever they appear in log
+output, **including inside Terraform's own output**, which prints bucket names
+and ARNs freely and would otherwise have leaked the same value by a second
+route. The masking is doing real work rather than ceremony.
+
+The region stays a variable. It is genuinely public and masking it would make
+logs harder to read for nothing.
+
+### Why this one is worth writing down
+
+The disclosure boundary has held for five phases by controlling what enters
+git. **This is the first place a real value could have escaped without ever
+being committed.** The sweep would not have caught it — correctly, since nothing
+was wrong with any tracked file.
+
+The general form: a boundary defined as "what is in the repository" misses
+everything the repository *produces*. Logs, artifacts, published plan output,
+issue comments from automation. Worth carrying into Phase 6, where drills
+generate exactly that kind of output.

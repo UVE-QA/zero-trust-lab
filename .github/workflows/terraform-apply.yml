@@ -27,6 +27,22 @@ permissions:
   contents: read
   id-token: write   # required to mint the OIDC token; nothing else needs it
 
+# WHY SECRETS AND NOT VARIABLES for the account id, the state bucket and the
+# role ARN -- all three carry the account id, and none of them is secret in the
+# usual sense.
+#
+# Repository *variables* are printed in workflow logs verbatim. This repository
+# is private today and is intended to become public (D-035), and run logs become
+# readable when it does. A value that is merely awkward today would be published
+# then, retroactively, from logs nobody thinks to review.
+#
+# Secrets are masked wherever they appear in log output -- including inside
+# Terraform's own output, which prints bucket names and ARNs freely. So the
+# masking is doing real work here, not ceremony.
+#
+# The region stays a variable: it is genuinely public and masking it would make
+# logs harder to read for no gain.
+
 concurrency:
   group: terraform-apply
   cancel-in-progress: false   # never interrupt an apply
@@ -41,7 +57,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: confirm which identity is in scope
@@ -55,7 +71,7 @@ jobs:
         working-directory: terraform/aws
         run: |
           terraform init \
-            -backend-config="bucket=${{ vars.TFSTATE_BUCKET }}" \
+            -backend-config="bucket=${{ secrets.TFSTATE_BUCKET }}" \
             -backend-config="key=zero-trust-lab/aws/terraform.tfstate" \
             -backend-config="region=${{ vars.AWS_REGION }}" \
             -backend-config="encrypt=true" \
@@ -65,10 +81,10 @@ jobs:
         working-directory: terraform/aws
         run: |
           terraform plan -input=false \
-            -var="account_id=${{ vars.AWS_ACCOUNT_ID }}" \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="profile=" \
             -var="region=${{ vars.AWS_REGION }}" \
-            -var="tfstate_bucket=${{ vars.TFSTATE_BUCKET }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
             -var="github_owner=${{ github.repository_owner }}" \
             -var="github_repo=${{ github.event.repository.name }}" \
             -var="github_oidc_provider_exists=true"
@@ -78,10 +94,10 @@ jobs:
         working-directory: terraform/aws
         run: |
           terraform apply -input=false -auto-approve \
-            -var="account_id=${{ vars.AWS_ACCOUNT_ID }}" \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="profile=" \
             -var="region=${{ vars.AWS_REGION }}" \
-            -var="tfstate_bucket=${{ vars.TFSTATE_BUCKET }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
             -var="github_owner=${{ github.repository_owner }}" \
             -var="github_repo=${{ github.event.repository.name }}" \
             -var="github_oidc_provider_exists=true"
