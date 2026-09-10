@@ -1,18 +1,21 @@
 # Status
 
-**Phase 0 — Capture and inventory. All seven tasks executed.**
-Last updated 2026-09-09.
+**Phase 0 complete** — merged. **Phase 1 complete** — merged.
+**Phase 1.5 applied**, in review. Last updated 2026-09-09.
 
-Phase 1 has not been started.
+Phase 2 has not been started.
 
-**Phase 0 complete** — merged. **Phase 1 applied**, acceptance partially met.
+> **The headline change (D-024).** The tailnet no longer has a wide route into
+> the home network. It was served by *two* nodes; both are retired. Exposure went
+> from every host on the network to **three**, each named deliberately — one
+> camera for the stream tier, two actuators for the action tier's granted/denied
+> pair. Household paths verified unaffected before and after.
 
-> **Phase 1 residue, stated not glossed (D-021).** Three infrastructure nodes now
-> carry machine identities. The acceptance criterion — *no infrastructure node
-> authenticated under a personal identity* — is still **not** fully met, because
-> the primary subnet router is a personal workstation that the design correctly
-> forbids tagging. Only moving the routing role satisfies it. Recording this as
-> met would be exactly the quiet rounding-up the project argues against.
+> **Phase 1 residue, now resolved by Phase 1.5.** Phase 1's acceptance —
+> *no infrastructure node authenticated under a personal identity* — was not met,
+> because the primary subnet router was a personal workstation the design forbids
+> tagging (D-021). Moving the routing role was the only fix, and Phase 1.5 did
+> exactly that: routes now come from the tagged gateway alone.
 
 ---
 
@@ -114,6 +117,14 @@ that rewrites the global policy file.
 | **D-019** | accepted | `tag:kiosk` renamed to `tag:appliance` — "kiosk" already means a display mode on two personal handhelds here, so the policy would have read as governing one device while governing another. General rule: do not name a tag after a word the environment already uses. |
 | **D-020** | open | Tagging from the console does **not** disable key expiry, contrary to the handoff. Measured, not assumed. Better posture, but tagged nodes will now expire in ~6 months and re-authenticating them needs the auth key the method avoided minting. Trade-off left explicitly open rather than settled in passing. |
 | **D-021** | — | Phase 1 applied and verified against a before/after baseline; nothing the household depends on moved. Names the unmet part of the acceptance criterion. Two operational facts: the service **reformats the policy on save** (false drift for the future GitOps check), and the console editor **can show an empty diff while holding new content** — make the UI show you the change before saving. |
+
+### Phase 1.5
+
+| id | state | summary |
+|---|---|---|
+| **D-022** | superseded | Reported the gateway's forwarding capability as natively supported. Wrong — see D-023. The name-resolution half stands: the gateway resolves the exposed devices by multicast name and **connects** to them, verified by connection rather than lookup. |
+| **D-023** | accepted | **Correction.** The forwarding target is validated against loopback only, so it cannot reach another device at all. Fourth confident wrong answer from a partial signal in this project, and the first *optimistic* one — a false positive would have surfaced during cutover on a household gateway. New clause: do not conclude capability from a permissive-looking type or an example; submit what you intend to use and see whether the system takes it. |
+| **D-024** | applied | **Both wide routes retired; three per-host routes serve from the tagged gateway.** The simple answer won: the premise that addresses move had never been checked, and the automation platform showed two integrations pinned to addresses and hostnames working for months. Records that I inverted the importance — the finding was the wide routes, not the naming mechanism. |
 
 ## The starting state, stated plainly
 
