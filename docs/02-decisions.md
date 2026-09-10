@@ -1963,3 +1963,108 @@ the working tree exactly where a broad `add` will find it.
 Phase 6 produces this class deliberately — a drill's value *is* its recorded
 output. The habit to carry there: decide where a run's output goes before
 running it, not after looking at it.
+
+---
+
+## D-038 — Phase 5 closes: the loop is verified, and CI cannot apply
+
+**Status:** done and verified end to end.
+
+A workflow run with **no stored credential of any kind** authenticated to AWS as
+the deploy role, read the entire stack, and reported *"No changes. Your
+infrastructure matches the configuration."* That is the phase's claim
+demonstrated rather than described.
+
+### Two things the first attempt got wrong, both found by measuring
+
+**The subject was not the one I expected.** The assume failed against a trust
+policy structurally identical to a working one in the same account — same
+provider, same audience. Rather than keep guessing, a temporary step printed the
+claims the token actually carried (only `sub` and `aud`; the token itself is a
+credential and was never printed).
+
+GitHub issues subjects as `repo:OWNER@<owner-id>/REPO@<repo-id>:...`, embedding
+immutable ids beside the names. That is a genuine improvement — a subject pinned
+to names alone can be inherited by whoever claims the name after a repository is
+deleted. Older roles in this account predate it, which is precisely why matching
+a working neighbour was misleading rather than helpful.
+
+**The role could not read what it manages.** Terraform needs read access to
+every resource it plans, which is more than it appears. The first policy granted
+state access and little else.
+
+### Fixing it in the narrowing direction
+
+The obvious repair was to widen the role until the plan worked. That would have
+produced a role able to create IAM roles unattended, on a repository with **no
+approval gate** (D-033). So the split went the other way: **CI plans, a person
+applies after reading the plan.**
+
+The role now holds read on the resources it manages plus writes confined to this
+stack's state prefix. Nothing it can do changes infrastructure.
+
+**Deliberately not the ReadOnlyAccess managed policy.** That grants read across
+the whole account, and this account holds another project's state and secrets.
+*Read-only is not the same as harmless*, and a lab about least privilege should
+not reach for an account-wide grant because scoping is tedious.
+
+One action stays unscoped and is labelled where it sits: listing OIDC providers
+has no resource to scope to, IAM requires a wildcard, and the data source calls
+it before it can call Get. It reveals which providers exist and nothing else.
+
+The apply path was **removed** from the workflow rather than left present and
+failing. A capability that exists but errors is worse than one that is absent,
+because the obvious fix for the error is to widen the role.
+
+### Acceptance
+
+*No long-lived AWS access key exists anywhere in the lab.* Measured after every
+apply: **zero IAM users in the account**, therefore zero access keys. The deploy
+role is assumed with a token; the collector role will be assumed with a
+certificate. Neither has a credential that can be copied off a machine.
+
+---
+
+## D-039 — Two facts found while answering a cost question
+
+Both are recorded because they change later phases, and both contradict
+something previously assumed.
+
+### Glacier's cost is in transitions, not storage
+
+Storage is negligible — a hundred gigabytes in Deep Archive is pennies a month.
+**Lifecycle transitions are charged per object**, on the order of five cents per
+thousand into Deep Archive.
+
+So an archive of many small clips costs more to move than to keep. If the
+upload path is ever built, it should batch — daily archives rather than
+per-event files. Written down now because the mistake is only visible on a bill,
+months after the decision that caused it.
+
+The archive today is empty and costs nothing. It exists to give the
+certificate-based credential something to authorise, and that is worth saying
+plainly rather than calling it a working archive.
+
+### Basic device posture appears to be available on the free plan
+
+The handoff states flatly that *device posture checks are not on the Personal
+plan*, and gates Phase 3 behind a paid seat on that basis.
+
+The vendor's pricing page says Personal includes **basic posture — operating
+system and client version**. That matches what is already visible: every device
+page in this tailnet shows `node:os`, `node:osVersion`, `node:tsVersion`,
+`node:tsReleaseTrack`, `node:tsAutoUpdate` and `node:tsStateEncrypted` today,
+and the stock policy's commented example builds a posture rule from exactly
+those attributes.
+
+If that holds, **a substantial part of Phase 3 is available now**, and only
+integration-backed posture and just-in-time access need a paid seat. That would
+change the phase plan meaningfully.
+
+**Not acted on.** The handoff's own rule is not to design around a feature
+without confirming availability on the plan in use — a rule this phase has now
+broken twice. So this is a finding to verify by writing a posture rule and
+seeing whether the tailnet accepts it, not a conclusion.
+
+Costs, for the record: the free plan is the current one. The gated phases run as
+one time-boxed sprint on a single seat — one month, one user.
