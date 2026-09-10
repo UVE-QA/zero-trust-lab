@@ -28,6 +28,16 @@ on:
   # current reading rather than a months-old one. A plan changes nothing.
   schedule:
     - cron: "37 6 * * 1"
+  # And on every pull request that touches the stack, so a change is planned
+  # before it is merged. Note what that trusts: a plan executes code from the
+  # branch (an `external` data source runs a program), with this job's
+  # read-only cloud role. Pull requests from forks cannot obtain the OIDC
+  # token at all; branches in this repository can only be pushed by its
+  # collaborators. That is the boundary, and it is stated rather than assumed.
+  pull_request:
+    paths:
+      - terraform/**
+      - .github/workflows/terraform-plan.yml
 
 permissions:
   contents: read

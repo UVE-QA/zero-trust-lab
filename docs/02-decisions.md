@@ -2646,3 +2646,56 @@ Center for people's cloud access, and the certificate authority that would
 switch Roles Anywhere on. Each tile says what it plugs into and which phase or
 decision it belongs to. None of them has an arrow: a diagram that draws
 connections to things that do not exist invites reading them as real.
+
+---
+
+## D-046 — An outside review, and what was done with it
+
+A review of the evidence page made six recommendations and one warning: the
+scaffolding is ahead of the thing it governs — many decisions, tests and CI
+jobs around seven grants and a handful of live hosts. The warning is accepted.
+This entry records the response in one place rather than as several decisions.
+
+**Done now, because each one makes an existing claim more honest rather than
+adding machinery:**
+
+- **Posture is labelled as self-reported.** On this plan the posture attributes
+  are reported by the client on the device itself. They establish how a device
+  is configured, not that it is intact, and a compromised node is not
+  constrained by them. The diagram now says "posture: self-reported", the
+  table says why, and the page's top block says it in plain words. That gap is
+  the reason the device-management tile exists.
+- **A reader gets ninety seconds.** A block above the diagram gives the one
+  number (3 of about 40 devices in the house reachable from the overlay,
+  measured live), what is checked daily, what is not built and what it would
+  cost, and what to read with care.
+- **The rest of the house is on the diagram.** About 40 devices by type,
+  counted by hand from the hub's registry — a snapshot with a date, not a live
+  reading, because giving CI a credential into the home to keep a count fresh
+  is the wrong trade. Two rules shaped it. The camera count is not published,
+  and a total plus every other category would let anyone subtract it — so the
+  total is rounded and the remainder is folded into one group. And the first
+  classifier put the robot vacuum among the cameras because it carries a camera
+  entity; the owner caught it, and vacuum is now checked before camera.
+- **The growth path carries prices**, from the vendors' own pages: an identity
+  provider and device-management posture need Tailscale's Standard tier
+  ($8/user/month), just-in-time access and log streaming its Premium tier
+  ($18/user/month), IAM Identity Center has no charge, and a certificate
+  authority is free self-hosted or $50–400 a month managed.
+- **`terraform plan` runs on pull requests** that touch the stack, as well as
+  weekly — with the trust that implies written into the workflow.
+
+**Already true, or out of date in the review:** the before-and-after exposure
+reading was missed, and `STATUS.md` already says so without reconstructing it.
+The review's note on two OAuth clients predates D-041: there are none.
+
+**Parked:** a button that starts a check from the public page, with a live view
+of the run. It is exactly the kind of machinery the review warns against, and
+it would need a stored credential able to start workflows — the one thing the
+page tells readers this lab does not have.
+
+**Next, in the review's order, and each needing the owner:** the collector as a
+real host with one telemetry stream through the existing grants; then the
+lost-comms drill on that stream, for the page's first number that comes from
+watching the system rather than counting the repository; and the "after" half of
+the exposure reading from a disposable node.

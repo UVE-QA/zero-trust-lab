@@ -53,20 +53,20 @@ COL = {"future": "#9aa0a6", "home": "#3f8624", "tailnet": "#5b4fd6", "cloud": "#
        "ci": "#57606a", "cp": "#1f6feb", "planned": "#8c8c8c", "off": "#8c8c8c"}
 
 TW, TH = 180, 62
-W, H = 1200, 892
+W, H = 1200, 972
 VB_TOP = -28
 
 NODES = {
     "gha":       (28, 48, "flow", "ci", "GitHub Actions", "validate · drift · plan",
                   "workflows", [], "Runs every check. Holds no network or cloud key: each job "
                   "gets a short-lived token by OIDC.", "D-041"),
-    "tscp":      (262, 48, "dots", "cp", "Tailscale control plane", "the policy · its 36 tests",
+    "tscp":      (262, 48, "dots", "cp", "Tailscale", "control plane · 36 tests",
                   "policy as code", [], "Evaluates the policy and refuses a save whose tests fail. "
                   "The policy is not in Terraform: two tools writing one global file fight.", "D-001"),
     "iam":       (488, 48, "key", "cloud", "CI plan role", "OIDC · 0 IAM users",
                   "terraform", [], "Lets CI run terraform plan and nothing more. Its trust names "
                   "this repository by immutable id; wildcards are refused three ways.", "D-028"),
-    "bucket":    (686, 48, "bucket", "cloud", "Archive bucket", "S3 · encrypted · to Glacier",
+    "bucket":    (686, 48, "bucket", "cloud", "Archive bucket", "S3 · encrypted · Glacier",
                   "terraform", [], "Where the collector's data is meant to land. It exists so the "
                   "certificate credential has something real to authorise.", "D-039"),
     "ra":        (884, 48, "cert", "off", "Roles Anywhere", "certificate → role · off",
@@ -76,13 +76,14 @@ NODES = {
                   "terraform", [], "State joins the account's existing bucket rather than "
                   "creating one; locking is the native lockfile.", "D-029"),
 
-    "laptop":    (40, 246, "laptop", "tailnet", "Operator laptop", "posture-checked",
+    "laptop":    (40, 246, "laptop", "tailnet", "Operator laptop", "posture: self-reported",
                   "by hand", ["autogroup:member"], "The physical console. Applies the policy "
-                  "by hand after CI has validated it.", "D-041"),
+                  "by hand after CI has validated it. Its posture attributes are reported by the "
+                  "client on the device itself: they establish configuration, not integrity.", "D-040"),
     "phones":    (40, 330, "phone", "tailnet", "Operator phones", "break-glass path",
                   "by hand", ["autogroup:member"], "Posture subjects, and the way back in "
                   "if everything else fails — verified off-network.", "D-016"),
-    "desktop":   (40, 432, "desktop", "tailnet", "Shared desktop", "another person's machine",
+    "desktop":   (40, 432, "desktop", "tailnet", "Shared desktop", "not ours to tag",
                   "by hand", [], "Stays user-owned permanently: it is someone's daily "
                   "machine, so it gets no machine identity.", "Phase 1"),
     "appliance": (250, 432, "tv", "tailnet", "Media appliance", "tag:appliance",
@@ -107,37 +108,36 @@ NODES = {
     "camera":    (300, 610, "camera", "home", "Camera stream", "collector only",
                   "one /32", ["camera-stream"], "The stream tier: one camera exposed, to "
                   "one role, on one port.", "D-024"),
-    "plug_g":    (500, 610, "plug", "home", "Smart plug", "granted · with posture",
+    "plug_g":    (500, 610, "plug", "home", "Smart plug", "granted · posture",
                   "one /32", ["actuator-granted"], "The action tier: operators may switch it, "
-                  "only from a device that passes the posture check.", "D-040"),
+                  "only from a device whose client reports the required posture. On this plan the "
+                  "report comes from the device itself, so a compromised node is not constrained by "
+                  "it — which is what the device-management tile below would change.", "D-040"),
     "plug_c":    (700, 610, "plug", "home", "Smart plug", "identical · refused",
                   "one /32", ["actuator-control"], "The same model on the same port, never "
                   "granted. Proves least privilege is per host, not per protocol.", "D-010"),
-    "mesh":      (940, 610, "mesh", "home", "Matter / Thread", "not exposed",
-                  "—", [], "The rest of the house. No route reaches it; the hub talks to it "
-                  "locally.", "D-008"),
 }
 # The growth path: not built. What a multi-user or company deployment adds,
 # and where each part would plug in. Drawn so a reader can see the lab's
 # shape grow, never mistaken for something that exists.
 NODES.update({
-    "idp":  (28, 790, "idp", "future", "Identity provider", "SSO · users and groups",
-             "not built", [], "One login for many people; their groups become policy sources "
+    "idp":  (28, 870, "idp", "future", "Identity provider", "SSO · users, groups",
+             "Standard $8/user/mo", [], "One login for many people; their groups become policy sources "
              "instead of every member. Plugs into the control plane and cloud sign-in.", "multi-user"),
-    "mdm":  (224, 790, "mdm", "future", "Device management", "posture from MDM / EDR",
-             "not built", [], "Posture from the fleet's management system instead of the client's "
+    "mdm":  (224, 870, "mdm", "future", "MDM / EDR", "posture from the fleet",
+             "Standard $8/user/mo", [], "Posture from the fleet's management system instead of the client's "
              "own report. An integration a paid plan adds.", "D-040"),
-    "jit":  (420, 790, "clock", "future", "Just-in-time access", "grants that expire",
-             "not built", [], "Standing access to the action tier replaced by grants that "
+    "jit":  (420, 870, "clock", "future", "Just-in-time", "grants that expire",
+             "Premium $18/user/mo", [], "Standing access to the action tier replaced by grants that "
              "expire. Needs a paid plan: one time-boxed month.", "Phase 4"),
-    "siem": (616, 790, "logs", "future", "Log streaming", "flow + audit → SIEM",
-             "not built", [], "Who connected to what, kept and searchable. The drills in "
+    "siem": (616, 870, "logs", "future", "Log streaming", "flow + audit → SIEM",
+             "Premium $18/user/mo", [], "Who connected to what, kept and searchable. The drills in "
              "Phase 6 would read it.", "Phase 6"),
-    "sso":  (812, 790, "org", "future", "IAM Identity Center", "people's cloud sign-in",
-             "not built", [], "Cloud sign-in for people through the identity provider. Lives in "
+    "sso":  (812, 870, "org", "future", "Identity Center", "people's cloud sign-in",
+             "AWS: no charge", [], "Cloud sign-in for people through the identity provider. Lives in "
              "the organisation's management account, not this stack.", "D-030"),
-    "ca":   (1008, 790, "ca", "future", "Certificate authority", "certs for the collector",
-             "not built", [], "The missing half of Roles Anywhere: machines get certificates, "
+    "ca":   (1008, 870, "ca", "future", "Private CA", "certs for the collector",
+             "free, or $50+/mo", [], "The missing half of Roles Anywhere: machines get certificates, "
              "never keys. Switches the cloud tile above on.", "Phase 5"),
 })
 TWN = {"state": 106}          # the narrow state tile, far right of the cloud row
@@ -250,14 +250,14 @@ def live_counts(agg):
     for nid, n in NODES.items():
         for r in n[7]:
             if r in roles:
-                out[nid] = f"live · {roles[r]['count']} node · {roles[r]['online']} online"
+                out[nid] = f"live · {roles[r]['online']}/{roles[r]['count']} online"
     uo = agg.get("user_owned") or {}
     if uo:
-        out["laptop"] = "live · " + ", ".join(f"{v} {k}" for k, v in uo.get("by_os", {}).items())
+        out["laptop"] = f"live · {uo.get('count', 0)} user-owned"
     return out
 
 
-def render(policy_text, agg=None):
+def render(policy_text, agg=None, home=None):
     grants, refusals = parse_policy(policy_text)
     layers = {"grant": [], "refusal": [], "control": []}
     unplaced = []
@@ -301,9 +301,9 @@ def render(policy_text, agg=None):
                     layers["grant"].append(label(lp[0], lp[1], f"{port}{tag}", ok))
 
     # --- refusals, parsed from the tests -------------------------------------
-    home = {"tag:gateway-home", "camera-stream", "actuator-granted", "actuator-control"}
+    home_roles = {"tag:gateway-home", "camera-stream", "actuator-granted", "actuator-control"}
     for src in ("tag:prod", "tag:appliance"):
-        denied = {r for s_, r, _ in refusals if s_ == src} & home
+        denied = {r for s_, r, _ in refusals if s_ == src} & home_roles
         if denied:
             pts, lp = route((role_to_node(src), "gateway"))
             arrow("refusal", pts, no, ' stroke-dasharray="4 4"', "no")
@@ -333,7 +333,25 @@ def render(policy_text, agg=None):
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts) for n in NODES)
 
-    contours = """
+    proto, rest = "", ""
+    if home:
+        proto = (f'<text x="258" y="726" class="ctn">connected over: '
+                 f'{E(" · ".join(home.get("protocols", [])))}</text>')
+        cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
+        x0, y0 = 900, 596
+        rows = []
+        for i, c in enumerate(cats):
+            cx, cy = x0 + 14 + (i % 2) * 134, y0 + 62 + (i // 2) * 19
+            rows.append(f'<text x="{cx}" y="{cy}" class="chip"><tspan class="n">{c["count"]}</tspan> {E(c["type"])}</text>')
+        rest = (f'<g class="tile"><rect x="{x0}" y="{y0}" width="276" height="184" rx="10" fill="var(--card)" stroke="var(--line)"/>'
+                f'<text x="{x0 + 14}" y="{y0 + 22}" class="t">The rest of the house</text>'
+                f'<text x="{x0 + 14}" y="{y0 + 39}" class="s">about {home.get("total_about")} devices · '
+                f'{home.get("exposed_to_tailnet")} reachable from the tailnet</text>'
+                + "".join(rows)
+                + f'<text x="{x0 + 14}" y="{y0 + 62 + ((len(cats) + 1) // 2) * 19 + 2}" class="s">+ other, inactive or withheld</text>'
+                f'<text x="{x0 + 14}" y="{y0 + 174}" class="b">counted {E(home.get("counted_at", ""))} · cameras withheld</text></g>')
+
+    contours = f"""
 <rect x="12" y="10" width="222" height="120" rx="12" class="ct ci"/>
 <text x="24" y="30" class="ctl">CI · GitHub Actions</text>
 <text x="24" y="124" class="ctn">no stored keys · OIDC per job</text>
@@ -347,11 +365,13 @@ def render(policy_text, agg=None):
 <text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
 <text x="40" y="410" class="ctn">laptop + phones = one policy role</text>
 <text x="1176" y="506" text-anchor="end" class="ctn">grey: planned roles, declared in the policy, no host yet</text>
-<rect x="246" y="572" width="942" height="138" rx="14" class="ct home"/>
-<text x="258" y="700" class="ctl">Home network — flat private /24 · reached only through the hub</text>
-<text x="1176" y="700" text-anchor="end" class="ctn">one /32 route per exposed device · the /24 itself is never advertised</text>
-<rect x="12" y="740" width="1176" height="146" rx="14" class="ct future"/>
-<text x="24" y="764" class="ctl">Growth path — not built. What a multi-user or company deployment adds, and where each part plugs in</text>
+<rect x="246" y="572" width="942" height="228" rx="14" class="ct home"/>
+<text x="258" y="706" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
+{proto}
+<text x="258" y="790" class="ctl">Home network — flat private /24 · reached only through the hub</text>
+{rest}
+<rect x="12" y="820" width="1176" height="146" rx="14" class="ct future"/>
+<text x="24" y="844" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
 """
     defs = "".join(
         f'<marker id="m-{k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
@@ -379,6 +399,12 @@ def render(policy_text, agg=None):
         f'<tr><td><span class="sw" style="background:{COL[n[3]]}"></span>{E(n[4])}</td>'
         f'<td><code>{E(n[6])}</code></td><td>{E(n[8])}</td><td>{E(n[9])}</td></tr>'
         for n in NODES.values())
-    table = (f'<table class="why"><thead><tr><th>Part</th><th>Managed by</th><th>What it is for</th>'
+    if home:
+        rows += (f'<tr><td><span class="sw" style="background:{COL["home"]}"></span>The rest of the house</td>'
+                 f'<td><code>no route</code></td><td>About {home.get("total_about")} devices by type, counted by hand '
+                 f'on {E(home.get("counted_at", ""))} from the hub\'s registry. None is reachable from the '
+                 f'tailnet; the hub talks to them locally. The camera count is withheld, and categories that '
+                 f'would let it be subtracted are folded together.</td><td>D-008</td></tr>')
+    table = (f'<table class="why"><thead><tr><th>Part</th><th>Managed by · cost</th><th>What it is for</th>'
              f'<th>Why</th></tr></thead><tbody>{rows}</tbody></table>')
     return toggles + svg, legend, table, unplaced

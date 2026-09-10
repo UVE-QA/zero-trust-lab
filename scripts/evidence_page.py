@@ -264,8 +264,12 @@ def card(claim, why, result, stale_hours, expect_failure=False):
             f'<span class="pill">{E(label)}</span></div><p class="why">{E(why)}</p>{ev}</article>')
 
 
-def render(measured, pol, dec, built, diagram, agg):
+def render(measured, pol, dec, built, diagram, agg, home):
     blob = f"{SERVER}/{REPO}/blob/main"
+    rt = (agg or {}).get("routes_into_other_networks") or {}
+    routes_n = rt.get("enabled", home.get("exposed_to_tailnet"))
+    routes_note = (f'measured live: {rt.get("enabled")} routes, the widest {rt.get("widest")}'
+                   if rt else "from the policy")
     agg_note = (f'<a href="{E(agg.get("_run") or "#")}">live, counted on {E(agg.get("read_at", ""))}</a>'
                 if agg else "shown once the network job has published its first count")
     live = "".join(card(*m) for m in measured["live"])
@@ -286,6 +290,11 @@ main{{max-width:1220px;margin:0 auto;padding:48px 20px 64px}}.col{{max-width:880
 .ct.tailnet{{stroke:#5b4fd6;stroke-dasharray:9 6;fill:rgba(91,79,214,.03)}}.ct.future{{stroke:var(--mut);stroke-opacity:.6;stroke-dasharray:3 6;fill:rgba(128,128,128,.035)}}.ct.home{{stroke:#3f8624;fill:rgba(63,134,36,.04)}}
 .grp{{fill:none;stroke:var(--mut);stroke-opacity:.45;stroke-dasharray:3 4}}.ctl{{font-size:13px;font-weight:650;fill:var(--fg)}}.ctn{{font-size:11.5px;fill:var(--mut)}}
 .tile .t{{font-size:13px;font-weight:650;fill:var(--fg)}}.tile .s{{font-size:11px;fill:var(--mut)}}.tile .b{{font-size:10.5px;fill:var(--mut);font-family:ui-monospace,Menlo,monospace}}
+.chip{{font-size:12px;fill:var(--fg)}}.chip .n{{font-weight:700;fill:#3f8624}}
+.brief{{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin:22px 0 6px}}
+.brief div{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}}
+.brief h3{{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin:0 0 6px}}
+.brief p{{margin:4px 0;font-size:15px}}.brief .big{{font-size:30px;font-weight:750;line-height:1.1}}
 .lbl text{{font-size:11px;font-weight:650}}.lbl.f text{{font-weight:500}}
 .legend{{font-size:13.5px;color:var(--mut);margin:10px 0}}.legend.warn{{color:var(--fail)}}
 .k{{display:inline-block;width:22px;border-top:2px solid var(--pass);vertical-align:middle}}.k.no{{border-top:2px dashed var(--fail)}}.k.cf{{border-top:2px dashed var(--cp)}}
@@ -316,6 +325,21 @@ turns amber on its own.</p>
 <p class="built">Built <time data-stale-hours="30" datetime="{E(built)}">{E(built)}</time> ·
 <a href="{SERVER}/{REPO}">repository</a> · <a href="{blob}/STATUS.md">status and plan</a> ·
 <a href="{blob}/docs/02-decisions.md">decision log</a></p>
+
+<div class="brief">
+<div><h3>The one number</h3><p class="big">{routes_n} of ~{home.get("total_about")}</p>
+<p>devices in the house are reachable from the network overlay — each by one grant, on one port
+({routes_note}). Everything else is refused by default.</p></div>
+<div><h3>Live, checked daily</h3><p>The policy in force equals <code>main</code>. {pol['accept'] + pol['deny']} policy
+assertions — {pol['deny']} of them refusals — run against the live network. CI holds no stored key for
+the network or the cloud.</p></div>
+<div><h3>Not built, and why</h3><p>Collector and field units: hardware, next. Device-management posture
+and multi-user sign-in: a paid tier ($8/user/mo) and one user. Just-in-time access and log streaming:
+$18/user/mo. The before-and-after exposure reading: missed, and <a href="{blob}/STATUS.md">stated</a>, not reconstructed.</p></div>
+<div><h3>Read with care</h3><p>Posture on this plan is <strong>reported by the client itself</strong>: it shows how a
+device is configured, not that it is intact. SSH to production is still reachable from the internet
+while its last client moves to the overlay (D-042).</p></div>
+</div>
 
 <h2>The lab on one picture</h2>
 <p class="why col">Where each part lives, which tool manages it, and who may reach what. Contours
@@ -356,6 +380,11 @@ from <a href="{blob}/scripts/evidence_page.py">evidence_page.py</a>. The job tha
 this page holds no network or cloud credential; it can write to this page and nothing else.</footer>
 </main>
 <script>
+// Fit every tile label inside its tile, whatever font the visitor has.
+document.querySelectorAll('#labmap g.tile').forEach(function(g){{var r=g.querySelector('rect');
+var edge=+r.getAttribute('x')+(+r.getAttribute('width'))-5;g.querySelectorAll('text').forEach(function(t){{
+var fs=parseFloat(getComputedStyle(t).fontSize),b=t.getBBox();while(b.x+b.width>edge&&fs>7.5){{fs-=0.5;
+t.style.fontSize=fs+'px';b=t.getBBox();}}}});}});
 document.querySelectorAll('.layers input').forEach(function(i){{i.addEventListener('change',function(){{
 document.getElementById('labmap').classList.toggle('hide-'+i.dataset.layer,!i.checked);}});}});
 (function(){{var now=Date.now();document.querySelectorAll('time[datetime]').forEach(function(t){{
@@ -409,10 +438,11 @@ def main():
     ]
     built = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     agg = tailnet_aggregate()
-    diagram = evidence_diagram.render((ROOT / "policy" / "policy.hujson.tmpl").read_text(), agg)
+    home = json.loads((ROOT / "docs" / "home-snapshot.json").read_text())
+    diagram = evidence_diagram.render((ROOT / "policy" / "policy.hujson.tmpl").read_text(), agg, home)
     page = render({"live": [(c, w, r, s, *x) for c, w, r, s, *x in live],
                    "every": [(c, w, r, s) for c, w, r, s in every]},
-                  policy_figures(), decision_figures(), built, diagram, agg)
+                  policy_figures(), decision_figures(), built, diagram, agg, home)
 
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
