@@ -638,3 +638,70 @@ line item: an inherited device, brought onto a managed platform, still exposing
 an unauthenticated path — and the network being the only place that is
 answerable. It pairs naturally with the vendor-cloud limitation already noted,
 since the same device also holds an outbound session no policy here touches.
+
+---
+
+## D-014 — The break-glass path does not work. Phase 2 is blocked until it does.
+
+**Status:** open, **blocking**. This is the most consequential finding of
+Phase 0.
+
+The handoff requires, before any policy work: confirm the admin console is
+reachable from a phone that is off the tailnet. The reasoning is that the
+console is reached over the public internet rather than over the tailnet, so a
+bad policy cannot lock anyone out of the place where it gets undone.
+
+**The console is reachable. It is not authenticable.**
+
+### What was measured
+
+The phone was taken off the tailnet, and that precondition was **verified rather
+than accepted**: the coordination server reported the node offline across
+repeated polls with a frozen last-seen time, a tailnet-level ping timed out, and
+ICMP got no reply. Only then was the test run.
+
+The console page loaded. Sign-in failed, and the device's own credential sheet
+stated that **no passkey for this site exists on the phone**, offering only two
+fallbacks: scan a QR code using another device, or present a hardware security
+key. Neither is a recovery path. The first requires the very machine that an
+incident may have made unavailable; the second requires hardware that does not
+exist here.
+
+### Why this blocks Phase 2 rather than being a to-do
+
+The rollback target was captured first, byte-verified, and committed, precisely
+so that a bad policy could be undone. That work assumed the console could be
+reached to apply it. **A rollback target that cannot be reached is not a
+rollback target** — it is a file.
+
+The failure mode is specific and plausible: apply a restrictive policy, discover
+away from home that something broke, and find that the only device able to
+authenticate to the console is the laptop at home. The tailnet being broken is
+the scenario, so "connect to the tailnet and use the laptop" is not available.
+
+So the safety net the handoff asks for does not currently exist, and the first
+restrictive policy must not be applied until it does.
+
+### Remediation, in order of preference
+
+1. **Register a second passkey bound to the phone.** Two independent devices,
+   each able to authenticate alone, neither depending on the other. Adds no
+   long-lived secret and is the fix the architecture already assumes. This is
+   the recommendation.
+2. **Add a second login method to the account**, if the provider permits it for
+   an existing passkey-only identity. Worth checking, but it introduces an
+   external dependency in the recovery path.
+3. **Hold an API access token offline as the recovery path.** Works from
+   anywhere, but it is a long-lived credential — a real cost that needs its own
+   decision rather than being adopted by default because it is convenient.
+
+Whichever is chosen, the test is re-run and must pass **from the phone, off the
+tailnet, with no second device involved**, before Phase 2 begins.
+
+### The finding is the point
+
+This is what the check exists to catch, and it caught it. Discovering that the
+recovery path is imaginary costs nothing today; discovering it during an
+incident costs the thing it was supposed to protect. Recorded as a finding with
+the same weight as any technical one, because an unusable control is
+indistinguishable from an absent one.
