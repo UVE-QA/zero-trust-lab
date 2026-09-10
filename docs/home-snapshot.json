@@ -42,7 +42,7 @@
     {
       "type": "robot vacuum",
       "count": 1,
-      "note": "it carries a camera entity in the registry, so a camera-first classifier miscounted it; the owner corrected it"
+      "note": "it carries a camera entity in the registry, so a camera-first classifier miscounted it; the owner corrected it. Home Assistant controls it through the vendor's cloud, not the local broker."
     },
     {
       "type": "other, inactive or withheld",
@@ -53,7 +53,6 @@
     "Matter over Thread and Wi-Fi",
     "HomeKit",
     "Wi-Fi",
-    "a Thread / Zigbee radio",
-    "one existing MQTT client"
+    "a Thread / Zigbee radio"
   ]
 }
