@@ -97,3 +97,62 @@ it in place with a name.
 
 The lab gets its own credentials and its own topic prefix, and changes nothing
 else.
+
+---
+
+## D-005 — Finding: the actuator publishes no mDNS name, so Option B does not cover it
+
+**Status:** open. Found during Phase 0 capture; changes a Phase 1.5 decision.
+
+The handoff resolves the flat-network problem with Option B — stop addressing
+devices by IP, resolve them by mDNS hostname instead — and states that the
+chosen WiFi actuator is covered directly, because HomeKit accessories advertise
+over Bonjour.
+
+**That is not what the network shows.** A 12-second browse for the HomeKit
+accessory service returns zero instances anywhere on the LAN, and neither
+candidate host answers a reverse mDNS query. Both are powered and serving HTTP;
+they simply publish no name.
+
+Option B's own second verification step is this exact check, and its stated
+fallback applies: a device that does not register a hostname cannot use Option B
+and falls back to C or D. Option C — a static address set on the device — is
+weak here, because the site gateway is not ours and its DHCP pool may span the
+whole subnet with no way to shrink it. That points at **Option D**: reconcile
+addresses from the automation hub, which already tracks every device it manages.
+
+With one complication: the hub does not currently manage this device either. So
+D needs the device adopted into the hub first, which is the same prerequisite
+the qualification checks were already blocked on.
+
+**Method note, because it nearly produced a wrong answer.** The first browses
+were redirected to a file and came back completely empty — no service listing
+*and no header line*. That is an output-buffering artifact, not a result. Re-run
+under a pty the header appears and the instance list is genuinely empty. An
+empty capture that is missing its own header is not evidence of absence; check
+for the header before believing it.
+
+**Not acted on.** Phase 0 is capture, and this is the owner's decision.
+
+### Related, deliberately not concluded
+
+The open HTTP port on those hosts looks more like the vendor's standard firmware
+than the HomeKit variant. If that were confirmed it would reopen the
+local-LAN-integration option that the handoff rules out — the ruling rests on
+the HomeKit variant enforcing strict TLS. But this is an inference from a 404
+page and a MAC prefix, not an identification. It is recorded so it is not lost,
+and it must be confirmed against the physical device before anything is built on
+it.
+
+### What was ruled out
+
+Every Matter actuator already known to the hub is Matter-over-Thread, verified
+per node from its own diagnostics rather than inferred from the product. None is
+an IP host, so none can stand in for the WiFi actuator, and the handoff's choice
+survives the check. The one Matter-over-WiFi node is a camera bridge — not a
+spare, and not an actuator.
+
+Incidentally, those Thread devices are joined to three administrative fabrics at
+once. Matter permits that; the HomeKit accessory protocol does not, which is
+precisely why the WiFi socket has to be unpaired from one ecosystem before
+another can drive it, and why the Thread devices did not.
