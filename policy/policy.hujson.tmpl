@@ -176,8 +176,8 @@
 			// and rejects it here -- "unknown user or host" -- so the identity
 			// is templated like the addresses rather than committed.
 			"src":    "{{operator_identity}}",
-			"accept": ["tag:gateway-home:8123"],
-			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
+			"accept": ["tag:gateway-home:8123", "tag:gateway-home:1883"],
+			"deny":   ["tag:gateway-home:22"],
 		},
 
 		// Action tier, asserted on two axes at once.
