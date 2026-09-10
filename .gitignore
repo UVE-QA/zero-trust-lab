@@ -7,6 +7,21 @@ local/*
 policy/.rendered/
 
 *.tfstate*
+# Terraform: state holds secrets in plaintext, tfvars holds the account id.
+terraform.tfvars
+backend.hcl
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+
+# Plan files and apply logs contain the account id in full. They are working
+# artefacts, not deliverables -- and this is the class of file the sweep cannot
+# help with, because it only sees what is tracked.
+*.tfplan
+tfplan.bin
+apply.log
+
 *.pem
 *.key
 .env

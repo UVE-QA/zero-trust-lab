@@ -1,0 +1,103 @@
+name: terraform-apply
+
+# Applies the AWS stack. No access key: the job assumes a role by presenting
+# an OIDC token, and the role trusts exactly one subject --
+# repo:OWNER/REPO:environment:<this environment>.
+#
+# The `environment:` below is what makes that subject match. On a PUBLIC
+# repository it would also allow a required reviewer to gate the apply.
+#
+# THIS REPOSITORY IS PRIVATE, SO THERE IS NO APPROVAL GATE HERE. Protection
+# rules need Enterprise on a private repository. The environment is still
+# created implicitly and the subject still matches, so this workflow runs and
+# succeeds -- the only thing absent is the stop. Do not read `environment:`
+# below as protection it is not providing. See D-033.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "plan or apply"
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply]
+
+permissions:
+  contents: read
+  id-token: write   # required to mint the OIDC token; nothing else needs it
+
+# WHY SECRETS AND NOT VARIABLES for the account id, the state bucket and the
+# role ARN -- all three carry the account id, and none of them is secret in the
+# usual sense.
+#
+# Repository *variables* are printed in workflow logs verbatim. This repository
+# is private today and is intended to become public (D-035), and run logs become
+# readable when it does. A value that is merely awkward today would be published
+# then, retroactively, from logs nobody thinks to review.
+#
+# Secrets are masked wherever they appear in log output -- including inside
+# Terraform's own output, which prints bucket names and ARNs freely. So the
+# masking is doing real work here, not ceremony.
+#
+# The region stays a variable: it is genuinely public and masking it would make
+# logs harder to read for no gain.
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false   # never interrupt an apply
+
+jobs:
+  terraform:
+    name: ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    environment: aws-apply
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: confirm which identity is in scope
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: init
+        working-directory: terraform/aws
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TFSTATE_BUCKET }}" \
+            -backend-config="key=zero-trust-lab/aws/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+
+      - name: plan
+        working-directory: terraform/aws
+        run: |
+          terraform plan -input=false \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="profile=" \
+            -var="region=${{ vars.AWS_REGION }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
+            -var="github_owner=${{ github.repository_owner }}" \
+            -var="github_repo=${{ github.event.repository.name }}" \
+            -var="github_oidc_provider_exists=true"
+
+      - name: apply
+        if: inputs.action == 'apply'
+        working-directory: terraform/aws
+        run: |
+          terraform apply -input=false -auto-approve \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="profile=" \
+            -var="region=${{ vars.AWS_REGION }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
+            -var="github_owner=${{ github.repository_owner }}" \
+            -var="github_repo=${{ github.event.repository.name }}" \
+            -var="github_oidc_provider_exists=true"

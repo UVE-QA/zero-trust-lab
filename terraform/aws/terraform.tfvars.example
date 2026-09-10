@@ -1,0 +1,29 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is GITIGNORED --
+# it carries the account id, which is a real value.
+
+account_id = "<12-digit-account-id>"   # a literal 12-digit placeholder trips the
+                                       # disclosure sweep, which cannot tell a fake
+                                       # account id from a real one -- and should not try
+profile    = "your-sso-profile"      # there is no default profile by design
+region     = "us-west-2"
+
+# The account already has a state bucket carrying several projects. This stack
+# joins it under its own prefix rather than creating a second one.
+tfstate_bucket = "your-existing-tfstate-bucket"
+tfstate_prefix = "zero-trust-lab"
+
+github_owner = "your-github-account"
+github_repo  = "zero-trust-lab"
+
+# One exact GitHub Environment. Pinned to an environment rather than a branch
+# so a required reviewer on it gates the apply -- a branch cannot express that.
+# A wildcard is rejected by a variable validation.
+github_environment = "aws-apply"
+
+# Set true if the account already has a provider for
+# token.actions.githubusercontent.com -- an account may hold only one.
+github_oidc_provider_exists = true   # this account already has one
+
+# Left empty until a certificate authority exists for the collector. The
+# Roles Anywhere resources are created only when this is set.
+# collector_ca_certificate_pem = file("../../local/collector-ca.pem")

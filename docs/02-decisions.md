@@ -1517,3 +1517,449 @@ This is explicitly **not** a substitute for the tailnet's tests, and the workflo
 says so in its own header. It catches a different class: the mistakes visible in
 the text. The reachability assertions still only run at apply time, and closing
 that gap is what the credential in Q-003 is for.
+
+---
+
+# Phase 5 — AWS without static credentials
+
+## D-028 — The OIDC subject constraint is guarded three ways, because it fails open
+
+**Status:** written and committed. **Not applied** — see D-031.
+
+The handoff calls an unconstrained `sub` claim *the single most common
+misconfiguration of this pattern* and asks for it to be called out. A comment
+is a weak way to call something out, so it is guarded instead.
+
+**Why this particular mistake deserves three layers.** The OIDC provider is
+shared across all of GitHub. A trust policy that pins only the audience proves
+one thing: the token came from GitHub Actions. It does not say *whose* Actions.
+Any repository belonging to anyone can mint a token that satisfies it.
+
+And it **fails open**. A missing or wildcarded subject does not break the
+workflow — the deploy works, the pipeline is green, and the account is open to
+the internet. Nothing surfaces it. Compare a mistyped role ARN, which fails
+immediately and loudly; that error is self-correcting and this one is not.
+
+So:
+
+1. The policy uses `StringEquals` against one exact subject — not `StringLike`,
+   which is the operator that makes a wildcard possible in the first place.
+2. The variable supplying the ref **rejects wildcards** in its own validation,
+   so the mistake cannot be made through configuration either.
+3. `scripts/tf-lint.py` fails the build if the operator is loosened or a
+   wildcard appears, and was negative-tested against both before being trusted.
+
+Three layers is not belt-and-braces for its own sake. It is proportionate to a
+failure that is invisible, silent, and total.
+
+---
+
+## D-029 — Join the existing state bucket instead of creating one
+
+**Status:** accepted, and it removes more than it adds.
+
+The first draft created a state bucket and a lock table, and documented the
+bootstrap loop that follows — a stack holding the state that describes it must
+be applied once with local state and then migrated.
+
+Read-only reconnaissance made that unnecessary. **The account already has a
+Terraform state bucket**, versioned and encrypted, carrying several projects
+under prefixes. This stack joins it under its own prefix.
+
+That deletes about ninety lines, and it deletes the bootstrap loop entirely —
+which mattered more, because the loop is invisible until it bites and its error
+on a fresh clone looks like a typo.
+
+The deploy role is scoped to **this stack's prefix**, not the whole bucket.
+Other projects keep their state there and this role has no business reading it.
+
+Locking uses the S3 lock file rather than a DynamoDB table. The account has no
+lock table; adding one would create something to pay for and maintain in order
+to replace a feature that now exists natively.
+
+This is the same instinct as Phase 1.5: look at what is already there before
+building.
+
+---
+
+## D-030 — Identity Center is not built here, and the reason is architectural
+
+**Status:** accepted. The file exists and is deliberately empty.
+
+Identity Center lives in the organisation's management account. This stack
+deploys into a workload account and its credentials cannot administer the
+organisation. Writing the permission sets here would produce a plan that cannot
+be applied by the identity it is written for — which is worse than not writing
+it, because it looks finished.
+
+The design intent is recorded in the file so it is not lost: **permission sets
+are assigned to groups in the internal identity store, never to individuals.**
+When a real identity provider eventually arrives, only the *source* of the
+groups changes; the assignments do not.
+
+Worth noticing for its own sake: the tailnet has **no** identity provider at all
+and cannot do group-based assignment. AWS can. The same principle is available
+on one side of this system and not the other, which is a more honest picture of
+a real environment than a design where it is available everywhere.
+
+---
+
+## D-031 — Acceptance measured, not asserted; and what blocks applying
+
+**The criterion:** *no long-lived AWS access key exists anywhere in the lab.*
+
+**Measured, read-only:** the target account has **zero IAM users**, therefore
+zero long-lived access keys. Not "we did not create any" — none exist to begin
+with, and the stack adds none: the GitHub role is assumed with a token, the
+collector role with a certificate.
+
+The operator host does hold a static key, for an unrelated account outside the
+organisation. Confirmed with the owner as out of scope — it belongs to a
+separate system the lab does not use. Recorded here rather than omitted, because
+a criterion that quietly excludes the one counterexample in sight is not worth
+claiming.
+
+### Not applied, and the two reasons are different
+
+**Terraform is not installed on the operator host.** Nothing has been planned or
+applied, so every resource in this directory is unverified against a real API.
+Committed anyway: the code is the artifact the phase is judged on, and the
+handoff explicitly says scripts and stacks are worth committing whether or not
+they can run today.
+
+**Applying creates and modifies infrastructure**, which needs the owner's
+go-ahead with the exact commands shown, per the operating rules. It has not been
+sought yet because the first reason blocks it regardless.
+
+What *was* verified against the real account, read-only: the session, the
+absence of IAM users, the absence of conflicting roles, the existing state
+bucket's configuration, and — usefully — that **a GitHub OIDC provider already
+exists**. An account holds only one per URL, so creating a second fails. The
+stack adopts the existing one through a toggle that was written before the check
+and set by it.
+
+---
+
+## D-032 — Adopt the account's existing federation pattern instead of inventing one
+
+**Status:** accepted, and it is a straight improvement over what I wrote first.
+
+The account already runs Terraform from GitHub Actions for a neighbouring
+project. Reading how *that* authenticates answered a question I had been about
+to decide alone.
+
+**Its roles pin the subject to a GitHub Environment, not to a branch:**
+`repo:OWNER/REPO:environment:NAME`. My first draft pinned a ref.
+
+The environment form is better, and not for consistency's sake. **A GitHub
+Environment can require a reviewer.** Pinning the subject to one means applying
+infrastructure needs a human approval that is separate from permission to merge
+— which is exactly what the review of Q-003 recommended, arriving here as an
+existing convention rather than as advice.
+
+There is a second property worth stating, because it is what makes the gate
+real. The workflow's `environment:` declaration is simultaneously what allows
+the reviewer gate **and** what makes the token's subject match. Remove it to
+skip the approval and the subject stops matching, so the role refuses the
+assume. **The approval and the credential are the same mechanism.** A gate that
+can be removed by deleting one line is not a gate; this one cannot.
+
+### An observation about the neighbouring project, offered rather than acted on
+
+Those roles use `StringLike` on the subject, with exact values and no wildcards.
+**That is correct today.** Every value is a literal, so it behaves identically
+to `StringEquals`.
+
+The reason this repository uses `StringEquals` anyway is that `StringLike` is
+the operator that *makes a wildcard possible*. A single character added to a
+value silently converts a pinned subject into an open one, with no error and no
+sign in a diff that anything has changed in kind. `StringEquals` cannot be
+widened that way — a wildcard in it matches a literal asterisk and simply stops
+working, which is a failure that announces itself.
+
+Not a vulnerability, and not this repository's to fix. Recorded because a
+hardening that costs one word is worth knowing about, and because the lint here
+would flag it, which is worth explaining rather than leaving as an apparent
+disagreement between two projects in the same account.
+
+### Consequence for the operator host
+
+The provider previously required a named profile. In Actions there is no
+profile at all — credentials come from the assumed role. It is now optional:
+required on the operator host, where there is no default profile by design and
+picking the wrong account is the mistake this project is most exposed to; empty
+in CI, where the question does not arise.
+
+---
+
+## D-033 — Correction to D-032: the approval gate does not exist on this repository
+
+**Status:** accepted. **Supersedes D-032's central claim.** Nothing built on it
+has been applied, so the cost is a paragraph rather than an incident.
+
+D-032 said the environment pin makes approval and credential the same
+mechanism, and concluded: *"A gate that can be removed by deleting one line is
+not a gate; this one cannot."*
+
+**That is true where the gate exists. On this repository it does not.**
+
+GitHub's protection rules — required reviewers, wait timer — are available on
+the free plan **only for public repositories**. On a private one they need
+Enterprise. This repository is private, by a Phase 0 decision, and has zero
+environments configured.
+
+### What makes this worse than a missing feature
+
+`environment:` in a workflow **still works** without protection rules. The
+environment is created implicitly, the token carries the
+`environment:<name>` subject, and the role assumes cleanly. The deploy
+succeeds. The pipeline is green.
+
+**The only thing absent is the stop.**
+
+So the arrangement I described would have reported success and enforced
+nothing — the exact failure this project keeps finding elsewhere and has now
+produced in its own design. D-028 was written a few hours earlier about a
+control that fails open and looks correct; I then built one.
+
+### How the mistake happened
+
+I read the pattern off a neighbouring project's live IAM policies, saw
+`environment:` subjects, and inferred the approval gate from the shape. The
+inference was reasonable and the shape was real — that project is **public**,
+so it has the gate. I carried the conclusion across a difference in plan
+eligibility I never checked.
+
+This is the handoff's own rule, broken again: *do not design around a feature
+without confirming it is available on the plan actually in use.* It was
+confirmed for the tailnet twice. It was not confirmed for GitHub.
+
+### What survives, and what is now honest
+
+**Keep the environment pin.** It still constrains *which* workflow context can
+assume the role, which is real and worth having. What it does not do here is
+gate on a human.
+
+**State the absence.** The workflow and the Terraform now say plainly that
+there is no approval gate on a private repository, so nobody reads
+`environment:` as protection it is not providing.
+
+**The option is the same one the neighbouring project took.** It moved its
+publication step earlier for exactly this reason — the gate is only real once
+the repository is public. This project plans to go public anyway, and Phase 0
+built the entire disclosure boundary as preparation for it. Whether to flip now
+is the owner's call and is recorded as an open question, not assumed.
+
+---
+
+## D-034 — Bootstrap ordering: the first apply is local, once
+
+**Status:** accepted, adopted from the neighbouring project rather than derived.
+
+The chicken-and-egg was real: GitHub Actions cannot assume a role that does not
+exist, and the role is created by the stack Actions would run.
+
+The neighbouring project solved this and wrote it down: **both bootstraps run
+locally, once, under a named profile.** The first apply creates the provider and
+the deploy role; every apply after that runs from Actions via OIDC.
+
+Adopted unchanged. Two of its three bootstrap problems do not arise here —
+D-029 already removed the state-bucket loop by joining an existing bucket, and
+the OIDC provider already exists in the account. **Only the deploy role needs
+the local first apply.**
+
+Its rejected alternatives are worth keeping too, because they are the ones that
+look tempting at the moment of being blocked: creating the role by hand in the
+console (not reproducible), or the bucket with raw CLI calls (loses the
+configuration that makes the bucket safe). Neither is chosen here either.
+
+The consequence for sequencing is the same one that project drew: **the phase
+that writes this code does not apply it.** Applying is a separate, explicit
+step with the commands shown first.
+
+---
+
+## D-035 — The repository stays private, and the reason is not safety
+
+**Status:** accepted, resolving Q-005.
+
+Q-005 asked whether to publish now, since a real approval gate on the apply
+workflow only exists for a public repository. **The answer is no**, and the
+reasoning is worth recording because it separates two conditions that are easy
+to conflate.
+
+**Publication is gated on having something worth showing that can be shown
+without exposing sensitive information.** Not on wanting a feature.
+
+Two preconditions, only one of which is still open:
+
+- **Safety is already met, and is enforced rather than assessed.** The
+  disclosure boundary landed in the first commit — before any real value was
+  written down anywhere — and the sweep has passed on every commit since. It has
+  caught three genuine slips: a hostname left in a placeholder file, a private
+  address in a script's own error message, and a twelve-digit placeholder that a
+  scanner cannot distinguish from a real account id. Each was caught before it
+  reached history, which is the only place a leak cannot be undone.
+- **Readiness to show is the actual gate**, and it is editorial. Whether the
+  work is finished enough to publish is the owner's judgement, not a technical
+  condition.
+
+So the position is not *"it is not safe to publish yet"*. It is **safe, and not
+yet finished**. Written down so a later session does not reopen the safety
+question Phase 0 settled, and does not mistake the editorial gate for a
+technical one.
+
+### Consequence for the apply workflow
+
+There is no approval gate on the apply, and there will not be one until the
+repository is published on its own schedule. That absence is stated in the
+workflow and in the Terraform variable so nobody reads the environment pin as
+protection — D-033.
+
+Applies stay manual, rare, and preceded by a plan shown in full. That is a
+weaker control than a required reviewer and it is not pretended otherwise.
+
+---
+
+## D-036 — Phase 5 runs from the production stand-in, against the handoff's rule
+
+**Status:** accepted, with the rule's reasoning checked rather than waved past.
+
+The handoff is explicit: run the work from the operator laptop, not from the
+production stand-in. Phase 5 is being run from the stand-in. The deviation is
+deliberate and the rule's two reasons are worth taking one at a time, because
+one of them still half-applies.
+
+*(That sentence originally quoted the handoff verbatim, which carried a real
+node name across from the private overlay into a committed file. The sweep
+caught it before `git add` — see the note at the end.)*
+
+**Reason one — lockout — does not apply.** The rule exists because the work
+*"consists of changing who can reach what over the tailnet"*, and a node
+reachable only over the tailnet can drop its own access mid-run and be unable to
+repair what it broke. Phase 5 changes nothing about the tailnet. It creates IAM
+roles and a bucket in a cloud account, and no failure mode of it can affect a
+tailnet path.
+
+**Reason two — "a target, not an operator" — partly does.** That node is the
+production stand-in, and Phase 2 deliberately restricts access to it. Running
+from it means my session depends on a policy this project wrote. That is a
+smaller version of the same hazard, and the handoff already prescribes the
+mitigation: *anything long-running on that node runs under tmux, driven from the
+laptop.* A dropped session then costs a reconnect rather than a half-finished
+apply.
+
+**What makes it the better host anyway** is a property that only became visible
+on inspection. It already has Terraform, and a newer version than the operator
+host would have got. It authenticates by SSO with **no credentials file, no
+static keys and no environment variables** — so running the phase there does not
+weaken the criterion the phase is judged on.
+
+### The thing worth noticing about that machine
+
+It is a Lightsail instance, and **Lightsail does not support IAM instance
+roles.** It therefore cannot be given an identity the way a normal cloud server
+can — which is the same constraint as the on-prem collector, arrived at from the
+opposite direction.
+
+That is exactly the gap IAM Roles Anywhere exists to fill, and it means the
+pattern being built in this phase has a second legitimate subject already in the
+lab. Not adopted now — the collector comes first, and a certificate authority
+does not exist yet — but recorded, because "a machine that cannot hold a role"
+is easier to reason about when there are two of them and they arrived for
+different reasons.
+
+Interactive human work on it stays on SSO, which is correct: Roles Anywhere is
+for unattended machine identity, not for a person at a terminal.
+
+### A leak vector worth naming
+
+The quotation above was the fourth thing the disclosure sweep has caught, and
+the first of its kind. The others were values I typed: a hostname left in a
+placeholder file, a private address in a script's own error message, a
+twelve-digit placeholder indistinguishable from a real account id.
+
+This one was different. **Quoting the private handoff verbatim carries its real
+names into a committed file.** The sanitisation map exists precisely because
+that document names devices, and it is easy to forget while quoting a sentence
+whose *point* is the rule, not the name.
+
+The habit that follows: when quoting the source document, quote the reasoning
+and paraphrase the subject. If the exact wording matters, run the sweep before
+staging rather than after — which is what happened here only by luck of shell
+ordering, since the sweep sat in an `&&` chain ahead of `git add`.
+
+---
+
+## D-037 — Phase 5 applied. And the account id belongs in secrets, not variables.
+
+**Status:** applied and verified against the API.
+
+Eleven resources created, nothing changed, nothing destroyed. **Verified by
+reading AWS back**, not by trusting the apply log — the log says what Terraform
+attempted, which is a different claim:
+
+| Checked | Result |
+|---|---|
+| Deploy role's trust policy, read from IAM | `StringEquals` on both subject and audience; one exact subject; no wildcard |
+| IAM users in the account, after the apply | **zero** — so zero long-lived access keys |
+| Archive bucket | public access blocked, versioning on, lifecycle into both Glacier classes |
+| Collector role's permissions | `PutObject` and `ListBucket`. Nothing else — it uploads and cannot read back |
+
+Roles Anywhere created nothing, as intended: no certificate authority exists
+yet, so the role sits with nothing able to assume it. That is the correct
+resting state, not a half-built one.
+
+### The mistake nearly made at the last step
+
+The workflow originally read the account id, the state bucket and the role ARN
+from repository **variables**. That is the ordinary choice, and none of the three
+is secret in the usual sense — an account id is semi-public and an ARN appears
+in every policy that references it.
+
+**Repository variables are printed in workflow logs verbatim.** This repository
+is private today and is intended to become public (D-035). Run logs become
+readable when it does. So the arrangement would have published the account id
+*retroactively*, out of logs nobody thinks to review at the moment of flipping
+visibility — long after the decision that made it visible.
+
+They are secrets now. GitHub masks secret values wherever they appear in log
+output, **including inside Terraform's own output**, which prints bucket names
+and ARNs freely and would otherwise have leaked the same value by a second
+route. The masking is doing real work rather than ceremony.
+
+The region stays a variable. It is genuinely public and masking it would make
+logs harder to read for nothing.
+
+### Why this one is worth writing down
+
+The disclosure boundary has held for five phases by controlling what enters
+git. **This is the first place a real value could have escaped without ever
+being committed.** The sweep would not have caught it — correctly, since nothing
+was wrong with any tracked file.
+
+The general form: a boundary defined as "what is in the repository" misses
+everything the repository *produces*. Logs, artifacts, published plan output,
+issue comments from automation. Worth carrying into Phase 6, where drills
+generate exactly that kind of output.
+
+### D-037 addendum — the same lesson, twice in an hour
+
+Minutes after writing the entry above, the apply left two working files on the
+host that ran it — the binary plan and the apply log. **Both contain the account
+id in full, both were untracked, and both were one `git add -A` from being
+staged.** That command is used routinely here.
+
+The sweep would have caught them at that point, since staged files are tracked.
+But that is the second line of defence working, not the first, and it only
+works because the sweep runs before every commit rather than in CI alone.
+
+Added to `.gitignore`. The point is not the two filenames — it is that this
+class keeps appearing and will keep appearing: **the outputs of running the
+thing, rather than the thing.** Plan files, logs, rendered templates, captured
+drill results. Each one arrives looking like a temporary artefact and sits in
+the working tree exactly where a broad `add` will find it.
+
+Phase 6 produces this class deliberately — a drill's value *is* its recorded
+output. The habit to carry there: decide where a run's output goes before
+running it, not after looking at it.
