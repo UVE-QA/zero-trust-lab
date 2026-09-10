@@ -1,0 +1,59 @@
+{
+  "_what": "Devices in the house by type, for the evidence page's diagram. A snapshot counted by hand, not a live reading: giving CI a credential into the home automation hub to keep this current would be the wrong trade.",
+  "counted_at": "2026-09-10",
+  "source": "the automation hub's device registry, read-only, enabled devices only",
+  "rule": "No names, models, vendors or integration names. The number of cameras is not published (handoff 2.7). Categories that could be subtracted from a total to recover it are folded into one group, and the total is rounded. Classification checks vacuum before camera: a vacuum with a camera entity is still a vacuum.",
+  "exposed_to_tailnet": 3,
+  "total_about": 40,
+  "categories": [
+    {
+      "type": "lights",
+      "count": 6
+    },
+    {
+      "type": "plugs and switches",
+      "count": 5,
+      "note": "two of them are the exposed pair"
+    },
+    {
+      "type": "temperature sensors",
+      "count": 5
+    },
+    {
+      "type": "media and TV",
+      "count": 3
+    },
+    {
+      "type": "phones, as presence",
+      "count": 3
+    },
+    {
+      "type": "blinds",
+      "count": 2
+    },
+    {
+      "type": "buttons",
+      "count": 2
+    },
+    {
+      "type": "radios and bridges",
+      "count": 2
+    },
+    {
+      "type": "robot vacuum",
+      "count": 1,
+      "note": "it carries a camera entity in the registry, so a camera-first classifier miscounted it; the owner corrected it"
+    },
+    {
+      "type": "other, inactive or withheld",
+      "count": "the rest"
+    }
+  ],
+  "protocols": [
+    "Matter over Thread and Wi-Fi",
+    "HomeKit",
+    "Wi-Fi",
+    "a Thread / Zigbee radio",
+    "one existing MQTT client"
+  ]
+}

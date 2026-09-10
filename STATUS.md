@@ -74,6 +74,14 @@ pipeline refused (D-041, PR #7, PR #8).
    network wider than `/32` counted, each by a read-only job of its own.
 4. ~~`validate` on a schedule~~ — done.
 
+**Next, after an outside review (D-046) — substance before more machinery**
+
+- The collector as a real host, with one telemetry stream through the grants
+  that so far exist only in tests.
+- The lost-comms drill on that stream: the first number on the evidence page
+  that comes from watching the system rather than counting the repository.
+- The "after" half of the exposure reading, from a disposable node.
+
 **Weeks two to three — Phase 6**
 
 5. Blast radius, "after" reading, from a disposable node.
