@@ -812,3 +812,342 @@ The method notes in `STATUS.md` carry the general form. This entry records the
 specific variant that is easiest to miss, because it does not feel like
 measuring at all — inheriting a fact from documentation rather than from the
 system.
+
+---
+
+# Phase 1 — Tag the machine identities
+
+## D-017 — Finding: there are **two** subnet routers, and one is the node meant to be isolated
+
+**Status:** open finding. Amends D-003 and D-008. **Nothing touched.**
+
+D-003 recorded one approved route into the home LAN, served by a user-owned
+personal desktop. That was incomplete, and the way it was incomplete is
+instructive.
+
+**The media appliance also advertises the same route, and it is approved too.**
+
+The earlier reading came from the client's status output, which reports the
+*primary* holder of a route. When two nodes advertise the same prefix only one
+is primary, so the second is simply absent from that view. The console's device
+pages show both. A field that answers a narrower question than the one being
+asked will quietly give a smaller answer.
+
+### Why this one matters more than the first
+
+The design assigns that appliance `tag:kiosk`, described as *deliberately
+isolated, appears in no `src`*. It is currently a gateway into the entire home
+network. The single node the model most wants cut off from everything is, in the
+starting state, one of only two ways in.
+
+That is a better illustration of the project's premise than anything that could
+have been constructed deliberately: intent expressed in a document, and the
+opposite arrangement live on the network, with nothing in between to notice the
+contradiction. Phase 2's `tests` section is exactly the thing that would have
+noticed.
+
+### Consequences
+
+- **Phase 1.5 has two migrations, not one.** Withdrawing one route leaves the
+  other serving the same prefix, and the exposure is unchanged.
+- **Tagging the appliance does not remove its route.** Tags govern access; route
+  advertisement and approval are separate. Tagging it `tag:kiosk` while it still
+  routes the LAN would produce a policy that reads isolated and behaves like a
+  gateway. The route must be dealt with explicitly, not assumed away.
+- D-008's conclusion is unchanged: the route is load-bearing for almost nothing,
+  so removing both should still be cheap.
+
+### Correction to D-008
+
+D-008 identified which media device was the tailnet node by matching names
+resolved over multicast. That mapping was **backwards** — the appliance's own
+endpoint list settles it, and the device that is a tailnet node is the other one
+of the pair. The counts and conclusions in D-008 are unaffected; the labels on
+two rows were wrong.
+
+---
+
+## D-018 — Tags are assigned from the console, not by re-authenticating with a tagged key
+
+**Status:** accepted. Deviates from the handoff's stated method, deliberately.
+
+The handoff specifies: *re-authenticate every non-human node with a tagged auth
+key.* That is the classic method and it works, but the console exposes a direct
+**edit ACL tags** action on an existing machine, and that is the better path
+here.
+
+Three reasons, in order of weight:
+
+1. **No credential is created.** The auth-key method requires minting a tagged
+   pre-authentication key, putting it on the target host, and disposing of it.
+   That is a credential with a blast radius — anything holding it can register a
+   node under that tag — and it exists only to accomplish a state change the
+   console can make directly. The best-managed secret remains the one never
+   issued.
+2. **No re-registration.** Re-authenticating restarts the client and re-registers
+   the node. One of the targets is reachable only over the tailnet, and another
+   is in daily household use. A method whose failure mode is "the node does not
+   come back" should not be chosen when an equivalent method has no such mode.
+3. **It is reversible in the same place.** Tags edited in the console can be
+   edited back, without touching the host at all.
+
+The handoff's method is not wrong; it is the right method when provisioning a
+*new* node, which is exactly what the fleet scripts will do later. For nodes
+that already exist and already work, changing their identity in place is less
+machinery for the same result.
+
+### The consequence that needs consent, not just recording
+
+Tagging a node **transfers it from the owning user to the tag**, and Tailscale
+disables key expiry on tagged nodes. Disabling key expiry is on the handoff's
+short list of things to confirm with the owner before doing. So the tagging step
+is gated on explicit approval, and this entry records the reasoning rather than
+the completed action.
+
+---
+
+## D-019 — Rename `tag:kiosk` to `tag:appliance`: the name was already taken
+
+**Status:** accepted, before anything was applied.
+
+The handoff assigns the media appliance a tag named for a kiosk, meaning a
+locked-down device that originates nothing. Reasonable in the abstract.
+
+**In this house "kiosk" already means something else.** The automation platform
+exposes kiosk-mode entities for two personal handhelds — it is a display mode in
+an app, running on devices that are *not* the one the tag would apply to.
+
+So the tag would have read, to anyone here, as governing a handheld while
+actually governing an appliance. A policy file whose identifiers point at the
+wrong device in the reader's head is worse than one with an inelegant name: the
+whole value of the `tests` section is that a human can look at a rule and say
+whether it is right, and that check fails silently when the words mean different
+things to the writer and the reader.
+
+Renamed to `tag:appliance` — the role it actually describes: something attached
+to the network with no function *over the tailnet*, present but never a source.
+
+### The general rule, now in `policy/README.md`
+
+Do not name a tag after a word the surrounding environment already uses for
+something else. The taxonomy is supposed to make the policy readable; a term
+with a local meaning does the opposite, and the collision is invisible to
+whoever writes the tag because they are not the one who will misread it.
+
+### What did not change
+
+The **assignment** is unchanged and still correct. The appliance keeps a real
+job — it is the local hub for the home ecosystem — but that job runs entirely
+over the local network, which access rules do not touch. Nothing it does needs
+the tailnet, so it belongs in no `src`, exactly as the handoff intends.
+
+The handhelds stay **user-owned**. They are personal devices and posture
+subjects, and their kiosk mode is an application feature, not a network role.
+Tagging them would strip the user identity that posture work in Phase 3 depends
+on, to describe something that is not a network property at all.
+
+Their remote access to the automation UI is a separate matter and is covered by
+the household grant that Phase 2 must ship with an `accept` assertion.
+
+---
+
+## D-017 addendum — the second router is deliberate redundancy, and that is the interesting part
+
+Recorded as an addendum rather than an edit; this file is append-only.
+
+D-017 framed the second subnet router as something the design had failed to
+notice — "intent in the document, the opposite live, nothing in between to
+catch it." **That framing was wrong and unfair to the setup.** The owner
+configured the appliance as a *backup* subnet router on purpose.
+
+That is a sound arrangement and the reasoning is visible in the hardware: the
+primary router is a desktop workstation, which sleeps; the appliance is always
+on. Tailscale supports exactly this — several nodes advertising the same prefix,
+one primary, the others taking over when it drops. Someone thought about
+availability and built for it.
+
+### So the real finding is a tension, not a mistake
+
+**The property that makes a node a good failover router — always on, always
+attached — is the same property that makes it a poor thing to trust.** And the
+appliance is simultaneously the node the access model most wants to originate
+nothing.
+
+Availability engineering pulled one way, least privilege pulls the other, and
+both are right. That conflict is worth far more to this project than a missed
+route would have been: it is the kind of thing that shows up in real
+infrastructure constantly and never appears in a reference architecture.
+
+Recording it as a tension also changes what a good resolution looks like. The
+answer is not "remove the backup router" — that trades away availability
+someone deliberately bought. It is to move the *routing role* somewhere that is
+both always-on and appropriate to trust, at which point the redundancy question
+gets asked again on its own terms.
+
+The always-on automation hub is that place, which is where the phase plan was
+already going. And the segmentation option the plan prefers removes advertised
+routes altogether in favour of forwarding by name — under which there is no
+route to be redundant about, and the tension dissolves rather than being
+decided.
+
+### What does not change
+
+- Both advertisements are live and both must be retired together, or the
+  exposure is unchanged. Retiring one is worse than useless: it looks like
+  progress.
+- Tagging the appliance will not remove its route, so the contradiction between
+  a policy that reads *isolated* and a node that routes the LAN is real until
+  the routing role actually moves.
+- A subnet router does not need to appear in `src` to serve a route, so
+  `tag:appliance` and *backup router* are not in conflict as policy — only as
+  intent. Which is precisely why it needs writing down rather than leaving to be
+  rediscovered.
+
+### Correction to the record
+
+The original entry's rhetoric about intent and reality diverging unnoticed
+should be read as applying to **this project's own documentation**, which
+assigned an isolation role to a node without checking what that node was already
+doing. Not to the network, which was doing something sensible.
+
+---
+
+## D-020 — Tagging via the console does **not** disable key expiry. The handoff expected it would.
+
+**Status:** measured. First node tagged; result differs from the documented
+expectation, so the remaining nodes are paused on a decision this raises.
+
+The appliance was tagged from the console. Four things were checked afterwards
+rather than assumed, and one came back against expectation.
+
+| Checked | Result |
+|---|---|
+| Tag applied, ownership moved from the user to the tag | yes — the console states this explicitly before you confirm |
+| Node still online and reachable | yes, direct connection, unchanged latency |
+| Household paths unaffected | yes — automation UI and broker both answer as before |
+| **Key expiry disabled** | **no — expiry is unchanged and still set** |
+
+### Why the difference, and why it matters
+
+The handoff instructs: *note in the inventory that key expiry is disabled by
+default on tagged devices, and which nodes that now applies to.* The honest
+answer for this tailnet is **none of them**.
+
+The behaviour it describes belongs to the *other* method. Key expiry is turned
+off when a node **authenticates with a tagged auth key** — the identity is
+minted as a machine identity from the start. Assigning a tag to a node that has
+already authenticated under a person changes its ownership, but the node keeps
+the credential and the expiry it already had.
+
+So D-018's choice of method quietly avoided a side effect the handoff treated as
+unavoidable. That is good — an infrastructure node whose key never expires never
+re-proves anything — but it is not free, and the cost lands later.
+
+### The trade-off this creates, which needs deciding rather than drifting
+
+A tagged node with expiry still enabled **will drop off the tailnet when the key
+expires**, in roughly six months for every node here. Re-authenticating it then
+requires a tagged auth key — precisely the credential D-018 avoided minting.
+
+Two defensible positions:
+
+- **Leave expiry on.** Better posture: machine identities re-attest on a
+  schedule instead of living forever. Cost: a calendar item, and an outage for
+  any node nobody re-authenticates in time. For a gateway the household depends
+  on, "nobody got to it in time" is a real failure mode, not a hypothetical.
+- **Disable expiry on tagged nodes**, as Tailscale does by default for machine
+  identities. Cost: the identity never expires, which is exactly the property
+  the lab argues against elsewhere.
+
+Neither is obviously right, and the handoff's list of actions to confirm with
+the owner includes disabling key expiry — so this is not a decision to take
+silently on the way past.
+
+**Recorded as open.** The expiry dates are known and months away, so nothing
+forces the choice today. What would be wrong is to let it be settled by
+whichever method happens to get used next.
+
+### The contradiction from D-017 is now live and confirmed
+
+The appliance's approved route into the home network **survived tagging**, as
+predicted but now verified. The tailnet currently contains a node tagged as an
+appliance — a role defined as originating nothing — that is a standing backup
+gateway into the entire home LAN.
+
+Nothing is broken by that today, because the grants are still allow-all and
+constrain nothing. It becomes a live contradiction the moment Phase 2 writes a
+policy that says one thing while the routing table does another. Which is the
+argument for treating the route migration as part of the same piece of work,
+not as a later tidy-up.
+
+---
+
+## D-021 — Phase 1 applied. Two operational facts worth more than the tagging itself.
+
+**Status:** Phase 1 changes complete. Acceptance **partially** met — see the
+residue below, which is stated rather than glossed.
+
+All three infrastructure nodes carry machine identities:
+
+| Node role | Tag | Ownership |
+|---|---|---|
+| production stand-in | `tag:prod` | moved from the person to the tag |
+| gateway | `tag:gateway-home` | moved from the person to the tag |
+| network appliance | `tag:appliance` | moved from the person to the tag |
+
+Operator devices stay user-owned, as the design requires for posture work.
+
+Everything was verified against a baseline captured immediately before each
+change: the automation UI answers over both the tailnet and the local network,
+the broker still completes an MQTT handshake, the newly adopted actuator is
+still reachable, operator access to the production stand-in is intact, and every
+node is online. Nothing the household depends on moved.
+
+### The acceptance criterion is not fully met, and cannot be by tagging
+
+Phase 1's criterion is *no infrastructure node is authenticated under a personal
+identity*. Three nodes now satisfy it. **One does not, and it is the most
+consequential one.**
+
+The primary subnet router — the node that actually carries traffic into the home
+network — is a personal workstation, and the handoff correctly forbids tagging
+it: it is someone's daily machine and a posture subject, and tagging would strip
+the user identity that Phase 3 depends on.
+
+So an infrastructure role is running under a personal identity, and no amount of
+tagging fixes it. **Only moving the role fixes it.** That is the same conclusion
+D-017 reached from the other direction, now arriving as an unmet acceptance
+criterion rather than as an observation — which is a better place for it,
+because a criterion has to be answered.
+
+Phase 1 is therefore complete in what it can do, with the residue named: the
+routing role must move to the tagged gateway before this criterion is honestly
+met. Recording it as met would be the kind of quiet rounding-up that the whole
+project exists to argue against.
+
+### Operational fact 1: the policy file is reformatted on save
+
+The saved file came back nine bytes smaller than what was submitted. The service
+re-aligns column padding, and it does so **per block** — a blank line inside the
+tag list split it into two alignment groups, and the second group was re-padded
+to its own longest entry.
+
+Harmless in itself, and the repo copy was reconciled to match what is live.
+**But it matters for D-001.** The GitOps workflow is meant to own this file, and
+a workflow that applies the repo copy and then compares will see drift on every
+run that touches formatting. Whatever applies the policy must compare
+*semantically*, or normalise through the same formatter first, or it will report
+a difference that is not one — and a check that cries wolf gets switched off.
+
+### Operational fact 2: the editor lies about what will be saved
+
+The console editor is a legacy CodeMirror instance with a mirror textarea.
+Writing to that textarea — even correctly, with the native setter and a
+dispatched input event — updates the DOM but **not** the component state.
+"Preview changes" showed an empty diff while the textarea held the new content.
+Saving then would have silently written the *old* file, and left the tags
+apparently declared but actually absent.
+
+The habit that caught it generalises past this one editor: **before committing
+a change through someone else's UI, make the UI show you the change.** The diff
+view existed and cost one click.

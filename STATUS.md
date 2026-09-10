@@ -5,7 +5,14 @@ Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-**Phase 0 is complete. All seven tasks executed, all acceptance checks met.**
+**Phase 0 complete** — merged. **Phase 1 applied**, acceptance partially met.
+
+> **Phase 1 residue, stated not glossed (D-021).** Three infrastructure nodes now
+> carry machine identities. The acceptance criterion — *no infrastructure node
+> authenticated under a personal identity* — is still **not** fully met, because
+> the primary subnet router is a personal workstation that the design correctly
+> forbids tagging. Only moving the routing role satisfies it. Recording this as
+> met would be exactly the quiet rounding-up the project argues against.
 
 ---
 
@@ -97,6 +104,16 @@ that rewrites the global policy file.
 | **D-014** | superseded | Reported the break-glass path broken and blamed a missing passkey. The observation was right, the cause wrong — see D-015. |
 | **D-015** | superseded | **Correction.** The account authenticates via a consumer identity provider, not a passkey — the handoff's claim otherwise is factually wrong, and that unchecked premise shaped the wrong test and the wrong fix. |
 | **D-016** | closed | **Break-glass verified**, phone on cellular, off tailnet. The gate on Phase 2 is lifted and no second credential was created. Records the guard: when a document supplies a fact about a system you can query, query it before building on it. |
+
+### Phase 1
+
+| id | state | summary |
+|---|---|---|
+| **D-017** | open | **Two** subnet routers into the home network, not one — the second is deliberate failover redundancy, and it is the node the model most wants isolated. The property that makes a good backup router is the property that makes a poor thing to trust: availability and least privilege pull opposite ways and both are right. Also corrects a device mix-up in D-008. |
+| **D-018** | accepted | Tags assigned from the console rather than by re-authenticating with a tagged auth key: no credential minted, no re-registration on a node reachable only over the tailnet or one in daily household use, reversible in the same place. The handoff's method stays right for provisioning new nodes. |
+| **D-019** | accepted | `tag:kiosk` renamed to `tag:appliance` — "kiosk" already means a display mode on two personal handhelds here, so the policy would have read as governing one device while governing another. General rule: do not name a tag after a word the environment already uses. |
+| **D-020** | open | Tagging from the console does **not** disable key expiry, contrary to the handoff. Measured, not assumed. Better posture, but tagged nodes will now expire in ~6 months and re-authenticating them needs the auth key the method avoided minting. Trade-off left explicitly open rather than settled in passing. |
+| **D-021** | — | Phase 1 applied and verified against a before/after baseline; nothing the household depends on moved. Names the unmet part of the acceptance criterion. Two operational facts: the service **reformats the policy on save** (false drift for the future GitOps check), and the console editor **can show an empty diff while holding new content** — make the UI show you the change before saving. |
 
 ## The starting state, stated plainly
 
