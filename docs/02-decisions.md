@@ -546,3 +546,43 @@ first not reflected the second, the same reading would have appeared regardless
 of which device was switched. The control cost one extra step and converted a
 guess into evidence. Same lesson as D-007, applied before the mistake rather
 than after it.
+
+---
+
+## D-012 — The gateway-vantage discovery check is closed, and it closed itself
+
+**Status:** resolved. Closes the item left open by D-007.
+
+D-007 corrected a wrong finding about the actuator's discoverability, but left
+one thing genuinely unresolved: every measurement had been taken from the
+operator laptop, while the check as specified says to test from the gateway.
+An attempt to settle it directly was abandoned as inconclusive and recorded as
+such, because the only evidence available at the time was a negative with no
+control behind it.
+
+It is now resolved, and it resolved as a side effect of work that had to happen
+regardless. When the actuator was released from its previous controller, the
+automation hub — the node that will carry the gateway tag — immediately raised a
+pairing flow for it **sourced from zeroconf**, naming the accessory and its
+category.
+
+That is the check, from the right vantage point, answered by the system itself:
+the gateway receives the actuator's multicast announcements and resolves it by
+name. Option B is viable at the node that actually has to do the resolving,
+which is the only place the answer mattered.
+
+**The process point is worth more than the result.** The honest move when the
+direct attempt failed was to record it as open with the reasons, rather than
+either asserting the likely answer or spending effort forcing a shell onto the
+gateway. Both alternatives were available and both were worse: one repeats
+D-007, and the other buys with real effort what patience got for nothing. An
+open item with a stated resolution path is not a loose end — it is a cheaper
+plan.
+
+### Remaining step, and why it is not taken here
+
+Adoption is one action from complete: the pairing flow is live and waiting on
+the accessory's setup code. That code is a pairing secret printed on the device,
+and entering it is left to the owner in the hub's own interface. There is
+nothing to gain from routing a credential through this session, and the step
+takes them seconds.

@@ -50,7 +50,7 @@ routing table.
 sign in and reach the policy editor. One minute, and it is what makes a bad
 policy recoverable.
 
-### 2. Actuator — checks 1 and 3 now pass; check 2 needs adoption first (Q-002)
+### 2. Actuator — checks 1 and 3 pass; adoption is one step from done (Q-002)
 
 **Resolved since the last update.** The transport check passes: the device is a
 HomeKit-over-WiFi accessory, an ordinary IP host on the LAN, confirmed from its
@@ -66,11 +66,16 @@ household. That is better than a spare — D-010 uses them as a matched
 granted/denied pair, which demonstrates that least privilege here is per-host
 rather than per-protocol. A single device cannot show that.
 
-**What is still needed from the owner:** unpair **one** unit from the other
-ecosystem so it can be adopted via HomeKit Controller. The second is left
-completely alone — the denied control needs no adoption and no reconfiguration,
-because for policy purposes it already is what it needs to be. Check 2 is a
-formality once the first is adopted; the protocol is local by construction.
+**Done since:** the owner released the granted unit from the other ecosystem. It
+now advertises itself as unpaired, and the automation hub raised a pairing flow
+for it **sourced from zeroconf** — which also closed the gateway-vantage
+question (D-012). The denied control was left untouched throughout, as intended.
+
+**The one remaining step:** complete the pairing in the hub's UI. The flow is
+live and waiting on the accessory's setup code, printed on the device. That is a
+pairing secret and is deliberately not routed through this session — it takes
+the owner seconds in the UI. Check 2 is a formality once paired; the protocol is
+local by construction.
 
 ### 3. Tailscale OAuth client — not blocking Phase 0 (Q-003)
 
@@ -93,7 +98,8 @@ that rewrites the global policy file.
 | **D-008** | high | Measures what the subnet route is load-bearing for: **almost nothing.** Everything used remotely is already a tailnet node in its own right. The one real exposure is the site gateway's admin interface, published to the whole tailnet. Also establishes that route acceptance is a client-side toggle — not an access control. Corrects the ordering: policy first, then migrate, then withdraw. |
 | **D-009** | — | The blast-radius measurement uses a disposable ephemeral node, not a loosened trusted one: nothing has to be remembered and undone, and it measures the leaked-key claim rather than a proxy for it. Deferred to the Phase 2 window, with the sequencing hazard written up. |
 | **D-010** | — | Both actuators are free for the lab, so they are used as a matched granted/denied pair rather than one plus a spare. Proves least privilege is per-host, not per-protocol. Costs one device change, not two — the control needs no changes at all. |
-| **D-011** | high | The granted actuator answers its local API over plaintext to a request signed with an **empty key** — no meaningful authentication at all, while its identical twin rejects the same request. The only thing between the local network and a physical state change is reachability. This is the lab's action-tier argument with evidence behind it, not a defect to patch. |
+| **D-011** | high | The granted actuator answers its local API over plaintext to a request signed with an **empty key** — no meaningful authentication at all, while its identical twin rejects the same request. The only thing between the local network and a physical state change is reachability. This is the lab's action-tier argument with evidence behind it, not a defect to patch. An addendum records that the unauthenticated read is **live state**, so anything on the LAN can watch the actuator in real time. |
+| **D-012** | — | Closes the gateway-vantage discovery check left open by D-007 — and it closed itself, as a side effect of releasing the actuator. The hub raised a zeroconf-sourced pairing flow, which is the check answered from the right vantage point. Recording it as open rather than guessing was the cheaper plan. |
 
 ## The starting state, stated plainly
 
@@ -126,21 +132,11 @@ lives, and tagging is the step that assigns it.
 **In order:**
 
 1. **The phone check.** One minute. It gates everything after it.
-2. **Re-run the actuator mDNS check from the gateway node**, not from the
-   operator laptop — and use a direct multicast query, not the service-discovery
-   CLI, for the reason in D-007.
-
-   Attempted this session and abandoned as inconclusive, which is recorded
-   rather than papered over. The gateway has no shell access available, and the
-   automation hub's own discovery state cannot answer it: an accessory that is
-   already paired produces no discovery flow by design, so its absence is what
-   you would see either way. Concluding from that would repeat exactly the
-   mistake D-007 documents.
-
-   The cheapest way to settle it is to let it fall out of work that has to
-   happen anyway — adopt the actuator after unpairing and see whether the hub
-   resolves it by name. Failing that, a shell on the gateway and a direct
-   multicast query.
+2. ~~Re-run the actuator mDNS check from the gateway node.~~ **Closed — D-012.**
+   It resolved itself: releasing the actuator from its previous controller made
+   the hub raise a zeroconf-sourced pairing flow for it, which is the check,
+   from the right vantage point, answered by the system. No shell on the gateway
+   was ever needed.
 3. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
    key, and record in the inventory which nodes now have key expiry disabled by
    default as a result.
