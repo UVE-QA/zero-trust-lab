@@ -2763,3 +2763,67 @@ control socket by its MAC.
 - **The released camera comes back differently.** Not as a `/32` to an address,
   since it too has held more than one — but through a restream on a host the
   lab controls, named by camera.
+
+---
+
+## D-048 — The broker's documented ACL is a no-op, and I restarted a service I had not surveyed
+
+### The attempt
+
+The first telemetry path was to run through the home broker: a new login for
+the collector, allowed to read one topic tree and nothing else, using the
+access-control-list method in the broker add-on's own documentation.
+
+### The finding
+
+**The documented ACL does not restrict anything.** Tested from the collector's
+own node with its own login: a subscription outside its tree timed out, which
+proves nothing on its own — but a publish, which the list forbids, was accepted
+and delivered to the collector's own subscriber. The reason is in the add-on's
+source. Its authentication plugin asks an internal endpoint whether a user is a
+superuser and whether an access is allowed, and that endpoint answers yes to
+both, for every user. The documented list is loaded and never consulted. A
+login described as read-only was, in effect, a superuser on the broker the
+automation hub listens to.
+
+A vendor's documented control can be a no-op. Only a test from the restricted
+side, with a positive control, tells you which.
+
+### My mistakes in the same step
+
+- **I judged the broker unused from its recent log window**, which showed only
+  health checks. A log shows who connected recently, not who is connected. A
+  long-lived client — the recorder on another machine — had connected before the
+  window and appeared only after I restarted the broker.
+- **The access list I wrote did not include that client.** Had the list worked,
+  the recorder would have lost the broker. It was saved by the same defect that
+  made the list useless.
+- **I had asked the session that knows the house exactly this question, and
+  acted before its answer arrived.**
+
+The broker was restarted twice for a few seconds each; the recorder reconnected
+by itself both times.
+
+### Rolled back
+
+The login and the list were removed and the broker restored to its previous
+configuration. The collector's login was then tested again and refused. The
+password was destroyed everywhere it had been written, along with the test
+message the collector had published.
+
+### What stands
+
+The collector exists as a real node with the collector role. From it, with a
+positive control, the grants were measured rather than assumed: the broker port
+is reachable, and the automation UI, the hub's SSH, production and both sockets
+are all refused. That is the first time the policy's refusals have been seen
+from a live node of the role rather than only in its tests.
+
+### The next design reverses the direction
+
+The collector does not need to reach into the home at all. The hub will push
+readings out to the collector instead: one grant from the hub to the collector's
+ingest port, and the collector's grant into the home withdrawn entirely. No
+broker, and no shared secret — the connection's tailnet identity is the
+credential, because the policy lets nothing else reach that port. The collector,
+which lives outside the house, then has no way in.
