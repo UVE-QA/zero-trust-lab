@@ -969,3 +969,96 @@ The second is more faithful to the design intent and adds a component. The first
 is what the handoff already chose as the fallback and adds a script. Neither is
 started here; the ordering correction in D-008 puts the cutover after Phase 2
 regardless.
+
+---
+
+## D-024 — Simplest thing that works: per-host routes, both wide routes retired
+
+**Status:** applied and verified.
+
+After D-023 killed the forwarding approach, I recommended building a proxy
+component. The owner asked whether that was overcomplicating a simple thing.
+**It was**, and the way out was to check the premise the complexity rested on.
+
+### The premise I inherited without testing
+
+The whole phase is built on *the site gateway cannot reserve addresses, therefore
+addresses move, therefore per-host routes are unsafe*. The first clause comes
+from the handoff. The second does not follow from it, and nobody had checked it.
+
+Two pieces of evidence sat in the automation platform the entire time:
+
+- The NVR integration is configured against a **hard-coded address** and is
+  running fine.
+- The camera integration is already configured **by hostname**, using the site
+  gateway's own DNS. Someone solved this problem months ago.
+
+Configurations pinned to addresses have been working in this house for a long
+time. The addresses may not be *guaranteed* stable, but they are stable enough
+that the household already depends on it.
+
+This is the same failure as the break-glass episode: a fact asserted in a
+document, inherited as a constraint, never checked against the system that could
+have answered it in one query.
+
+### What I also got wrong about importance
+
+I spent this phase on the naming mechanism. **The finding of this phase was the
+two wide routes** — every tailnet node reaching every device on the home network.
+The naming mechanism is a detail of how three devices stay reachable afterwards.
+I optimised the detail and nearly shipped a new component to serve it.
+
+The acceptance criterion also reads *"no route wider than `/32` **or** no
+advertised route at all"*. Per-host routes are a satisfying answer, not a
+compromise. I had promoted the parenthetical alternative into a requirement.
+
+### What was done
+
+The gateway now advertises three per-host routes — one camera for the stream
+tier, and the two actuators for the action tier's granted/denied pair. They were
+advertised, approved, and verified serving **before** anything was removed.
+
+Then both wide routes were retired by **withdrawing their approval in the control
+plane**, not by reconfiguring the devices. That needed no access to a personal
+workstation or a media appliance, and it reverses with one click.
+
+**Result: the exposed set went from every host on the home network to three.**
+The wide route is gone from every node. Household paths — the automation UI over
+both the tailnet and the local network, the broker, the NVR — all verified
+answering before and after.
+
+### On keeping the appliance as a fallback router
+
+Declined, on the owner's question. Keeping the appliance's wide route would have
+made it the primary and left the exposure exactly as it was — retiring one of two
+identical routes is worse than useless, because it looks like progress.
+
+Giving it the three per-host routes as redundancy was the coherent version, and
+that was declined too. If the gateway is down, the actuator's control plane is
+down with it — the routes would outlive their own purpose. The redundancy existed
+because the previous route server was a desktop that sleeps; the gateway is
+always-on and purpose-built, so the failure mode that justified it no longer
+occurs. And the appliance's tag says it originates nothing, which should be true
+rather than aspirational.
+
+If gateway availability becomes a real concern, the answer is a second always-on
+node appropriate to trust — not the media appliance.
+
+### Acceptance, honestly
+
+| Criterion | State |
+|---|---|
+| Chosen option recorded as a decision, with verification results | done |
+| No route wider than `/32` into the home network | **done** |
+| Flat-network limitation written into the threat model | done |
+| Every exposed device reachable by a stable identifier that **survives a lease change** | **not strictly met** |
+
+The last one is the honest gap. Per-host routes do not survive an address change
+on their own; the evidence is that addresses do not move here in practice, not
+that they cannot. The mitigation is that the exposed set is three devices, a
+change is a one-line fix, and the telemetry canary the handoff already designed
+would make it visible.
+
+If that proves wrong, the escalation path is recorded and cheap: the reconciler,
+or the loopback forwarder — and the Service defined during D-022's investigation
+is still in place for the latter.
