@@ -3,8 +3,8 @@
 **Purpose.** Move the collector role to different hardware without touching
 cloud IAM.
 
-**Status:** not yet executed. The collector runs on a machine that is also
-someone's daily desktop; dedicated hardware is not deployed.
+**Status:** not yet executed. The collector runs as a container on the cloud
+dev host (D-048, D-049); dedicated hardware is not deployed.
 
 ---
 

@@ -60,7 +60,7 @@ NODES = {
     "gha":       (28, 48, "flow", "ci", "GitHub Actions", "validate · drift · plan",
                   "workflows", [], "Runs every check. Holds no network or cloud key: each job "
                   "gets a short-lived token by OIDC.", "D-041"),
-    "tscp":      (262, 48, "dots", "cp", "Tailscale", "control plane · 36 tests",
+    "tscp":      (262, 48, "dots", "cp", "Tailscale", "control plane · {tests} tests",
                   "policy as code", [], "Evaluates the policy and refuses a save whose tests fail. "
                   "The policy is not in Terraform: two tools writing one global file fight.", "D-001"),
     "iam":       (488, 48, "key", "cloud", "CI plan role", "OIDC · 0 IAM users",
@@ -92,9 +92,10 @@ NODES = {
     "gateway":   (500, 330, "hub", "tailnet", "Automation hub", "tag:gateway-home",
                   "tag", ["tag:gateway-home"], "The only door into the home: it advertises "
                   "one /32 route per exposed device, never the subnet.", "D-024"),
-    "collector": (760, 330, "inbox", "planned", "Collector", "tag:collector · no host",
-                  "planned", ["tag:collector"], "Telemetry sink. Declared in the policy, "
-                  "awaiting dedicated hardware.", "Phase 6"),
+    "collector": (760, 330, "inbox", "tailnet", "Collector", "tag:collector · container",
+                  "tag", ["tag:collector"], "Telemetry sink: a container on the cloud dev host, "
+                  "outside the house. The hub pushes readings to it on one port; it has no way "
+                  "in, and the tests assert that.", "D-049"),
     "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · ephemeral",
                   "planned", ["tag:drone"], "Simulated field units: send telemetry, "
                   "take control commands.", "Phase 6"),
@@ -161,7 +162,8 @@ ROUTES = {
     ("gateway", "plug_g"):              ([(590, 392), (590, 610)], (590, 500)),
     ("operators", "prod"):              ([(220, 277), (980, 277)], (640, 277)),
     ("operators", "drone"):             ([(220, 388), (238, 388), (238, 414), (738, 414), (738, 463), (760, 463)], (420, 414)),
-    ("collector", "gateway"):           ([(760, 348), (680, 348)], (720, 348)),
+    ("gateway", "collector"):           ([(680, 348), (760, 348)], (720, 348)),
+    ("collector", "gateway"):           ([(760, 376), (680, 376)], (720, 376)),
     ("sensor", "collector"):            ([(980, 361), (940, 361)], (960, 361)),
     ("drone", "collector"):             ([(850, 432), (850, 392)], (878, 412)),
     # refusals, drawn from the tests
@@ -201,15 +203,17 @@ def parse_policy(text):
         f = {k: re.findall(r'"([^"]+)"', v) for k, v in re.findall(r'"(\w+)":\s*\[([^\]]*)\]', blk)}
         if f.get("src") and f.get("dst"):
             grants.append(f)
-    refusals = []
+    refusals, n_tests = [], 0
     for blk in re.findall(r"\{((?:[^{}]|\{[^{}]*\})*)\}", t[t.index('"tests"'):]):
         src = re.search(r'"src":\s*"([^"]+)"', blk)
         den = re.search(r'"deny":\s*\[([^\]]*)\]', blk)
+        acc = re.search(r'"accept":\s*\[([^\]]*)\]', blk)
+        n_tests += sum(len(re.findall(r'"[^"]+"', m.group(1))) for m in (acc, den) if m)
         if src and den:
             for d in re.findall(r'"([^"]+)"', den.group(1)):
                 role, _, port = d.rpartition(":")
                 refusals.append((src.group(1), role, port))
-    return grants, refusals
+    return grants, refusals, n_tests
 
 
 def label(x, y, text, colour, cls="lbl"):
@@ -219,8 +223,9 @@ def label(x, y, text, colour, cls="lbl"):
             f'text-anchor="middle" fill="{colour}">{E(text)}</text></g>')
 
 
-def tile(nid, counts):
+def tile(nid, counts, n_tests):
     x, y, icon, col, title, sub, tool = NODES[nid][:7]
+    sub = sub.replace("{tests}", str(n_tests))
     w = TWN.get(nid, TW)
     dashed = ' stroke-dasharray="5 4"' if col in ("planned", "off", "future") else ""
     t = [f'<g class="tile" id="n-{nid}"><title>{E(title)} — {E(NODES[nid][8])}</title>',
@@ -253,7 +258,7 @@ def live_counts(agg):
 
 
 def render(policy_text, agg=None, home=None):
-    grants, refusals = parse_policy(policy_text)
+    grants, refusals, n_tests = parse_policy(policy_text)
     layers = {"grant": [], "refusal": [], "control": []}
     unplaced = []
     ok, no, mu, cp, cl = "var(--pass)", "var(--fail)", "var(--mut)", "var(--cp)", "var(--cl)"
@@ -296,13 +301,15 @@ def render(policy_text, agg=None, home=None):
                     layers["grant"].append(label(lp[0], lp[1], f"{port}{tag}", ok))
 
     # --- refusals, parsed from the tests -------------------------------------
-    home_roles = {"tag:gateway-home", "camera-stream", "actuator-granted", "actuator-control"}
-    for src in ("tag:prod", "tag:appliance"):
+    home_roles = {"tag:gateway-home", "actuator-granted", "actuator-control"}
+    for src in ("tag:prod", "tag:appliance", "tag:collector"):
         denied = {r for s_, r, _ in refusals if s_ == src} & home_roles
         if denied:
             pts, lp = route((role_to_node(src), "gateway"))
             arrow("refusal", pts, no, ' stroke-dasharray="4 4"', "no")
-            layers["refusal"].append(label(lp[0], lp[1], f"✗ refused · {len(denied)} tested", no))
+            # the collector's gap to the hub is short: the long form would cover both tiles
+            text = "✗ refused" if src == "tag:collector" else f"✗ refused · {len(denied)} tested"
+            layers["refusal"].append(label(lp[0], lp[1], text, no))
     if "actuator-control" in {r for s_, r, _ in refusals if s_.startswith("@")}:
         pts, lp = route(("gateway", "plug_c"))
         arrow("refusal", pts, no, ' stroke-dasharray="4 4"', "no")
@@ -326,7 +333,7 @@ def render(policy_text, agg=None, home=None):
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
     counts = live_counts(agg)
-    tiles = "".join(tile(n, counts) for n in NODES)
+    tiles = "".join(tile(n, counts, n_tests) for n in NODES)
 
     proto, rest = "", ""
     if home:

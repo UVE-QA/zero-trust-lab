@@ -2827,3 +2827,76 @@ ingest port, and the collector's grant into the home withdrawn entirely. No
 broker, and no shared secret — the connection's tailnet identity is the
 credential, because the policy lets nothing else reach that port. The collector,
 which lives outside the house, then has no way in.
+
+## D-049 — Telemetry is pushed out of the house, not pulled from it
+
+### The change
+
+The collector's grant into the home is withdrawn. In its place the hub may open
+one port on the collector:
+
+| before | after |
+|---|---|
+| collector → hub, broker port | hub → collector, ingest port |
+
+The collector now reaches nothing inside the house. The tests say so from its
+side — the broker, the automation UI, the hub's SSH, the push port in the
+reverse direction and both sockets are all asserted refused — and from the
+hub's side: it may deliver to the ingest port and may not administer the
+collector.
+
+### Why the direction matters
+
+The collector is the more exposed of the two machines: it lives outside the
+house, on a cloud host that other work also uses. The hub is the most trusted
+node inside it. A pull design gives the exposed machine a standing path into
+the trusted one, and D-048 showed what that path led to — a broker whose access
+list is not enforced. A push design gives the trusted machine a path out to one
+port, and the exposed machine no path in at all. If the collector is
+compromised, the house is not reachable from it; that is now a tested claim
+rather than an intention.
+
+The cost is accepted: a compromised hub could send the collector false
+readings. The hub already controls every device in the house, so this adds
+nothing it could not already do.
+
+### No broker, and no shared secret
+
+Nothing in the push path touches the home broker or its existing clients. The
+policy is the credential: the ingest port is reachable only from the roles the
+policy names — the hub, and later the sensor and mobile-unit roles that were
+already granted it. The receiver listens only where tailnet traffic arrives, so
+nothing else on the cloud host reaches it either.
+
+### Order of work
+
+1. Policy: validated by CI against the live tailnet, applied by hand with the
+   live file hashed against the render, merged, then drift-checked.
+2. Receiver on the collector node. Reversible by removing one container.
+3. The hub's side — one outbound call on a timer, one reading. This changes
+   the household's automation hub, so it is agreed with the session that knows
+   the house before anything is applied, and applied by the owner: the address
+   lives in the hub's secrets file, the call has a short timeout, and nothing in
+   the house waits on it. The hub had never loaded the component that makes
+   the call, so the first load is a full restart of the hub — the household's
+   price for the lab's stream, a minute or two without the camera feeding the
+   pet-fountain automation. The owner accepted that cost. The configuration is
+   validated before the restart, which guards the different risk of a restart
+   that does not come back, and the house is checked afterwards by the session
+   that knows it.
+
+Acceptance is the one the outside review set (D-046): the collector reads as a
+live node; a reading sent by the hub arrives at the collector; the reverse
+direction on the same port is asserted refused and passes.
+
+### The receiver, measured
+
+Deployed before the policy change, so the change could be seen taking effect.
+It binds to the node's tailnet address only. Measured, each with a control:
+
+- from an operator's laptop, to the ingest port: refused — no grant names it
+  (control: the same laptop reaches the hub's UI, which is granted);
+- from the cloud host itself, to the container's bridge address: refused —
+  nothing listens there;
+- from inside the node's own namespace: accepted, one self-test reading
+  written. The service works; only the policy stands between it and the house.
