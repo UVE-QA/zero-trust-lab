@@ -156,3 +156,38 @@ Incidentally, those Thread devices are joined to three administrative fabrics at
 once. Matter permits that; the HomeKit accessory protocol does not, which is
 precisely why the WiFi socket has to be unpaired from one ecosystem before
 another can drive it, and why the Thread devices did not.
+
+---
+
+## D-006 — The baseline is byte-exact, and the scanner bends around it
+
+**Status:** accepted, done
+
+`policy/policy.baseline.hujson` is the rollback target. It was verified
+byte-identical to what the tailnet was serving by comparing a SHA-256 computed
+in the console page against the committed file — not by reading it and trusting
+the transcription.
+
+The captured file is the **stock default, never modified**: a single
+`{"src":["*"],"dst":["*"],"ip":["*"]}` grant, plus Tailscale SSH in check mode
+to `autogroup:self` as root. Since every node belongs to one user,
+`autogroup:self` is the entire tailnet. So the starting state is not merely
+"no policy" — it is full mesh access plus root SSH between all of the owner's
+machines, and, through the live subnet route in D-003, onward to every device
+on the home LAN.
+
+**The scanner conflict.** The stock template embeds Tailscale's own example
+address inside a commented-out `tests` block. That address is in the CGNAT
+range, so the disclosure sweep's tailnet-address rule matches it.
+
+Two ways out, and only one of them is right. Editing the file to please the
+scanner would make the rollback target something other than what the tailnet
+actually served — which destroys the only property that file has. So the
+scanner carries the exception instead: `scripts/leak-sweep.sh` blanks that one
+literal before matching.
+
+The exception is written to suppress **the literal, not the line**, and there is
+a test for it: a line containing both the vendor example and a real address
+still fails the build. An allowlist is the one place a scanner like this can be
+talked into missing something, so it stays tiny and every entry is justified
+where it is defined.

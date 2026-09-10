@@ -17,6 +17,21 @@ set -uo pipefail
 # Files allowed to contain the patterns, because they *are* the patterns.
 SELF_EXCLUDE='^(scripts/leak-sweep\.sh|\.github/workflows/leak-scan\.yml)$'
 
+# Vendor placeholder literals that are NOT real values. Each occurrence is
+# blanked before matching, so a genuine value sharing the same line is still
+# caught -- this suppresses the literal, never the line.
+#
+# Keep this list tiny and justify every entry. An allowlist is the one place
+# where this script can be talked into missing something.
+#
+#   100.101.102.103  Tailscale's own example address in the stock policy
+#                    template, inside a commented-out `tests` block. It sits
+#                    in the CGNAT range, so the tailnet-address rule matches
+#                    it. policy/policy.baseline.hujson is a rollback target
+#                    and must stay byte-identical to what the tailnet served,
+#                    so the file cannot be edited to satisfy the scanner.
+ALLOW_LITERALS='100\.101\.102\.103'
+
 report() {
   local label="$1" file="$2" line="$3" text="$4"
   printf '::error file=%s,line=%s::%s: %s\n' "$file" "$line" "$label" "$text"
@@ -28,7 +43,8 @@ scan() {
   while IFS= read -r file; do
     [[ "$file" =~ $SELF_EXCLUDE ]] && continue
     [ -f "$file" ] || continue
-    grep -InE "$pattern" -- "$file" 2>/dev/null | while IFS=: read -r line text; do
+    sed -E "s/${ALLOW_LITERALS}/<vendor-example>/g" -- "$file" 2>/dev/null \
+      | grep -InE "$pattern" 2>/dev/null | while IFS=: read -r line text; do
       printf '%s\t%s\t%s\n' "$file" "$line" "${text:0:200}"
     done
   done < <(git ls-files) | while IFS=$'\t' read -r file line text; do
