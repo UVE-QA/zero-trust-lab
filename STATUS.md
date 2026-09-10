@@ -5,17 +5,21 @@ Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-> ## ⚠ Phase 2 is BLOCKED — the break-glass path does not work
+> ## ⚠ Phase 2 gate — break-glass unverified (block **suspended**, not lifted)
 >
-> The admin console is reachable from a phone off the tailnet, but **not
-> authenticable from it**: no passkey for the console exists on the phone, and
-> the only offered fallbacks need a second device or hardware that does not
-> exist here. See **D-014**.
+> The break-glass test failed from the phone, and the cause was first diagnosed
+> as a missing passkey (**D-014**). That diagnosis was wrong: **the account does
+> not use passkey authentication at all** — it authenticates through a consumer
+> identity provider, which the sign-in page offers as its own button (**D-015**).
+> The passkey attempt failed because there is no passkey, and none is needed.
 >
-> The committed rollback target assumes the console can be reached to apply it.
-> It cannot, from the one device that would still work when the tailnet is
-> broken. **Do not apply the first restrictive policy until this is fixed and
-> the test re-run.**
+> The handoff's claim that the account is a passkey identity is **factually
+> incorrect**, and that unchecked premise is what shaped the wrong test and the
+> wrong fix.
+>
+> **The block lifts only when the test is re-run and passes** — phone, off the
+> tailnet, no second device, using the account's actual sign-in method. Believing
+> it works is exactly what D-014 exists to prevent.
 
 Q-001 … Q-004 have all been answered and folded in. **No open questions.** Their
 substance is mirrored below and in `docs/02-decisions.md`, so this repo is
@@ -113,7 +117,8 @@ that rewrites the global policy file.
 | **D-011** | high | The granted actuator answers its local API over plaintext to a request signed with an **empty key** — no meaningful authentication at all, while its identical twin rejects the same request. The only thing between the local network and a physical state change is reachability. This is the lab's action-tier argument with evidence behind it, not a defect to patch. An addendum records that the unauthenticated read is **live state**, so anything on the LAN can watch the actuator in real time. |
 | **D-012** | — | Closes the gateway-vantage discovery check left open by D-007 — and it closed itself, as a side effect of releasing the actuator. The hub raised a zeroconf-sourced pairing flow, which is the check answered from the right vantage point. Recording it as open rather than guessing was the cheaper plan. |
 | **D-013** | — | Actuator qualification **complete**, all three checks pass. And the D-011 hole **survives adoption**: pairing the device to a managed platform did not close its unauthenticated vendor interface. "We moved it onto a platform we control, so it is handled" is false comfort — the network grant is the only control with authority over that path. |
-| **D-014** | **blocking** | **The break-glass path does not work.** The console is reachable from a phone off the tailnet but not authenticable from it — no passkey exists on that device. A rollback target that cannot be reached is not a rollback target. Phase 2 must not begin until a second passkey is registered on the phone and the test passes with no second device involved. |
+| **D-014** | superseded | Reported the break-glass path broken and blamed a missing passkey. The observation was right, the cause wrong — see D-015. |
+| **D-015** | gate | **Correction.** The account authenticates via a consumer identity provider, not a passkey, so the failed sign-in used the wrong method and the recovery path was probably never broken. Also corrects the handoff's incorrect claim about the account's identity. The block is **suspended pending a re-run**, not lifted — this phase has twice concluded from a negative without a control. |
 
 ## The starting state, stated plainly
 

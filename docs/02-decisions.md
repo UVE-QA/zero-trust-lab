@@ -705,3 +705,67 @@ recovery path is imaginary costs nothing today; discovering it during an
 incident costs the thing it was supposed to protect. Recorded as a finding with
 the same weight as any technical one, because an unusable control is
 indistinguishable from an absent one.
+
+---
+
+## D-015 — Correction: D-014 diagnosed the right failure and the wrong cause
+
+**Status:** accepted. **Supersedes D-014's cause and remediation.** D-014's
+observation stands; its conclusion does not.
+
+D-014 recorded that the console could not be authenticated from the phone, that
+no passkey existed on that device, and that the fix was to register a second
+passkey. The observation was real and correctly measured. The diagnosis was
+wrong, and it was wrong because it inherited an unverified premise instead of
+checking the account.
+
+**The account does not use passkey authentication at all.** The sole user
+authenticates through a consumer identity provider, evidenced by the provider's
+relay address on the account. The sign-in page offers that provider as a
+first-class button alongside the passkey option. The passkey attempt failed
+because there is no passkey — and none is needed.
+
+So the recovery path very probably exists and was never broken. It was reached
+for with the wrong control.
+
+### Where the wrong premise came from
+
+The handoff states that there is no identity provider and that the account is a
+passkey identity. **That is factually incorrect** and it propagated: the
+break-glass test was designed around passkeys, the failure was read as a missing
+passkey, and the remediation was drafted to add one. Every step was locally
+reasonable and the starting fact was never checked.
+
+The design consequences the handoff drew from that premise **still hold**, which
+is why the error survived so long. A consumer identity provider supplies no
+SCIM, no group provisioning and no automated deprovisioning, so the conclusion —
+build the policy on tags and autogroups — is unaffected. Only the stated fact
+was wrong, and it happened to be a fact nothing downstream depended on until a
+recovery path was designed around it.
+
+### The lesson, which is the same one twice
+
+This phase has now corrected two findings, and both failed the same way: a
+negative result accepted without establishing what a positive would look like.
+D-007 concluded a device was silent when the tool was silent. D-014 concluded a
+credential was missing when the credential was of the wrong kind.
+
+The specific guard that would have caught this one is cheap: **before testing
+whether a sign-in method works, confirm which sign-in method the account
+actually uses.** One look at the account page. The break-glass test was run
+carefully — the network precondition was verified from the coordination side
+across repeated polls — and none of that rigour helped, because it was aimed at
+the wrong question.
+
+Rigour applied to an unexamined premise produces confident wrong answers.
+
+### Status of the block
+
+**D-014's block on Phase 2 is suspended, not lifted.** The recovery path is
+now believed to work, and belief is what D-014 was written to prevent. It is
+lifted when the test is re-run — phone, off the tailnet, no second device — and
+passes using the account's actual sign-in method.
+
+If it passes, the remediation D-014 proposed becomes unnecessary and no second
+credential is created. If it fails, D-014's options apply after all, and the
+block was right for the wrong reason.
