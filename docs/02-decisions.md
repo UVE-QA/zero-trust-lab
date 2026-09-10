@@ -2900,3 +2900,45 @@ It binds to the node's tailnet address only. Measured, each with a control:
   nothing listens there;
 - from inside the node's own namespace: accepted, one self-test reading
   written. The service works; only the policy stands between it and the house.
+
+### The first reading, and what was measured around it
+
+The policy change was applied by hand after CI validated it, the live file
+hashed byte-identical to the render, and CI's drift check agreed after the
+merge. Then, from the collector node itself, every port on the hub it was
+tested against was refused — including the broker port, which the same node
+had reached before this change (D-048). That is the before/after for this one
+grant, measured rather than inferred.
+
+The hub side was applied by the session that manages the house, with the
+owner's approval there: configuration validated, one restart of about two
+minutes, then every dependent integration checked back. The first reading,
+fired by hand:
+
+| | |
+|---|---|
+| sent by the hub (its clock) | 23:52:57.58 UTC |
+| arrived at the collector (its clock) | 23:52:57.91 UTC |
+| response | 204 |
+| sender, as the collector's own node identified it | the hub, `tag:gateway-home` |
+
+The sender is identified by the tailnet, not by an address the receiver
+trusts. A test request sent earlier from a container behind the hub arrived
+with the hub's identity too: the tailnet sees machines, not the processes on
+them, so "the hub" here means anything the hub's host lets out.
+
+The first unattended push followed on the five-minute tick (sent 23:55:00.44,
+arrived 23:55:00.52, 204) and the stream has repeated on its own since.
+Nothing is buffered on the hub, so a gap at the collector is a lost reading —
+which is what the lost-comms drill (R-3) will count.
+
+### What the restart cost the house, stated as checked
+
+Checked after the restart by the session that manages the house, not assumed:
+every integration came back, and no automation is unavailable. Of the
+camera-derived entities the pet-fountain automation depends on, all are
+present and all but one hold a value; the exception holds a value only after
+the recorder publishes its next event, which needs the cat. The automation
+itself is on and still reads the occupancy sensor, which is live again. It has
+**not yet been seen to fire** since the restart — that also needs the cat, and
+it stays an open item until it does.

@@ -80,9 +80,10 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **Next, after an outside review (D-046) — substance before more machinery**
 
-- The collector as a real host, with one telemetry stream through the grants
-  that so far exist only in tests. The host is live (D-048); the stream is
-  pushed out of the house by the hub, never pulled into it (D-049).
+- ~~The collector as a real host, with one telemetry stream~~ — done. The
+  hub pushes one reading every five minutes to a collector outside the house,
+  which has no path in (D-049). Open: the pet-fountain automation has not yet
+  been seen firing since the restart that change needed.
 - The lost-comms drill on that stream: the first number on the evidence page
   that comes from watching the system rather than counting the repository.
 - The "after" half of the exposure reading, from a disposable node.
