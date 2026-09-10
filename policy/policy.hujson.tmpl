@@ -27,6 +27,25 @@
 	},
 
 	// ------------------------------------------------------------------
+	// Device posture
+	// ------------------------------------------------------------------
+	// Built only from attributes the client reports about itself -- no MDM or
+	// EDR integration, which is what a paid plan adds.
+	//
+	// The handoff states posture is unavailable on this plan and gates a whole
+	// phase on that. It is wrong: these are evaluated and enforced here, proven
+	// by the assertions below changing outcome when the attributes change.
+	"postures": {
+		// Enough to be trusted with changing physical state: the client keeps
+		// its own state encrypted at rest, and runs a released build rather
+		// than an unstable one.
+		"posture:trustedOperator": [
+			"node:tsStateEncrypted == true",
+			"node:tsReleaseTrack == 'stable'",
+		],
+	},
+
+	// ------------------------------------------------------------------
 	// Hosts behind the gateway. The ONLY real values in the policy.
 	// ------------------------------------------------------------------
 	// These are devices that cannot run a client. They are reachable only
@@ -97,12 +116,17 @@
 		// same port behind the same gateway. Only one is named. That is what
 		// makes the assertion below a demonstration rather than a claim.
 		//
-		// Phase 3 adds source posture here; Phase 4 makes it time-boxed.
+		// Phase 4 makes this time-boxed. The padding below is readability
+		// only. It is safe to rely on: the control plane stores this file
+		// verbatim and reformats nothing, which was tested by saving a
+		// render and reading it back byte-identical. That is what makes
+		// hashing the live file against the render a usable integrity check.
 		{
-			"src": ["autogroup:member"],
-			"dst": ["actuator-granted"],
-			"ip":  ["tcp:52432"],
-			"via": ["tag:gateway-home"],
+			"src":        ["autogroup:member"],
+			"dst":        ["actuator-granted"],
+			"ip":         ["tcp:52432"],
+			"via":        ["tag:gateway-home"],
+			"srcPosture": ["posture:trustedOperator"],
 		},
 
 		// --- Control channel to mobile units ------------------------------
@@ -156,12 +180,46 @@
 			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
 		},
 
-		// Action tier: identical devices, same port, same gateway, opposite
-		// outcomes. Least privilege here is per host, not per protocol.
+		// Action tier, asserted on two axes at once.
+		//
+		// Per HOST: two identical devices, same model, same port, behind the
+		// same gateway -- one named in a grant, one not. Least privilege here
+		// is per host, not per protocol.
+		//
+		// Per DEVICE STATE: the same person, the same socket, the same port --
+		// and the only difference is what the device reports about itself.
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": true,
+				"node:tsReleaseTrack":   "stable",
+			},
 			"accept": ["actuator-granted:52432"],
 			"deny":   ["actuator-control:52432"],
+		},
+
+		// The two blocks below fail one attribute each, holding the other at
+		// the passing value. Failing both at once would also produce a Drop and
+		// would prove less: it could not tell which attribute is carrying the
+		// decision, or whether either is.
+		{
+			// Same person, released build -- but unencrypted state at rest.
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": false,
+				"node:tsReleaseTrack":   "stable",
+			},
+			"deny": ["actuator-granted:52432"],
+		},
+
+		{
+			// Same person, encrypted state -- but an unstable client build.
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": true,
+				"node:tsReleaseTrack":   "unstable",
+			},
+			"deny": ["actuator-granted:52432"],
 		},
 
 		// Sensors are push-only and reach exactly one port on one role.

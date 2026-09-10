@@ -2068,3 +2068,116 @@ seeing whether the tailnet accepts it, not a conclusion.
 
 Costs, for the record: the free plan is the current one. The gated phases run as
 one time-boxed sprint on a single seat — one month, one user.
+
+---
+
+## D-040 — Posture is enforced on the free plan; the handoff is wrong
+
+D-039 recorded this as a finding to test, not a conclusion. It has now been
+tested, and the answer is yes.
+
+### What was asserted
+
+The handoff states that *device posture checks are not on the Personal plan*,
+and gates Phase 3 behind a paid seat on that basis.
+
+### What the tailnet actually does
+
+Two experiments, run against the live policy file.
+
+**First: a posture rule was written and the tailnet was asked to accept it.** A
+`postures` block was added and referenced from the action-tier grant via
+`srcPosture`. The save was **rejected**, with:
+
+```
+test(s) failed for user: <operator>
+  address "actuator-granted:52432" (protocol "tcp"): want: Accept, got: Drop
+```
+
+That rejection is the proof. A plan that ignored posture would have accepted the
+file and quietly granted the connection; the existing `accept` assertion would
+have kept passing. Instead the control plane evaluated the posture, found the
+source did not satisfy it, computed `Drop`, and refused the file because a test
+said `Accept`. **Posture is not merely parsed on the free plan — it is
+evaluated, and it changes the verdict.**
+
+**Second: the enforcement was asserted from both sides.** The rule was rewritten
+against attributes the device genuinely reports, and `srcPostureAttrs` tests were
+added in matching pairs — the same principal, the same destination, the same
+port, differing only in what the device claims about itself:
+
+- reported as encrypted state, stable track → `Accept`
+- `tsStateEncrypted: false` → `Drop`
+- `tsReleaseTrack: "unstable"` → `Drop`
+
+The file saved. Every assertion passed. A one-sided test would have proved only
+that the rule does not break anything; the deny halves are what show the
+attribute is load-bearing.
+
+The attributes available without payment, confirmed on a real device page rather
+than from documentation: `node:os`, `node:osVersion`, `node:tsVersion`,
+`node:tsReleaseTrack`, `node:tsAutoUpdate`, `node:tsStateEncrypted`.
+
+### Household paths, re-verified after the change
+
+| path | expected | observed |
+|---|---|---|
+| operator → gateway:8123 | granted | HTTP 200 |
+| operator → gateway:1883 | denied | timeout |
+| operator → prod:22 | granted | open |
+| operator → actuator-granted:52432 | granted under posture | open, over the tailnet interface |
+
+One caveat on method, recorded because it would otherwise look like a passing
+test that is not one. The measuring device was on the home LAN at the time, so
+probes to the two LAN-only addresses that are *not* routed over the tailnet
+resolved over the local interface and proved nothing about the policy. Only the
+`/32` that Tailscale actually routes traversed the tunnel. **A deny-side probe
+run from inside the LAN is not evidence.** The authoritative deny evidence is the
+`tests` section, which the control plane evaluates at save time and which
+rejected two earlier drafts.
+
+### Consequence for the plan
+
+Phase 3 is largely unblocked at no cost. What still needs a paid seat is narrower
+than the handoff implies: posture sourced from an external device-management
+integration, and just-in-time access. Those stay in the one-month single-seat
+sprint. The rest of Phase 3 can proceed now.
+
+The handoff is amended, not worked around. This is the third time a factual claim
+in it has failed when queried directly against the system it describes.
+
+### A note on the policy file's whitespace, and a wrong explanation caught
+
+After the posture work the rendered file stopped matching the live one by
+twenty-eight bytes: four lines in the action-tier grant were padded so their
+values aligned with the newly added, much longer `srcPosture` key.
+
+I explained this as the console reformatting on save — padding keys to the width
+of the longest in each object — and wrote that into both this log and the
+template. **The explanation was invented to fit the observation and was wrong.**
+
+It was cheap to test, because a save was needed anyway. The next render was
+uploaded and read back: **byte-identical, hash for hash**, including the `tests`
+blocks where `src` and `deny` sit beside `srcPostureAttrs` and are *not* padded
+to its width. A formatter of the kind I described would have padded them. The
+control plane stores the file verbatim.
+
+So the twenty-eight bytes were my own earlier hand-editing in the console, from
+before the render-and-upload routine was in use. The alignment is kept in the
+template because it reads better, not because anything requires it.
+
+Two things are worth keeping from this:
+
+- The integrity check is stronger than assumed. Since nothing rewrites the file,
+  **any** difference between the render and the live policy is a real
+  difference — there is no benign class of drift to explain away. That is only
+  true because it was tested rather than assumed.
+- This is the same failure that produced the add-on forwarding error earlier in
+  the project: a plausible mechanism, consistent with what was in front of me,
+  asserted without submitting it to the system that could have refuted it in one
+  step.
+
+**Method note, against my own conduct here:** far too many turns went into
+locating that difference by inspection. The routine that works is to render the
+template and upload the whole file, then compare hashes — not to reconcile
+fragments. Reconciling by hand is what produced the drift in the first place.
