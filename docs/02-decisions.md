@@ -1689,3 +1689,90 @@ profile at all — credentials come from the assumed role. It is now optional:
 required on the operator host, where there is no default profile by design and
 picking the wrong account is the mistake this project is most exposed to; empty
 in CI, where the question does not arise.
+
+---
+
+## D-033 — Correction to D-032: the approval gate does not exist on this repository
+
+**Status:** accepted. **Supersedes D-032's central claim.** Nothing built on it
+has been applied, so the cost is a paragraph rather than an incident.
+
+D-032 said the environment pin makes approval and credential the same
+mechanism, and concluded: *"A gate that can be removed by deleting one line is
+not a gate; this one cannot."*
+
+**That is true where the gate exists. On this repository it does not.**
+
+GitHub's protection rules — required reviewers, wait timer — are available on
+the free plan **only for public repositories**. On a private one they need
+Enterprise. This repository is private, by a Phase 0 decision, and has zero
+environments configured.
+
+### What makes this worse than a missing feature
+
+`environment:` in a workflow **still works** without protection rules. The
+environment is created implicitly, the token carries the
+`environment:<name>` subject, and the role assumes cleanly. The deploy
+succeeds. The pipeline is green.
+
+**The only thing absent is the stop.**
+
+So the arrangement I described would have reported success and enforced
+nothing — the exact failure this project keeps finding elsewhere and has now
+produced in its own design. D-028 was written a few hours earlier about a
+control that fails open and looks correct; I then built one.
+
+### How the mistake happened
+
+I read the pattern off a neighbouring project's live IAM policies, saw
+`environment:` subjects, and inferred the approval gate from the shape. The
+inference was reasonable and the shape was real — that project is **public**,
+so it has the gate. I carried the conclusion across a difference in plan
+eligibility I never checked.
+
+This is the handoff's own rule, broken again: *do not design around a feature
+without confirming it is available on the plan actually in use.* It was
+confirmed for the tailnet twice. It was not confirmed for GitHub.
+
+### What survives, and what is now honest
+
+**Keep the environment pin.** It still constrains *which* workflow context can
+assume the role, which is real and worth having. What it does not do here is
+gate on a human.
+
+**State the absence.** The workflow and the Terraform now say plainly that
+there is no approval gate on a private repository, so nobody reads
+`environment:` as protection it is not providing.
+
+**The option is the same one the neighbouring project took.** It moved its
+publication step earlier for exactly this reason — the gate is only real once
+the repository is public. This project plans to go public anyway, and Phase 0
+built the entire disclosure boundary as preparation for it. Whether to flip now
+is the owner's call and is recorded as an open question, not assumed.
+
+---
+
+## D-034 — Bootstrap ordering: the first apply is local, once
+
+**Status:** accepted, adopted from the neighbouring project rather than derived.
+
+The chicken-and-egg was real: GitHub Actions cannot assume a role that does not
+exist, and the role is created by the stack Actions would run.
+
+The neighbouring project solved this and wrote it down: **both bootstraps run
+locally, once, under a named profile.** The first apply creates the provider and
+the deploy role; every apply after that runs from Actions via OIDC.
+
+Adopted unchanged. Two of its three bootstrap problems do not arise here —
+D-029 already removed the state-bucket loop by joining an existing bucket, and
+the OIDC provider already exists in the account. **Only the deploy role needs
+the local first apply.**
+
+Its rejected alternatives are worth keeping too, because they are the ones that
+look tempting at the moment of being blocked: creating the role by hand in the
+console (not reproducible), or the bucket with raw CLI calls (loses the
+configuration that makes the bucket safe). Neither is chosen here either.
+
+The consequence for sequencing is the same one that project drew: **the phase
+that writes this code does not apply it.** Applying is a separate, explicit
+step with the commands shown first.

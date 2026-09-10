@@ -4,11 +4,14 @@ name: terraform-apply
 # an OIDC token, and the role trusts exactly one subject --
 # repo:OWNER/REPO:environment:<this environment>.
 #
-# The `environment:` below is what makes that subject match, AND what allows a
-# required reviewer to gate the apply. Removing it does not merely loosen the
-# gate: the token's subject stops matching and the role refuses the assume.
-# The approval and the credential are the same mechanism, which is why this
-# cannot be quietly bypassed.
+# The `environment:` below is what makes that subject match. On a PUBLIC
+# repository it would also allow a required reviewer to gate the apply.
+#
+# THIS REPOSITORY IS PRIVATE, SO THERE IS NO APPROVAL GATE HERE. Protection
+# rules need Enterprise on a private repository. The environment is still
+# created implicitly and the subject still matches, so this workflow runs and
+# succeeds -- the only thing absent is the stop. Do not read `environment:`
+# below as protection it is not providing. See D-033.
 
 on:
   workflow_dispatch:

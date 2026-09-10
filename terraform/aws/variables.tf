@@ -53,10 +53,13 @@ variable "github_environment" {
     the OIDC token `sub` claim: repo:OWNER/REPO:environment:NAME.
 
     Pinned to an environment rather than a branch, matching the pattern already
-    in use in this account. The reason is not consistency for its own sake: a
-    GitHub Environment can require a reviewer, so applying infrastructure needs
-    a human approval separate from permission to merge. A branch cannot express
-    that.
+    in use in this account.
+
+    On a PUBLIC repository an environment can also require a reviewer, making
+    the apply need a human approval separate from permission to merge. This
+    repository is private, where that rule needs Enterprise -- so the pin
+    constrains WHICH workflow context may assume the role, and gates on nobody.
+    See D-033; do not mistake the pin for an approval.
 
     Deliberately one environment and no wildcard. An unconstrained `sub`
     accepts a token from any GitHub Actions run anywhere on GitHub.
