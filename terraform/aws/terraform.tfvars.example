@@ -15,9 +15,10 @@ tfstate_prefix = "zero-trust-lab"
 github_owner = "your-github-account"
 github_repo  = "zero-trust-lab"
 
-# One exact ref. A wildcard here is rejected by a variable validation, because
-# an unconstrained subject accepts a token from any GitHub Actions run anywhere.
-github_deploy_ref = "refs/heads/main"
+# One exact GitHub Environment. Pinned to an environment rather than a branch
+# so a required reviewer on it gates the apply -- a branch cannot express that.
+# A wildcard is rejected by a variable validation.
+github_environment = "aws-apply"
 
 # Set true if the account already has a provider for
 # token.actions.githubusercontent.com -- an account may hold only one.

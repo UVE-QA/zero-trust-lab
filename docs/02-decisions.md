@@ -1637,3 +1637,55 @@ bucket's configuration, and — usefully — that **a GitHub OIDC provider alrea
 exists**. An account holds only one per URL, so creating a second fails. The
 stack adopts the existing one through a toggle that was written before the check
 and set by it.
+
+---
+
+## D-032 — Adopt the account's existing federation pattern instead of inventing one
+
+**Status:** accepted, and it is a straight improvement over what I wrote first.
+
+The account already runs Terraform from GitHub Actions for a neighbouring
+project. Reading how *that* authenticates answered a question I had been about
+to decide alone.
+
+**Its roles pin the subject to a GitHub Environment, not to a branch:**
+`repo:OWNER/REPO:environment:NAME`. My first draft pinned a ref.
+
+The environment form is better, and not for consistency's sake. **A GitHub
+Environment can require a reviewer.** Pinning the subject to one means applying
+infrastructure needs a human approval that is separate from permission to merge
+— which is exactly what the review of Q-003 recommended, arriving here as an
+existing convention rather than as advice.
+
+There is a second property worth stating, because it is what makes the gate
+real. The workflow's `environment:` declaration is simultaneously what allows
+the reviewer gate **and** what makes the token's subject match. Remove it to
+skip the approval and the subject stops matching, so the role refuses the
+assume. **The approval and the credential are the same mechanism.** A gate that
+can be removed by deleting one line is not a gate; this one cannot.
+
+### An observation about the neighbouring project, offered rather than acted on
+
+Those roles use `StringLike` on the subject, with exact values and no wildcards.
+**That is correct today.** Every value is a literal, so it behaves identically
+to `StringEquals`.
+
+The reason this repository uses `StringEquals` anyway is that `StringLike` is
+the operator that *makes a wildcard possible*. A single character added to a
+value silently converts a pinned subject into an open one, with no error and no
+sign in a diff that anything has changed in kind. `StringEquals` cannot be
+widened that way — a wildcard in it matches a literal asterisk and simply stops
+working, which is a failure that announces itself.
+
+Not a vulnerability, and not this repository's to fix. Recorded because a
+hardening that costs one word is worth knowing about, and because the lint here
+would flag it, which is worth explaining rather than leaving as an apparent
+disagreement between two projects in the same account.
+
+### Consequence for the operator host
+
+The provider previously required a named profile. In Actions there is no
+profile at all — credentials come from the assumed role. It is now optional:
+required on the operator host, where there is no default profile by design and
+picking the wrong account is the mistake this project is most exposed to; empty
+in CI, where the question does not arise.

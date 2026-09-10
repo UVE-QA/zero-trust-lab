@@ -12,8 +12,13 @@ variable "account_id" {
 }
 
 variable "profile" {
-  description = "Named AWS profile to use. There is no default profile on the operator host by design, so this is required rather than optional."
-  type        = string
+  description = <<-EOT
+    Named AWS profile. Required on the operator host, where there is no default
+    profile by design. Empty in GitHub Actions, where credentials come from the
+    assumed role and no profile exists.
+  EOT
+  type    = string
+  default = ""
 }
 
 variable "region" {
@@ -42,21 +47,26 @@ variable "github_repo" {
   type        = string
 }
 
-variable "github_deploy_ref" {
+variable "github_environment" {
   description = <<-EOT
-    The single git ref allowed to assume the deploy role, as it appears in the
-    OIDC token `sub` claim -- for example "refs/heads/main".
+    The GitHub Environment allowed to assume the deploy role, as it appears in
+    the OIDC token `sub` claim: repo:OWNER/REPO:environment:NAME.
 
-    This is deliberately one ref and not a wildcard. An unconstrained `sub`
-    accepts a token from any GitHub Actions run anywhere on GitHub, which is
-    the single most common misconfiguration of this pattern.
+    Pinned to an environment rather than a branch, matching the pattern already
+    in use in this account. The reason is not consistency for its own sake: a
+    GitHub Environment can require a reviewer, so applying infrastructure needs
+    a human approval separate from permission to merge. A branch cannot express
+    that.
+
+    Deliberately one environment and no wildcard. An unconstrained `sub`
+    accepts a token from any GitHub Actions run anywhere on GitHub.
   EOT
   type        = string
-  default     = "refs/heads/main"
+  default     = "aws-apply"
 
   validation {
-    condition     = !can(regex("[*]", var.github_deploy_ref))
-    error_message = "github_deploy_ref must not contain a wildcard. A wildcard here is the misconfiguration this variable exists to prevent."
+    condition     = !can(regex("[*]", var.github_environment))
+    error_message = "github_environment must not contain a wildcard. A wildcard here is the misconfiguration this variable exists to prevent."
   }
 }
 

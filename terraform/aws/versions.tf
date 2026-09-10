@@ -10,8 +10,13 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.profile
+  region = var.region
+
+  # Empty in GitHub Actions, where credentials come from the assumed role and
+  # there is no profile at all. Required on the operator host, where there is
+  # no default profile by design and picking the wrong account is the mistake
+  # this project is most exposed to.
+  profile = var.profile != "" ? var.profile : null
 
   # Guard against pointing at the wrong account. Terraform refuses to run if
   # the credentials in scope do not belong to the account named in tfvars --

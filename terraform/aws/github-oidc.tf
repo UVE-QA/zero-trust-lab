@@ -33,8 +33,12 @@ resource "aws_iam_openid_connect_provider" "github" {
 locals {
   github_oidc_arn = var.github_oidc_provider_exists ? data.aws_iam_openid_connect_provider.github[0].arn : aws_iam_openid_connect_provider.github[0].arn
 
-  # repo:OWNER/REPO:ref:refs/heads/BRANCH -- one exact subject.
-  github_subject = "repo:${var.github_owner}/${var.github_repo}:ref:${var.github_deploy_ref}"
+  # repo:OWNER/REPO:environment:NAME -- one exact subject.
+  #
+  # Pinned to an environment, not a branch, so a required reviewer on that
+  # environment gates the apply. Matches the pattern already established in
+  # this account.
+  github_subject = "repo:${var.github_owner}/${var.github_repo}:environment:${var.github_environment}"
 }
 
 data "aws_iam_policy_document" "github_deploy_assume" {
