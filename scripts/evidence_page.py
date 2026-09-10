@@ -267,8 +267,10 @@ def card(claim, why, result, stale_hours, expect_failure=False):
 def render(measured, pol, dec, built, diagram, agg, home):
     blob = f"{SERVER}/{REPO}/blob/main"
     rt = (agg or {}).get("routes_into_other_networks") or {}
-    routes_n = rt.get("enabled", home.get("exposed_to_tailnet"))
-    routes_note = (f'measured live: {rt.get("enabled")} routes, the widest {rt.get("widest")}'
+    routes_n = rt.get("effective", rt.get("enabled", home.get("exposed_to_tailnet")))
+    stale = rt.get("approved_not_advertised")
+    routes_note = (f'measured live: {routes_n} routes in effect, the widest {rt.get("widest")}'
+                   + (f"; {stale} approval{'s' if stale != 1 else ''} left behind with no route" if stale else "")
                    if rt else "from the policy")
     agg_note = (f'<a href="{E(agg.get("_run") or "#")}">live, counted on {E(agg.get("read_at", ""))}</a>'
                 if agg else "shown once the network job has published its first count")

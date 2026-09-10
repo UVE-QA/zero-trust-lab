@@ -3,7 +3,7 @@
   "counted_at": "2026-09-10",
   "source": "the automation hub's device registry, read-only, enabled devices only",
   "rule": "No names, models, vendors or integration names. The number of cameras is not published (handoff 2.7). Categories that could be subtracted from a total to recover it are folded into one group, and the total is rounded. Classification checks vacuum before camera: a vacuum with a camera entity is still a vacuum.",
-  "exposed_to_tailnet": 3,
+  "exposed_to_tailnet": 2,
   "total_about": 40,
   "categories": [
     {

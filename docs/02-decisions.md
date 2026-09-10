@@ -2699,3 +2699,67 @@ real host with one telemetry stream through the existing grants; then the
 lost-comms drill on that stream, for the page's first number that comes from
 watching the system rather than counting the repository; and the "after" half of
 the exposure reading from a disposable node.
+
+---
+
+## D-047 — An address is not an identity: the exposed camera was the wrong camera
+
+### What was wrong
+
+Since Phase 1.5 the lab exposed one camera to the tailnet — one `/32` route
+through the hub, one grant, to the collector role only. It was meant to be the
+one camera the owner has released for the project. **It was a different
+camera, one the owner had not released.**
+
+The error was mine, and its cause is specific. The camera was identified by its
+DHCP hostname. Both cameras on the network are the same make and announce the
+same hostname, and that name has been seen following the other camera across a
+lease change. The identification was never checked against anything that
+belongs to the device itself.
+
+It surfaced when planning the first real telemetry: before building on the
+camera, the owner asked which one it was. Three independent sources agreed —
+the device's MAC at that address, the owner's camera register, and the machine
+that runs the recorder.
+
+### Why nothing was reached
+
+The grant named only the collector role, and no node holds that role yet.
+Clients install only the subnet routes their policy lets them use, so no node
+had even installed the route. The exposure was latent: it would have become real
+on the day the collector came up — which was the next step on the plan.
+
+### What was done, with the owner's go-ahead
+
+1. **The route was withdrawn at the hub**: removed from the add-on's advertised
+   routes, the add-on restarted. The household paths were checked before and
+   after: the automation UI and the granted socket, both over the tailnet.
+2. **Its approval was removed in the console.** The console itself flagged it:
+   *1 route is approved but not advertised anymore.* A leftover approval is not
+   inert — if the hub ever advertises that route again, after a restore or by
+   mistake, it is live at once, with no admin step. Withdrawing a route means
+   both halves.
+3. **The camera left the policy**: its host alias, its grant and the tests that
+   named it. The collector's tests now assert that it reaches the broker and
+   nothing else on the home side.
+
+Two devices are now exposed, both verified today by their own identifiers
+rather than by address: the granted socket by its HomeKit accessory id, the
+control socket by its MAC.
+
+### What else it exposed
+
+- **The live route count was counting the wrong thing.** It reported routes an
+  admin had approved as if they were routes in effect. It now reports the
+  intersection of approved and advertised, and separately the approvals left
+  behind with no route. Checked against a constructed case with one of each.
+- **Every remaining `/32` rests on an address that can move.** The network has
+  no DHCP reservations, and addresses have already changed hands between
+  devices. A `/32` that is correct today can point at a different device after a
+  power cut, silently. The next control is therefore not another grant but a
+  check: each exposed address, verified every day against the identifier of the
+  device it is supposed to be. That also gives the evidence page a figure that
+  comes from watching the system.
+- **The released camera comes back differently.** Not as a `/32` to an address,
+  since it too has held more than one — but through a restream on a host the
+  lab controls, named by camera.

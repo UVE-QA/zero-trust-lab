@@ -52,9 +52,13 @@
 	// through the gateway, one host route each -- never a subnet.
 	//
 	// Naming them here means the grants and tests below read as roles rather
-	// than as addresses, and it confines every templated value to three lines.
+	// than as addresses, and it confines every templated value to two lines.
+	//
+	// An address is not an identity. There are no DHCP reservations on this
+	// network and addresses have moved between devices, so each entry here is
+	// re-verified by the device's own identifier, not assumed (D-047). A camera
+	// was removed from this block for exactly that reason.
 	"hosts": {
-		"camera-stream":    "{{camera_stream}}",
 		"actuator-granted": "{{actuator_granted}}",
 		"actuator-control": "{{actuator_control}}",
 	},
@@ -101,15 +105,13 @@
 			"ip":  ["tcp:8443"],
 		},
 
-		// --- Stream tier: camera, routed through the declared gateway -----
-		// `via` pins the path: traffic reaches the camera through the gateway
-		// or not at all.
-		{
-			"src": ["tag:collector"],
-			"dst": ["camera-stream"],
-			"ip":  ["tcp:554"],
-			"via": ["tag:gateway-home"],
-		},
+		// --- Stream tier: withdrawn ---------------------------------------
+		// A camera was exposed here by address. The address turned out to
+		// belong to a camera the owner had not released for the lab, identified
+		// in the first place by a DHCP name two cameras share. The route and
+		// this grant are gone (D-047). The one camera that is released comes
+		// back through a restream named by camera, not by a /32 to an address
+		// that can change hands.
 
 		// --- Action tier: ONE actuator, not the class ---------------------
 		// The granted unit and the control unit are the same model on the
@@ -232,7 +234,6 @@
 				"tag:sensor:8443", // cannot reach a peer sensor
 				"tag:gateway-home:1883", // cannot talk to the broker directly
 				"tag:gateway-home:8123", // cannot reach the automation UI
-				"camera-stream:554", // cannot reach the stream tier
 				"actuator-granted:52432", // cannot change physical state
 			],
 		},
@@ -245,20 +246,19 @@
 				"tag:gateway-home:1883",
 				"tag:prod:22",
 				"tag:collector:8443",
-				"camera-stream:554",
 				"actuator-granted:52432",
 				"actuator-control:52432",
 			],
 		},
 
-		// The collector reaches the stream and the broker, and nothing else
-		// on the IoT side -- in particular no actuator, ever.
+		// The collector reaches the broker, and nothing else on the IoT side
+		// -- in particular no actuator, ever.
 		{
 			"src":    "tag:collector",
-			"accept": ["tag:gateway-home:1883", "camera-stream:554"],
+			"accept": ["tag:gateway-home:1883"],
 			"deny": [
-				"camera-stream:80", // one port on that host, not the host
-				"actuator-granted:52432", // reading a stream is not commanding a socket
+				"tag:gateway-home:22", // one port on the hub, not the hub
+				"actuator-granted:52432", // reading telemetry is not commanding a socket
 				"actuator-control:52432",
 				"tag:prod:22",
 				"tag:gateway-home:8123",
@@ -279,7 +279,6 @@
 			"src": "tag:prod",
 			"deny": [
 				"tag:gateway-home:8123",
-				"camera-stream:554",
 				"actuator-granted:52432",
 			],
 		},

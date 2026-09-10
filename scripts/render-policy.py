@@ -35,7 +35,6 @@ INVENTORY = ROOT / "local" / "inventory.yaml"
 # Explicit rather than inferred: adding one is a visible, reviewable edit, and
 # a typo in the inventory fails here instead of reaching the tailnet.
 SPEC = {
-    "camera_stream":     "ipv4",      # stream tier
     "actuator_granted":  "ipv4",      # action tier, granted
     "actuator_control":  "ipv4",      # action tier, denied control
     "operator_identity": "identity",  # tests need a concrete principal:
@@ -65,7 +64,7 @@ def load_values():
         sys.exit("error: local/inventory.yaml has no `policy_values:` block.\n"
                  "Add one entry per placeholder, e.g.\n"
                  "  policy_values:\n"
-                 "    camera_stream: <address>\n"
+                 "    actuator_granted: <address>\n"
                  "    operator_identity: <who@example>\n")
     values = {}
     for line in block.group(1).splitlines():
