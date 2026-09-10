@@ -1,4 +1,8 @@
-local/
+# Every real value lives in local/ and never leaves this machine.
+# The one exception is the schema example, which carries only placeholders.
+local/*
+!local/inventory.example.yaml
+
 *.tfstate*
 *.pem
 *.key

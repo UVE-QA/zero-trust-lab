@@ -1,0 +1,56 @@
+name: leak-scan
+
+# The repository refuses a bad commit rather than relying on someone
+# remembering. Same principle as the policy `tests` section.
+#
+# This repo is private today and intended to become public. Nothing
+# containing a real hostname, address, account id or device model may be
+# committed at any point -- git history is permanent, so there is no
+# "sanitise it later".
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leak-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    name: secret scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read   # the action enumerates the PR's commits
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks scans history, not just the tip
+
+      # Pinned to a commit, not a moving tag. A repo whose purpose is
+      # disclosure hygiene should not run an unpinned third-party action over
+      # its full history.
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc  # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  disclosure-sweep:
+    name: disclosure sweep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: sweep tracked files for real-world values
+        env:
+          # Newline-separated site-specific strings: device names, the
+          # tailnet name, ssids, the household surname. Held as a repository
+          # secret so the denylist itself never enters the repo.
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+        run: ./scripts/leak-sweep.sh
