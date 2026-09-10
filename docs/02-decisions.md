@@ -1818,3 +1818,73 @@ protection — D-033.
 
 Applies stay manual, rare, and preceded by a plan shown in full. That is a
 weaker control than a required reviewer and it is not pretended otherwise.
+
+---
+
+## D-036 — Phase 5 runs from the production stand-in, against the handoff's rule
+
+**Status:** accepted, with the rule's reasoning checked rather than waved past.
+
+The handoff is explicit: run the work from the operator laptop, not from the
+production stand-in. Phase 5 is being run from the stand-in. The deviation is
+deliberate and the rule's two reasons are worth taking one at a time, because
+one of them still half-applies.
+
+*(That sentence originally quoted the handoff verbatim, which carried a real
+node name across from the private overlay into a committed file. The sweep
+caught it before `git add` — see the note at the end.)*
+
+**Reason one — lockout — does not apply.** The rule exists because the work
+*"consists of changing who can reach what over the tailnet"*, and a node
+reachable only over the tailnet can drop its own access mid-run and be unable to
+repair what it broke. Phase 5 changes nothing about the tailnet. It creates IAM
+roles and a bucket in a cloud account, and no failure mode of it can affect a
+tailnet path.
+
+**Reason two — "a target, not an operator" — partly does.** That node is the
+production stand-in, and Phase 2 deliberately restricts access to it. Running
+from it means my session depends on a policy this project wrote. That is a
+smaller version of the same hazard, and the handoff already prescribes the
+mitigation: *anything long-running on that node runs under tmux, driven from the
+laptop.* A dropped session then costs a reconnect rather than a half-finished
+apply.
+
+**What makes it the better host anyway** is a property that only became visible
+on inspection. It already has Terraform, and a newer version than the operator
+host would have got. It authenticates by SSO with **no credentials file, no
+static keys and no environment variables** — so running the phase there does not
+weaken the criterion the phase is judged on.
+
+### The thing worth noticing about that machine
+
+It is a Lightsail instance, and **Lightsail does not support IAM instance
+roles.** It therefore cannot be given an identity the way a normal cloud server
+can — which is the same constraint as the on-prem collector, arrived at from the
+opposite direction.
+
+That is exactly the gap IAM Roles Anywhere exists to fill, and it means the
+pattern being built in this phase has a second legitimate subject already in the
+lab. Not adopted now — the collector comes first, and a certificate authority
+does not exist yet — but recorded, because "a machine that cannot hold a role"
+is easier to reason about when there are two of them and they arrived for
+different reasons.
+
+Interactive human work on it stays on SSO, which is correct: Roles Anywhere is
+for unattended machine identity, not for a person at a terminal.
+
+### A leak vector worth naming
+
+The quotation above was the fourth thing the disclosure sweep has caught, and
+the first of its kind. The others were values I typed: a hostname left in a
+placeholder file, a private address in a script's own error message, a
+twelve-digit placeholder indistinguishable from a real account id.
+
+This one was different. **Quoting the private handoff verbatim carries its real
+names into a committed file.** The sanitisation map exists precisely because
+that document names devices, and it is easy to forget while quoting a sentence
+whose *point* is the rule, not the name.
+
+The habit that follows: when quoting the source document, quote the reasoning
+and paraphrase the subject. If the exact wording matters, run the sweep before
+staging rather than after — which is what happened here only by luck of shell
+ordering, since the sweep sat in an `&&` chain ahead of `git add`.
