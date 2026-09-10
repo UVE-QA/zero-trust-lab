@@ -45,6 +45,10 @@ pipeline refused (D-041, PR #7, PR #8).
   path is fixed and verified; the public port stays open until the one client
   that still uses it is proven on the tailnet path, so that closing it cannot
   lock anyone out. In progress.
+- **Exposed LAN devices are addressed by IP on a network without DHCP
+  reservations** (D-047). A camera that turned out to be the wrong one was
+  withdrawn; the two remaining sockets were verified by their own identifiers.
+  A daily identity check on each exposed address is next.
 - **The policy's `ssh` rule for production is dead configuration** since
   Tailscale SSH was turned off on that host (D-042). It reads like a control and
   is not one. To be removed.

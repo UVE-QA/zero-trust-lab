@@ -105,9 +105,6 @@ NODES = {
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),
 
-    "camera":    (300, 610, "camera", "home", "Camera stream", "collector only",
-                  "one /32", ["camera-stream"], "The stream tier: one camera exposed, to "
-                  "one role, on one port.", "D-024"),
     "plug_g":    (500, 610, "plug", "home", "Smart plug", "granted · posture",
                   "one /32", ["actuator-granted"], "The action tier: operators may switch it, "
                   "only from a device whose client reports the required posture. On this plan the "
@@ -165,8 +162,6 @@ ROUTES = {
     ("operators", "prod"):              ([(220, 277), (980, 277)], (640, 277)),
     ("operators", "drone"):             ([(220, 388), (238, 388), (238, 414), (738, 414), (738, 463), (760, 463)], (420, 414)),
     ("collector", "gateway"):           ([(760, 348), (680, 348)], (720, 348)),
-    ("collector", "gateway", "camera"): ([(760, 376), (680, 376)], None),
-    ("gateway", "camera"):              ([(530, 392), (530, 560), (390, 560), (390, 610)], (460, 560)),
     ("sensor", "collector"):            ([(980, 361), (940, 361)], (960, 361)),
     ("drone", "collector"):             ([(850, 432), (850, 392)], (878, 412)),
     # refusals, drawn from the tests

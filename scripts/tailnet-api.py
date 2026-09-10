@@ -220,7 +220,7 @@ def cmd_inventory(out_path):
 
     roles, os_user = {}, {}
     online = key_expiry_off = updates = ssh_nodes = 0
-    prefixes, advertised_only = {}, 0
+    prefixes, advertised_only, approved_only, approved_total = {}, 0, 0, 0
     trusted = user_owned = 0
     for d in devices:
         on = bool(d.get("connectedToControl"))
@@ -241,11 +241,18 @@ def cmd_inventory(out_path):
             attrs = (json.loads(ab).get("attributes") or {}) if st == 200 and ab else {}
             if attrs.get("node:tsStateEncrypted") is True and attrs.get("node:tsReleaseTrack") == "stable":
                 trusted += 1
-        enabled = set(d.get("enabledRoutes") or [])
-        for r in enabled:
+        # `enabledRoutes` are routes an admin APPROVED; `advertisedRoutes` are
+        # what the node offers now. Only the intersection carries traffic. An
+        # approval whose advertisement is gone is not harmless: if the node
+        # advertises that route again, it is live at once, with no admin step.
+        approved = set(d.get("enabledRoutes") or [])
+        advertised = set(d.get("advertisedRoutes") or [])
+        approved_total += len(approved)
+        for r in approved & advertised:
             ln = "/" + r.rsplit("/", 1)[-1]
             prefixes[ln] = prefixes.get(ln, 0) + 1
-        advertised_only += len(set(d.get("advertisedRoutes") or []) - enabled)
+        advertised_only += len(advertised - approved)
+        approved_only += len(approved - advertised)
 
     lens = [int(k[1:]) for k in prefixes]
     agg = {
@@ -255,10 +262,12 @@ def cmd_inventory(out_path):
         "user_owned": {"count": user_owned, "by_os": dict(sorted(os_user.items())),
                        "meeting_operator_posture": trusted},
         "routes_into_other_networks": {
-            "enabled": sum(prefixes.values()),
+            "effective": sum(prefixes.values()),
             "by_prefix_length": dict(sorted(prefixes.items())),
             "widest": (f"/{min(lens)}" if lens else None),
+            "approved": approved_total,
             "advertised_not_approved": advertised_only,
+            "approved_not_advertised": approved_only,
         },
         "key_expiry_disabled": key_expiry_off,
         "client_update_available": updates,
