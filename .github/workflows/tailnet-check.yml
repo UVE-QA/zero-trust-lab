@@ -42,10 +42,6 @@ concurrency:
   group: tailnet-check-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  TS_OIDC_CLIENT_ID: ${{ vars.TS_OIDC_CLIENT_ID }}
-  TS_OIDC_AUDIENCE: ${{ vars.TS_OIDC_AUDIENCE }}
-
 jobs:
   validate:
     name: tailnet tests (validate, read-only)
@@ -56,6 +52,10 @@ jobs:
       contents: read
       id-token: write
     env:
+      # Not secret by Tailscale's definition, but held as secrets so they are
+      # masked: a variable is printed verbatim in every step's log (D-043).
+      TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
+      TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
       POLICY_VALUE_CAMERA_STREAM: ${{ secrets.POLICY_VALUE_CAMERA_STREAM }}
       POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
       POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
@@ -76,6 +76,10 @@ jobs:
       contents: read
       id-token: write
     env:
+      # Not secret by Tailscale's definition, but held as secrets so they are
+      # masked: a variable is printed verbatim in every step's log (D-043).
+      TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
+      TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
       POLICY_VALUE_CAMERA_STREAM: ${{ secrets.POLICY_VALUE_CAMERA_STREAM }}
       POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
       POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}

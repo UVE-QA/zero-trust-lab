@@ -15,7 +15,7 @@ See D-041 for why it is shaped this way.
 |---|---|---|
 | Tailscale console | one OpenID Connect trust credential, scope `policy_file:read` (+ two device reads the console forces with it) | no — produces a client ID and an audience, both non-secret |
 | GitHub | environment `tailnet-read` | — |
-| GitHub, on that environment | variables `TS_OIDC_CLIENT_ID`, `TS_OIDC_AUDIENCE` | no |
+| GitHub, on that environment | secrets `TS_OIDC_CLIENT_ID`, `TS_OIDC_AUDIENCE` | not by Tailscale's definition — held as secrets only so logs mask them |
 | GitHub, on that environment | secrets `POLICY_VALUE_CAMERA_STREAM`, `POLICY_VALUE_ACTUATOR_GRANTED`, `POLICY_VALUE_ACTUATOR_CONTROL`, `POLICY_VALUE_OPERATOR_IDENTITY` | yes — the template's real values |
 
 Nothing on this list can write to the tailnet.
@@ -63,8 +63,8 @@ the `StringLike` mistake that `tf-lint.py` refuses on the AWS side.
 
 ```
 gh api -X PUT repos/<owner>/<repo>/environments/tailnet-read
-gh variable set TS_OIDC_CLIENT_ID --env tailnet-read --body '<client id>'
-gh variable set TS_OIDC_AUDIENCE  --env tailnet-read --body '<audience>'
+gh secret set TS_OIDC_CLIENT_ID --env tailnet-read --body '<client id>'
+gh secret set TS_OIDC_AUDIENCE  --env tailnet-read --body '<audience>'
 ```
 
 The four secrets come from `local/inventory.yaml`'s `policy_values:` block. Set

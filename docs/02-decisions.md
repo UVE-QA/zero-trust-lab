@@ -2425,3 +2425,69 @@ any more, because Tailscale SSH is off on the only host with the tag. A rule tha
 reads like a control and is not one is the same failure this entry is about. It
 should be removed or rewritten against a host that still runs Tailscale SSH.
 That is a policy change, left for the owner to decide.
+
+---
+
+## D-043 — The repository goes public; the audit found a gap in the boundary
+
+Supersedes D-035, which kept the repository private until it could be shown
+without disclosing anything. The owner decided it now can: the project is
+presented as work in progress, and `STATUS.md` says plainly what is not done.
+
+### What was audited, and how
+
+The disclosure sweep in CI reads tracked files at the tip of a branch. Making a
+repository public exposes far more than that, so the audit covered what
+publication actually exposes:
+
+| exposed by publishing | result |
+|---|---|
+| every version of every file in history, including every pull request's head | clean |
+| branch names; pull request titles, bodies and comments | clean |
+| commit author and committer addresses | platform no-reply addresses only |
+| workflows that run untrusted code with secrets (`pull_request_target`) | none |
+| the logs of all 81 workflow runs | one identifier, below |
+| **commit messages** | **one commit, below** |
+
+The scanner used the same rules as the CI sweep, plus concrete values the sweep
+does not know: every relevant account id, the owner's addresses, the tailnet's
+name, public addresses. It reports locations, never values. Before its clean
+results were believed, it had to catch planted values in each mode. That rule
+earned its keep twice: one pass read 1 of 81 logs because a shell loop did not
+split its input, and one control ran the committed script instead of the edited
+one. Both "clean" results were false until fixed.
+
+### What was found
+
+**Commit messages were never swept.** One commit on a Phase 1 branch named
+three nodes by their real names in its message. `main` never carried it —
+that phase was squash-merged — but GitHub keeps every pull request's commits
+reachable for good, so publishing the repository publishes the message. The
+names are generic device-role names. The owner accepted them as they are.
+
+The finding is not those three words. It is that the boundary checked files
+and not messages, while a message is as public as the code it describes. Now:
+
+- the sweep also reads commit messages, for every commit a pull request brings
+  in and every commit a push to `main` adds, with the same rules and the same
+  redaction of denylisted terms;
+- in CI, a missing denylist **fails** the sweep instead of skipping it. That is
+  what a pull request from a fork sees, since forks receive no secrets, and a
+  check that quietly omits its most specific part still reports green.
+
+Both were tested against controls: the known commit is caught, a planted
+address in a fresh message is caught, clean history passes, a missing denylist
+fails in CI and only notes itself locally.
+
+**The tailnet credential's client identifier was printed in five run logs.** It
+was passed as a repository variable, and variables are printed verbatim in step
+logs. Tailscale does not treat it as secret: using it requires a signed token
+whose subject names this repository and environment exactly, and a pull request
+from a fork cannot obtain one. It is now passed as a secret so it is masked from
+here on. The five existing logs were left as they are.
+
+### Not changed by publishing
+
+Secrets stay secret on a public repository. Pull requests from forks get no
+secrets and no federated identity tokens, so neither the tailnet check nor the
+cloud plan can run for them — they fail closed.
