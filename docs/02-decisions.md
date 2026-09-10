@@ -1776,3 +1776,45 @@ configuration that makes the bucket safe). Neither is chosen here either.
 The consequence for sequencing is the same one that project drew: **the phase
 that writes this code does not apply it.** Applying is a separate, explicit
 step with the commands shown first.
+
+---
+
+## D-035 — The repository stays private, and the reason is not safety
+
+**Status:** accepted, resolving Q-005.
+
+Q-005 asked whether to publish now, since a real approval gate on the apply
+workflow only exists for a public repository. **The answer is no**, and the
+reasoning is worth recording because it separates two conditions that are easy
+to conflate.
+
+**Publication is gated on having something worth showing that can be shown
+without exposing sensitive information.** Not on wanting a feature.
+
+Two preconditions, only one of which is still open:
+
+- **Safety is already met, and is enforced rather than assessed.** The
+  disclosure boundary landed in the first commit — before any real value was
+  written down anywhere — and the sweep has passed on every commit since. It has
+  caught three genuine slips: a hostname left in a placeholder file, a private
+  address in a script's own error message, and a twelve-digit placeholder that a
+  scanner cannot distinguish from a real account id. Each was caught before it
+  reached history, which is the only place a leak cannot be undone.
+- **Readiness to show is the actual gate**, and it is editorial. Whether the
+  work is finished enough to publish is the owner's judgement, not a technical
+  condition.
+
+So the position is not *"it is not safe to publish yet"*. It is **safe, and not
+yet finished**. Written down so a later session does not reopen the safety
+question Phase 0 settled, and does not mistake the editorial gate for a
+technical one.
+
+### Consequence for the apply workflow
+
+There is no approval gate on the apply, and there will not be one until the
+repository is published on its own schedule. That absence is stated in the
+workflow and in the Terraform variable so nobody reads the environment pin as
+protection — D-033.
+
+Applies stay manual, rare, and preceded by a plan shown in full. That is a
+weaker control than a required reviewer and it is not pretended otherwise.
