@@ -463,3 +463,57 @@ possible: the granted host accepted, the control host denied, on the same port
 from the same source. Those belong in the first policy commit, alongside the
 household-access assertion, because they are what makes the actuator tier a
 demonstration rather than an assertion.
+
+---
+
+## D-011 — Finding: the granted actuator authenticates nothing on the local network
+
+**Status:** open finding. Goes into the threat model. **Not remediated** — it is
+the subject of the lab, not a defect to quietly patch.
+
+While identifying which physical unit was which, one of the two actuators
+answered its local HTTP API — over plaintext, on the standard port — to a
+request signed with an **empty key**. It returned full system detail
+unauthenticated: hardware and chip type, hardware address, firmware version,
+the vendor's cloud endpoint, the owning account id, the bind id, and the current
+on/off state.
+
+The second, physically identical unit on the same firmware **rejects** the same
+request with a signature error. Two identical devices, different security
+posture, cause unknown — most likely differing bind history. That asymmetry is
+itself worth keeping: it means device security here is not a property of the
+model, it is an accident of provisioning, which is precisely why a network
+control cannot be replaced by trusting the device.
+
+### The inference, marked as an inference
+
+Reads and writes are signed the same way, so a **write** — switching the socket
+— would very likely also be accepted. **This was not tested.** Testing it means
+changing physical state to prove something already sufficiently evidenced, and
+nothing in the plan requires the proof. It is recorded as a strong inference
+rather than a demonstrated fact, and if it is ever tested it should be on a unit
+driving nothing, deliberately and on purpose.
+
+That distinction matters here more than usual: this phase has already retracted
+one finding that was asserted more confidently than the evidence supported.
+
+### Why this is the lab's best argument, not its worst problem
+
+The handoff's case for the action tier is that a cheap WiFi actuator on a flat
+network is exactly what least privilege is meant to contain. This is that claim
+with evidence behind it: the only thing standing between anything on the local
+network and a physical state change is **network reachability**. The device
+contributes no meaningful authentication of its own.
+
+So the controls are not theatre. Posture plus a time-boxed grant is not a
+decorative extra tier applied to a device that was already safe — it is the
+entire defence. A reviewer who wants to know why the action tier deserves
+stricter treatment than the telemetry tier now has a concrete answer.
+
+### What is deliberately not done
+
+The device is not reconfigured, its key is not changed, and its cloud session is
+not interfered with. It also holds an outbound session to its vendor's cloud,
+which no policy in this repo touches — the same limitation the robot vacuum
+illustrates, now present on a device that *is* in scope. Both belong in
+`docs/00-threat-model.md` as findings.

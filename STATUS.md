@@ -93,6 +93,7 @@ that rewrites the global policy file.
 | **D-008** | high | Measures what the subnet route is load-bearing for: **almost nothing.** Everything used remotely is already a tailnet node in its own right. The one real exposure is the site gateway's admin interface, published to the whole tailnet. Also establishes that route acceptance is a client-side toggle — not an access control. Corrects the ordering: policy first, then migrate, then withdraw. |
 | **D-009** | — | The blast-radius measurement uses a disposable ephemeral node, not a loosened trusted one: nothing has to be remembered and undone, and it measures the leaked-key claim rather than a proxy for it. Deferred to the Phase 2 window, with the sequencing hazard written up. |
 | **D-010** | — | Both actuators are free for the lab, so they are used as a matched granted/denied pair rather than one plus a spare. Proves least privilege is per-host, not per-protocol. Costs one device change, not two — the control needs no changes at all. |
+| **D-011** | high | The granted actuator answers its local API over plaintext to a request signed with an **empty key** — no meaningful authentication at all, while its identical twin rejects the same request. The only thing between the local network and a physical state change is reachability. This is the lab's action-tier argument with evidence behind it, not a defect to patch. |
 
 ## The starting state, stated plainly
 
