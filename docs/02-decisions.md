@@ -2294,10 +2294,25 @@ file carries the real values.
   job. Neither run's log contains any of the four real values or a token. A
   check only ever seen passing has not been shown to check anything; this one
   has now been seen refusing.
-- **Still unverified:** that reading the policy through the API returns the same
-  bytes the console editor holds. The drift job first runs on merge. If it fails
-  there, that is a finding for this entry, not a reason to loosen the
-  comparison.
+- **Drift, verified on both sides.** On the merge to main, the policy read back
+  through the API was byte-identical to the render — same 10983 bytes, same
+  hash — so the API returns exactly what the console editor holds and the
+  comparison needs no normalising. Then the workflow was dispatched by hand on a
+  throwaway branch whose template differed by one comment line. `drift` reported
+  `DRIFT`, 11054 bytes against 10983: the difference was exactly that line.
+  Neither log contains a real value.
+- **Found by that control, not looked for: the validator refuses a policy file
+  whose last line is a `//` comment.** The same dispatch ran `validate`, which I
+  expected to pass — a trailing comment is valid HuJSON. It failed:
+  `parsing comment: unexpected EOF`, positioned at the comment's first
+  character. Tailscale's parser requires a line comment to end in a newline; the
+  file sent did end in one, byte for byte. So the newline is lost before parsing,
+  somewhere on the server side. That last step is an inference from their
+  parser's source and the error position, not an observation, and whether a
+  console save would refuse the same file was not tested — it would mean saving
+  the live policy to find out. It costs nothing today: the template ends in `}`.
+  It is recorded because a comment appended at the end of the file is exactly
+  the kind of edit someone makes without expecting it to fail.
 
 ### Done
 
