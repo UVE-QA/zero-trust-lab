@@ -3,10 +3,10 @@ name: leak-scan
 # The repository refuses a bad commit rather than relying on someone
 # remembering. Same principle as the policy `tests` section.
 #
-# This repo is private today and intended to become public. Nothing
-# containing a real hostname, address, account id or device model may be
-# committed at any point -- git history is permanent, so there is no
-# "sanitise it later".
+# The repository is public. Nothing containing a real hostname, address,
+# account id or device model may be committed at any point -- in a file or in
+# a commit message. Git history is permanent, and on GitHub so are a pull
+# request's commits, so there is no "sanitise it later".
 
 on:
   pull_request:
@@ -46,11 +46,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # commit messages are swept too, so history is needed
 
-      - name: sweep tracked files for real-world values
+      - name: sweep tracked files and commit messages for real-world values
         env:
           # Newline-separated site-specific strings: device names, the
           # tailnet name, ssids, the household surname. Held as a repository
-          # secret so the denylist itself never enters the repo.
+          # secret so the denylist itself never enters the repo. On a pull
+          # request from a fork it is empty, and the sweep fails rather than
+          # silently skipping it.
           LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
-        run: ./scripts/leak-sweep.sh
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # Every commit a pull request would bring in -- they stay public on
+          # the PR even after a squash merge (D-043) -- or every commit a push
+          # to main added.
+          case "$EVENT" in
+            pull_request) export LEAK_SWEEP_COMMITS="origin/$BASE_REF..$PR_HEAD" ;;
+            push) [ "${BEFORE#0000000}" != "$BEFORE" ] || export LEAK_SWEEP_COMMITS="$BEFORE..$AFTER" ;;
+          esac
+          ./scripts/leak-sweep.sh

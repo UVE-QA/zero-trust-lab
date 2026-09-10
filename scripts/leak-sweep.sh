@@ -7,10 +7,17 @@
 # is never read.
 #
 #   ./scripts/leak-sweep.sh
+#   LEAK_SWEEP_COMMITS=origin/main..HEAD ./scripts/leak-sweep.sh
 #
 # Device names and any other site-specific strings are supplied out-of-band
 # via $LEAK_DENYLIST (newline-separated); they are never written into this
 # repo. In CI that comes from the LEAK_DENYLIST repository secret.
+#
+# $LEAK_SWEEP_COMMITS, when set, is a git revision range whose commit
+# MESSAGES are swept with the same rules as the files. A commit message is as
+# public as the code it describes, and on a pull request it outlives the
+# branch: GitHub keeps every PR's commits reachable for good. This was added
+# after exactly that happened (D-043).
 
 set -uo pipefail
 
@@ -38,6 +45,23 @@ report() {
   printf '  %-28s %s:%s: %s\n' "$label" "$file" "$line" "$text" >&2
 }
 
+# Everything the sweep reads: tracked files, plus one file per commit message
+# when a range is given. Message files live outside the work tree and are
+# reported as `commit-message:<sha>`.
+MSGDIR="$(mktemp -d)"
+if [ -n "${LEAK_SWEEP_COMMITS:-}" ]; then
+  while IFS= read -r sha; do
+    git log -1 --format=%B "$sha" > "$MSGDIR/$sha"
+  done < <(git rev-list "$LEAK_SWEEP_COMMITS")
+fi
+targets() {
+  git ls-files
+  find "$MSGDIR" -type f 2>/dev/null
+}
+shown() {
+  case "$1" in "$MSGDIR"/*) echo "commit-message:$(basename "$1" | cut -c1-7)" ;; *) echo "$1" ;; esac
+}
+
 scan() {
   local label="$1" pattern="$2"
   while IFS= read -r file; do
@@ -45,16 +69,16 @@ scan() {
     [ -f "$file" ] || continue
     sed -E "s/${ALLOW_LITERALS}/<vendor-example>/g" -- "$file" 2>/dev/null \
       | grep -InE "$pattern" 2>/dev/null | while IFS=: read -r line text; do
-      printf '%s\t%s\t%s\n' "$file" "$line" "${text:0:200}"
+      printf '%s\t%s\t%s\n' "$(shown "$file")" "$line" "${text:0:200}"
     done
-  done < <(git ls-files) | while IFS=$'\t' read -r file line text; do
+  done < <(targets) | while IFS=$'\t' read -r file line text; do
     report "$label" "$file" "$line" "$text"
     echo x >> "$TALLY"
   done
 }
 
 TALLY="$(mktemp)"
-trap 'rm -f "$TALLY"' EXIT
+trap 'rm -rf "$TALLY" "$MSGDIR"' EXIT
 
 echo "== disclosure sweep =="
 
@@ -95,14 +119,21 @@ if [ -n "${LEAK_DENYLIST:-}" ]; then
       [ -f "$file" ] || continue
       if grep -Iiqs -- "$term" "$file"; then
         n="$(grep -Iin -- "$term" "$file" | head -1 | cut -d: -f1)"
-        printf '::error file=%s,line=%s::denylisted-term: a term from LEAK_DENYLIST appears here\n' "$file" "$n"
-        printf '  %-28s %s:%s: (term redacted)\n' "denylisted-term" "$file" "$n" >&2
+        printf '::error file=%s,line=%s::denylisted-term: a term from LEAK_DENYLIST appears here\n' "$(shown "$file")" "$n"
+        printf '  %-28s %s:%s: (term redacted)\n' "denylisted-term" "$(shown "$file")" "$n" >&2
         echo x >> "$TALLY"
       fi
-    done < <(git ls-files)
+    done < <(targets)
   done <<< "$LEAK_DENYLIST"
+elif [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  # In CI an empty denylist is a failure, not a skip. It is what a pull
+  # request from a fork sees -- forks receive no secrets -- and a sweep that
+  # quietly omits its most specific check still reports green. A maintainer
+  # reviews the diff and re-runs from a branch in this repository.
+  echo "::error::LEAK_DENYLIST is unavailable (a pull request from a fork gets no secrets). The device-name sweep cannot run, so this check does not pass."
+  echo x >> "$TALLY"
 else
-  echo "  note: LEAK_DENYLIST is empty -- device-name sweep skipped" >&2
+  echo "  note: LEAK_DENYLIST is empty -- device-name sweep skipped (local run)" >&2
 fi
 
 total="$(wc -l < "$TALLY" | tr -d ' ')"
@@ -113,4 +144,8 @@ if [ "$total" -gt 0 ]; then
   exit 1
 fi
 
-echo "OK: no real-world values in tracked files."
+if [ -n "${LEAK_SWEEP_COMMITS:-}" ]; then
+  echo "OK: no real-world values in tracked files or in $(find "$MSGDIR" -type f | wc -l | tr -d ' ') commit message(s)."
+else
+  echo "OK: no real-world values in tracked files."
+fi
