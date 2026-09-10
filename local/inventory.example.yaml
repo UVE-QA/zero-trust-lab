@@ -1,0 +1,208 @@
+# Schema for local/inventory.yaml -- the private overlay.
+#
+# local/inventory.yaml is GITIGNORED and holds every real value: node names,
+# tailnet and LAN addresses, the tailnet domain, the AWS account id, device
+# models, physical placement. This example file is the only thing in local/
+# that is committed, and it contains placeholders only.
+#
+# Anything derived from this file that is committed -- docs/01-inventory.md,
+# rendered policy -- must be reduced to roles and counts. If a reader of the
+# public repo could identify a device or reach an address, it does not belong
+# there. scripts/leak-sweep.sh enforces this.
+
+meta:
+  tailnet_domain: <tailnet>.ts.net.example    # real file: the MagicDNS suffix
+  tailnet_plan: personal-free
+  aws_account_id: <12-digit-account-id>
+  captured: YYYY-MM-DD
+  captured_by: <operator-host>
+
+# ---------------------------------------------------------------------------
+# Tailnet nodes -- anything running the Tailscale client.
+# ---------------------------------------------------------------------------
+#
+# owner_model is the rule from section 5 of the handoff: a node is either
+# user-owned or tagged, never both. Tagging strips the owning user's identity,
+# so a personal daily driver can never carry an infrastructure tag.
+#
+#   user-owned  -> stays untagged, available for posture work
+#   tagged      -> machine identity, no posture, key expiry off by default
+
+nodes:
+  - name: EXAMPLE-OPERATOR-LAPTOP
+    os: macOS
+    owner_model: user-owned
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    role_now: operator workstation -- runs this repo
+    intended_tag: none (must stay user-owned; it is the break-glass console)
+    key_expiry: <enabled|disabled>
+    key_expires: YYYY-MM-DD
+    last_seen: <timestamp|active>
+    notes: >
+      Stateless by requirement. Sleeps; nothing in the lab may depend on it
+      being awake.
+
+  - name: EXAMPLE-LINUX-SERVER
+    os: linux
+    owner_model: user-owned            # -> tagged in Phase 1
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    role_now: general server, reachable only over the tailnet
+    intended_tag: tag:prod
+    key_expiry: <enabled|disabled>
+    key_expires: YYYY-MM-DD
+    last_seen: <timestamp|active>
+    notes: >
+      Target, not operator. Also hosts the simulated sensor fleet under tmux.
+
+  - name: EXAMPLE-HOME-AUTOMATION-HUB
+    os: linux
+    owner_model: user-owned            # -> tagged in Phase 1
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    lan_address: <lan-address>
+    role_now: home automation, in daily household use
+    intended_tag: tag:gateway-home
+    key_expiry: <enabled|disabled>
+    key_expires: YYYY-MM-DD
+    last_seen: <timestamp|active>
+    blast_radius: >
+      Remote access to the automation UI is the entire blast radius. Local
+      traffic is outside the reach of access rules. A grant for household
+      access ships in the first policy commit with an accept test.
+
+  - name: EXAMPLE-SHARED-DESKTOP
+    os: macOS
+    owner_model: user-owned            # permanently -- another person's daily machine
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    role_now: runs the NVR / telemetry sink today
+    intended_tag: none
+    key_expiry: <enabled|disabled>
+    notes: >
+      Collector role lives here only until dedicated hardware exists. Never
+      tag it: it is someone's workstation and a posture subject.
+
+  - name: EXAMPLE-TV-APPLIANCE
+    os: tvOS
+    owner_model: user-owned            # -> tagged in Phase 1
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    role_now: media appliance; also the hub for the HomeKit accessories
+    intended_tag: tag:kiosk
+    key_expiry: <enabled|disabled>
+    notes: Appears in no `src` in the policy. Deliberately isolated.
+
+  - name: EXAMPLE-PHONE
+    os: iOS
+    owner_model: user-owned
+    owner: <account>
+    tailnet_ip: <tailnet-ip>
+    role_now: operator device, and the off-tailnet break-glass path
+    intended_tag: none
+    key_expiry: <enabled|disabled>
+
+# ---------------------------------------------------------------------------
+# Roles with no host yet.
+# ---------------------------------------------------------------------------
+unhomed_roles:
+  - tag: tag:collector
+    blocked_on: dedicated hardware not deployed
+    interim: modelled by a container on the linux server for policy and tests
+    runbook: docs/runbooks/rehome-collector.md
+
+  - tag: tag:sensor
+    interim: ephemeral tagged containers, scripts/fleet-up.sh
+  - tag: tag:drone
+    interim: ephemeral tagged containers, scripts/fleet-up.sh
+
+# ---------------------------------------------------------------------------
+# LAN devices with no Tailscale client -- reachable only through the gateway.
+# This is the point of the lab: it is exactly how field sensors behave.
+# ---------------------------------------------------------------------------
+lan_devices:
+  - name: EXAMPLE-CAMERA
+    class: stream
+    transport: ip
+    lan_address: <lan-address>
+    mdns_name: <name>.local
+    mdns_resolves_from_gateway: <yes|no|untested>
+    in_scope: <yes|no>
+    control: <local|vendor-cloud>
+
+  - name: EXAMPLE-TEMP-SENSOR-SPARE
+    class: telemetry
+    transport: <thread|zigbee>          # radio, not IP -- no tailnet presence
+    lan_address: none
+    in_scope: yes
+    purpose: >
+      The lab's measuring instrument. Its reading stream is the objective
+      signal for the lost-comms drill and the canary after every policy
+      change.
+
+  - name: EXAMPLE-WIFI-SOCKET-SPARE
+    class: action                       # the only actuator in the model
+    transport: wifi
+    protocol: <hap|matter|vendor>
+    lan_address: <lan-address>
+    mdns_name: <name>.local
+    in_scope: yes
+    drives: <something inconsequential>
+    # Phase 0 qualification -- three checks, all in the automation UI.
+    qualification:
+      transport_check: <pending|matter-over-wifi|hap-over-wifi|thread>
+      local_control: <pending|local-push|local-polling|cloud-polling>
+      mdns_from_gateway: <pending|resolves|does-not-resolve>
+      paired_to: <apple-home|home-assistant>
+      qualified: <pending|yes|no>
+      notes: >
+        Cloud Polling disqualifies it: switching would go through the vendor
+        and no access policy would govern it.
+
+  - name: EXAMPLE-VACUUM
+    class: out-of-scope
+    reason: >
+      Reaches the vendor cloud directly and will continue to under any policy
+      in this repo. Used in the threat model as the concrete illustration that
+      access policy does not touch non-tailnet traffic -- that gap needs
+      VLAN-level treatment, not more grants.
+
+  - name: EXAMPLE-PET-DEVICES
+    class: out-of-scope
+    reason: >
+      Someone depends on these daily and they are already outside the reach of
+      access rules. Nothing to gain, unacceptable cost. No routes, no grants,
+      no experiments.
+
+# ---------------------------------------------------------------------------
+# Shared services inherited, not designed. Change nothing that affects an
+# existing client.
+# ---------------------------------------------------------------------------
+services:
+  mqtt_broker:
+    located: <pending|automation-hub|desktop|not-found>
+    host: <hostname>
+    port: 1883
+    bind: <0.0.0.0|loopback|specific>
+    tls: <yes|no>
+    existing_clients: [<nvr>, <home-automation>]
+    lab_credentials: <username>          # the lab uses its own, never a shared one
+    lab_topic_prefix: ztlab/
+    reconfiguration_allowed: false
+    finding: >
+      Plaintext on the LAN is recorded in docs/00-threat-model.md as a
+      finding, not as something to fix. Rebinding to the tailnet interface
+      would break working clients. Inheriting a system you are not entitled to
+      redesign is the situation the lab exists to model.
+
+# ---------------------------------------------------------------------------
+# Constraints that shape the design. Kept here so the next session inherits
+# them without re-deriving.
+# ---------------------------------------------------------------------------
+constraints:
+  network_is_flat: true                  # no IoT VLAN, and none is being built
+  isp_gateway_dhcp_reservations: false   # blocks any /32-route approach
+  segmentation_option: B                 # name-based forwarding on the gateway
+  identity_provider: none                # passkey account; no SCIM, no groups sync
+  admin_console_offtailnet_reachable: <pending|yes|no>
