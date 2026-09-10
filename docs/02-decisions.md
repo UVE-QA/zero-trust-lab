@@ -903,3 +903,109 @@ disables key expiry on tagged nodes. Disabling key expiry is on the handoff's
 short list of things to confirm with the owner before doing. So the tagging step
 is gated on explicit approval, and this entry records the reasoning rather than
 the completed action.
+
+---
+
+## D-019 — Rename `tag:kiosk` to `tag:appliance`: the name was already taken
+
+**Status:** accepted, before anything was applied.
+
+The handoff assigns the media appliance a tag named for a kiosk, meaning a
+locked-down device that originates nothing. Reasonable in the abstract.
+
+**In this house "kiosk" already means something else.** The automation platform
+exposes kiosk-mode entities for two personal handhelds — it is a display mode in
+an app, running on devices that are *not* the one the tag would apply to.
+
+So the tag would have read, to anyone here, as governing a handheld while
+actually governing an appliance. A policy file whose identifiers point at the
+wrong device in the reader's head is worse than one with an inelegant name: the
+whole value of the `tests` section is that a human can look at a rule and say
+whether it is right, and that check fails silently when the words mean different
+things to the writer and the reader.
+
+Renamed to `tag:appliance` — the role it actually describes: something attached
+to the network with no function *over the tailnet*, present but never a source.
+
+### The general rule, now in `policy/README.md`
+
+Do not name a tag after a word the surrounding environment already uses for
+something else. The taxonomy is supposed to make the policy readable; a term
+with a local meaning does the opposite, and the collision is invisible to
+whoever writes the tag because they are not the one who will misread it.
+
+### What did not change
+
+The **assignment** is unchanged and still correct. The appliance keeps a real
+job — it is the local hub for the home ecosystem — but that job runs entirely
+over the local network, which access rules do not touch. Nothing it does needs
+the tailnet, so it belongs in no `src`, exactly as the handoff intends.
+
+The handhelds stay **user-owned**. They are personal devices and posture
+subjects, and their kiosk mode is an application feature, not a network role.
+Tagging them would strip the user identity that posture work in Phase 3 depends
+on, to describe something that is not a network property at all.
+
+Their remote access to the automation UI is a separate matter and is covered by
+the household grant that Phase 2 must ship with an `accept` assertion.
+
+---
+
+## D-017 addendum — the second router is deliberate redundancy, and that is the interesting part
+
+Recorded as an addendum rather than an edit; this file is append-only.
+
+D-017 framed the second subnet router as something the design had failed to
+notice — "intent in the document, the opposite live, nothing in between to
+catch it." **That framing was wrong and unfair to the setup.** The owner
+configured the appliance as a *backup* subnet router on purpose.
+
+That is a sound arrangement and the reasoning is visible in the hardware: the
+primary router is a desktop workstation, which sleeps; the appliance is always
+on. Tailscale supports exactly this — several nodes advertising the same prefix,
+one primary, the others taking over when it drops. Someone thought about
+availability and built for it.
+
+### So the real finding is a tension, not a mistake
+
+**The property that makes a node a good failover router — always on, always
+attached — is the same property that makes it a poor thing to trust.** And the
+appliance is simultaneously the node the access model most wants to originate
+nothing.
+
+Availability engineering pulled one way, least privilege pulls the other, and
+both are right. That conflict is worth far more to this project than a missed
+route would have been: it is the kind of thing that shows up in real
+infrastructure constantly and never appears in a reference architecture.
+
+Recording it as a tension also changes what a good resolution looks like. The
+answer is not "remove the backup router" — that trades away availability
+someone deliberately bought. It is to move the *routing role* somewhere that is
+both always-on and appropriate to trust, at which point the redundancy question
+gets asked again on its own terms.
+
+The always-on automation hub is that place, which is where the phase plan was
+already going. And the segmentation option the plan prefers removes advertised
+routes altogether in favour of forwarding by name — under which there is no
+route to be redundant about, and the tension dissolves rather than being
+decided.
+
+### What does not change
+
+- Both advertisements are live and both must be retired together, or the
+  exposure is unchanged. Retiring one is worse than useless: it looks like
+  progress.
+- Tagging the appliance will not remove its route, so the contradiction between
+  a policy that reads *isolated* and a node that routes the LAN is real until
+  the routing role actually moves.
+- A subnet router does not need to appear in `src` to serve a route, so
+  `tag:appliance` and *backup router* are not in conflict as policy — only as
+  intent. Which is precisely why it needs writing down rather than leaving to be
+  rediscovered.
+
+### Correction to the record
+
+The original entry's rhetoric about intent and reality diverging unnoticed
+should be read as applying to **this project's own documentation**, which
+assigned an isolation role to a node without checking what that node was already
+doing. Not to the network, which was doing something sensible.

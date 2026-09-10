@@ -17,7 +17,7 @@
 	"tagOwners": {
 		"tag:prod":         ["autogroup:admin"],
 		"tag:gateway-home": ["autogroup:admin"],
-		"tag:kiosk":        ["autogroup:admin"],
+		"tag:appliance":    ["autogroup:admin"],
 		"tag:collector":    ["autogroup:admin"],
 		"tag:sensor":       ["autogroup:admin"],
 		"tag:drone":        ["autogroup:admin"],

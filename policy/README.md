@@ -56,10 +56,15 @@ has zero tagged nodes.
 | `tag:gateway-home` | subnet router for the IoT segment |
 | `tag:sensor` | simulated push-only field sensors |
 | `tag:drone` | simulated mobile units |
-| `tag:kiosk` | media appliance — deliberately isolated, appears in no `src` |
+| `tag:appliance` | network-attached appliance with no role over the tailnet — appears in no `src` |
 
 Rules:
 
+- **Do not name a tag after a word the household already uses for something
+  else.** `tag:appliance` was originally `tag:kiosk`, until it turned out that
+  "kiosk" already means a display mode running on two personal handhelds here.
+  A policy that reads as though it governs one device while actually governing
+  another is worse than an ugly name — see D-019.
 - **A node is either user-owned or tagged, never both.** Tagging strips the
   owning user's identity and replaces it with the tag's, so a tagged node cannot
   be a posture subject and a personal daily driver must never carry an
