@@ -15,6 +15,12 @@ tfstate_prefix = "zero-trust-lab"
 github_owner = "your-github-account"
 github_repo  = "zero-trust-lab"
 
+# Numeric ids. GitHub embeds these in the OIDC subject. Read them from the
+# token a real run presents, or from the API -- do not assume the name-only
+# form, which older repositories still use.
+github_owner_id = "<numeric>"
+github_repo_id  = "<numeric>"
+
 # One exact GitHub Environment. Pinned to an environment rather than a branch
 # so a required reviewer on it gates the apply -- a branch cannot express that.
 # A wildcard is rejected by a variable validation.

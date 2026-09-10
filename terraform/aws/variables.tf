@@ -140,3 +140,35 @@ variable "tfstate_prefix" {
   type        = string
   default     = "zero-trust-lab"
 }
+
+variable "github_owner_id" {
+  description = <<-EOT
+    Numeric id of the GitHub account. GitHub now issues OIDC subjects in the
+    form repo:OWNER@<owner-id>/REPO@<repo-id>:..., embedding immutable ids
+    alongside the names.
+
+    That is a real improvement and the reason the id is required here: a subject
+    pinned to names alone can be inherited by whoever claims the name after a
+    repository is deleted. The id form cannot be taken over that way.
+
+    Older roles in this account predate it and trust the name-only form. Both
+    are currently issued depending on repository age, which is exactly why this
+    is configured from the observed token rather than assumed.
+  EOT
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_owner_id))
+    error_message = "github_owner_id must be numeric."
+  }
+}
+
+variable "github_repo_id" {
+  description = "Numeric id of the repository. See github_owner_id."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repo_id))
+    error_message = "github_repo_id must be numeric."
+  }
+}

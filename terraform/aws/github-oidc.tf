@@ -38,7 +38,15 @@ locals {
   # Pinned to an environment, not a branch, so a required reviewer on that
   # environment gates the apply. Matches the pattern already established in
   # this account.
-  github_subject = "repo:${var.github_owner}/${var.github_repo}:environment:${var.github_environment}"
+  # repo:OWNER@<owner-id>/REPO@<repo-id>:environment:NAME
+  #
+  # The ids are not decoration. A subject pinned to names alone can be
+  # inherited by whoever claims the name after a repository is deleted; the id
+  # form cannot. This exact string was read off a real token rather than
+  # constructed from documentation -- an earlier version of this file assumed
+  # the name-only form, matched a working role in the same account that uses
+  # it, and failed to assume.
+  github_subject = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo}@${var.github_repo_id}:environment:${var.github_environment}"
 }
 
 data "aws_iam_policy_document" "github_deploy_assume" {
