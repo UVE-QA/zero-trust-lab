@@ -5,30 +5,7 @@ Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-> ## ⚠ Phase 2 gate — break-glass unverified (block **suspended**, not lifted)
->
-> The break-glass test failed from the phone, and the cause was first diagnosed
-> as a missing passkey (**D-014**). That diagnosis was wrong: **the account does
-> not use passkey authentication at all** — it authenticates through a consumer
-> identity provider, which the sign-in page offers as its own button (**D-015**).
-> The passkey attempt failed because there is no passkey, and none is needed.
->
-> The handoff's claim that the account is a passkey identity is **factually
-> incorrect**, and that unchecked premise is what shaped the wrong test and the
-> wrong fix.
->
-> **The block lifts only when the test is re-run and passes** — phone, off the
-> tailnet, no second device, using the account's actual sign-in method. Believing
-> it works is exactly what D-014 exists to prevent.
-
-Q-001 … Q-004 have all been answered and folded in. **No open questions.** Their
-substance is mirrored below and in `docs/02-decisions.md`, so this repo is
-readable without the private question log.
-
-**One finding was reversed on review: D-005 was wrong, see D-007.** The actuator
-does publish an mDNS name; the earlier negative was a silent tool failure. That
-correction is the reason the method note at the bottom of this file now says to
-verify negatives against a positive control.
+**Phase 0 is complete. All seven tasks executed, all acceptance checks met.**
 
 ---
 
@@ -118,7 +95,8 @@ that rewrites the global policy file.
 | **D-012** | — | Closes the gateway-vantage discovery check left open by D-007 — and it closed itself, as a side effect of releasing the actuator. The hub raised a zeroconf-sourced pairing flow, which is the check answered from the right vantage point. Recording it as open rather than guessing was the cheaper plan. |
 | **D-013** | — | Actuator qualification **complete**, all three checks pass. And the D-011 hole **survives adoption**: pairing the device to a managed platform did not close its unauthenticated vendor interface. "We moved it onto a platform we control, so it is handled" is false comfort — the network grant is the only control with authority over that path. |
 | **D-014** | superseded | Reported the break-glass path broken and blamed a missing passkey. The observation was right, the cause wrong — see D-015. |
-| **D-015** | gate | **Correction.** The account authenticates via a consumer identity provider, not a passkey, so the failed sign-in used the wrong method and the recovery path was probably never broken. Also corrects the handoff's incorrect claim about the account's identity. The block is **suspended pending a re-run**, not lifted — this phase has twice concluded from a negative without a control. |
+| **D-015** | superseded | **Correction.** The account authenticates via a consumer identity provider, not a passkey — the handoff's claim otherwise is factually wrong, and that unchecked premise shaped the wrong test and the wrong fix. |
+| **D-016** | closed | **Break-glass verified**, phone on cellular, off tailnet. The gate on Phase 2 is lifted and no second credential was created. Records the guard: when a document supplies a fact about a system you can query, query it before building on it. |
 
 ## The starting state, stated plainly
 
@@ -207,6 +185,11 @@ Each of these nearly produced a wrong answer in Phase 0:
 - **Verify a captured file by digest, not by reading it.** The baseline was
   confirmed by comparing a SHA-256 computed in the source page against the
   committed file.
+- **A premise from a document is not a measurement.** The handoff's claim about
+  how the account authenticates was wrong, and building a safety check on it
+  produced a confident wrong finding plus a fix for a problem that did not
+  exist. The account page was one click away in an already-open console. When a
+  document supplies a fact about a system you can query, query it.
 - **Probe rather than assume.** The broker's location, the actuator's transport
   and every Matter node's network type were all established by measurement.
 - **Verify a negative against a positive control.** This one cost a wrong

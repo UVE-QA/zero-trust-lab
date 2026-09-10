@@ -769,3 +769,46 @@ passes using the account's actual sign-in method.
 If it passes, the remediation D-014 proposed becomes unnecessary and no second
 credential is created. If it fails, D-014's options apply after all, and the
 block was right for the wrong reason.
+
+---
+
+## D-016 — Break-glass verified. The Phase 2 gate is lifted.
+
+**Status:** closed. Resolves D-014 and D-015.
+
+Re-run from the phone on cellular, with the tailnet client off and wifi off.
+Signed in using the account's actual method, and the policy editor loaded with
+live content.
+
+**The recovery path works and was never broken.** It was reached for with the
+wrong control, for the reason recorded in D-015.
+
+Incidentally, the editor showed the same allow-all grant that
+`policy/policy.baseline.hujson` contains — a third independent confirmation
+that the committed rollback target matches what the tailnet is serving, this
+time from a device that shares nothing with the machine that captured it.
+
+**Phase 2's gate is lifted.** No second credential was created, which is the
+better outcome: the best-managed secret is the one that was never issued.
+
+### What this cost, and the guard that would have prevented it
+
+The handoff asserts the account uses passkey authentication. It does not. That
+single unchecked fact produced a test aimed at the wrong control, a confidently
+wrong finding, a remediation plan for a problem that did not exist, and a block
+on the next phase.
+
+The account page was one click away throughout, in a console that was already
+open and authenticated.
+
+The guard is narrow and worth stating as a rule: **when a document supplies a
+fact about a system you can query, query it before building on it.** Not every
+premise deserves that — but one that a whole safety path is designed around
+does, and the cost of checking was a single page load.
+
+This phase corrected three findings, and all three failed identically: a
+negative result accepted without establishing what a positive would look like.
+The method notes in `STATUS.md` carry the general form. This entry records the
+specific variant that is easiest to miss, because it does not feel like
+measuring at all — inheriting a fact from documentation rather than from the
+system.
