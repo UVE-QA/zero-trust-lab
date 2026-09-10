@@ -24,8 +24,13 @@ import os
 import pathlib
 import re
 import sys
+import io
 import urllib.error
 import urllib.request
+import zipfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import evidence_diagram  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 API = "https://api.github.com"
@@ -118,6 +123,43 @@ def latest_job(workflow, job_name, events=MAIN_EVENTS, need=None):
 
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def gh_bytes(url):
+    """Download an artifact archive: same signed-URL redirect as job logs."""
+    req = urllib.request.Request(url, headers={
+        **({"Authorization": f"Bearer {TOKEN}"} if TOKEN else {})})
+    try:
+        urllib.request.build_opener(_NoRedirect).open(req, timeout=60)
+        return b""
+    except urllib.error.HTTPError as e:
+        if e.code not in (301, 302, 303, 307, 308):
+            print(f"warning: artifact -> HTTP {e.code}", file=sys.stderr)
+            return b""
+        location = e.headers.get("Location", "")
+    with urllib.request.urlopen(location, timeout=60) as r:
+        return r.read()
+
+
+def tailnet_aggregate():
+    """Counts written by tailnet-check's drift job on main -- the page's only
+    view into the network, and it contains numbers and nothing else."""
+    runs = gh(f"/repos/{REPO}/actions/workflows/tailnet-check.yml/runs"
+              f"?branch=main&status=completed&per_page=20") or {}
+    for run in runs.get("workflow_runs", []):
+        if run.get("event") not in MAIN_EVENTS:
+            continue
+        arts = gh(f"/repos/{REPO}/actions/runs/{run['id']}/artifacts") or {}
+        for a in arts.get("artifacts", []):
+            if a.get("name") == "tailnet-aggregate" and not a.get("expired"):
+                blob = gh_bytes(a["archive_download_url"])
+                if not blob:
+                    return None
+                with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                    agg = json.loads(z.read("aggregate.json"))
+                agg["_run"] = run.get("html_url")
+                return agg
+    return None
 
 
 def plan_says_no_changes(log):
@@ -222,8 +264,10 @@ def card(claim, why, result, stale_hours, expect_failure=False):
             f'<span class="pill">{E(label)}</span></div><p class="why">{E(why)}</p>{ev}</article>')
 
 
-def render(measured, pol, dec, built):
+def render(measured, pol, dec, built, diagram, agg):
     blob = f"{SERVER}/{REPO}/blob/main"
+    agg_note = (f'<a href="{E(agg.get("_run") or "#")}">live, counted on {E(agg.get("read_at", ""))}</a>'
+                if agg else "shown once the network job has published its first count")
     live = "".join(card(*m) for m in measured["live"])
     every = "".join(card(*m) for m in measured["every"])
     return f"""<!doctype html>
@@ -232,10 +276,22 @@ def render(measured, pol, dec, built):
 <title>zero-trust-lab · live evidence</title>
 <meta name="description" content="A home Zero Trust lab. Every status on this page is read from the CI run that checked it.">
 <style>
-:root{{--bg:#fbfaf8;--fg:#1d1d1b;--mut:#6b6a66;--line:#e4e1dc;--card:#fff;--pass:#1f7a4d;--passbg:#e6f4ec;--fail:#b3261e;--failbg:#fbe9e7;--none:#6b6a66;--nonebg:#efedea;--stale:#8a5a00;--stalebg:#fff4d6;--link:#1a56b8}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#131312;--fg:#ecebe8;--mut:#a3a19b;--line:#2e2d2a;--card:#1b1b19;--pass:#6fd19c;--passbg:#15301f;--fail:#ff8a80;--failbg:#3a1714;--none:#a3a19b;--nonebg:#262522;--stale:#ffcf66;--stalebg:#3a2e10;--link:#8ab4ff}}}}
+:root{{--bg:#fbfaf8;--fg:#1d1d1b;--mut:#6b6a66;--line:#e4e1dc;--card:#fff;--pass:#1f7a4d;--passbg:#e6f4ec;--fail:#b3261e;--failbg:#fbe9e7;--none:#6b6a66;--nonebg:#efedea;--stale:#8a5a00;--stalebg:#fff4d6;--link:#1a56b8;--cp:#1f6feb;--cl:#c2410c}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#131312;--fg:#ecebe8;--mut:#a3a19b;--line:#2e2d2a;--card:#1b1b19;--pass:#6fd19c;--passbg:#15301f;--fail:#ff8a80;--failbg:#3a1714;--none:#a3a19b;--nonebg:#262522;--stale:#ffcf66;--stalebg:#3a2e10;--link:#8ab4ff;--cp:#6ea8ff;--cl:#f0883e}}}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}}
-main{{max-width:880px;margin:0 auto;padding:48px 20px 64px}}
+main{{max-width:1220px;margin:0 auto;padding:48px 20px 64px}}.col{{max-width:880px}}
+.diagram{{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px}}
+.diagram svg{{min-width:960px;width:100%;height:auto;display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}}
+.ct{{fill:none;stroke-width:1.5}}.ct.ci{{stroke:var(--mut)}}.ct.cp{{stroke:var(--cp)}}.ct.cloud{{stroke:var(--cl);fill:rgba(194,65,12,.035)}}
+.ct.tailnet{{stroke:#5b4fd6;stroke-dasharray:9 6;fill:rgba(91,79,214,.03)}}.ct.home{{stroke:#3f8624;fill:rgba(63,134,36,.04)}}
+.grp{{fill:none;stroke:var(--mut);stroke-opacity:.45;stroke-dasharray:3 4}}.ctl{{font-size:13px;font-weight:650;fill:var(--fg)}}.ctn{{font-size:11.5px;fill:var(--mut)}}
+.tile .t{{font-size:13px;font-weight:650;fill:var(--fg)}}.tile .s{{font-size:11px;fill:var(--mut)}}.tile .b{{font-size:10.5px;fill:var(--mut);font-family:ui-monospace,Menlo,monospace}}
+.lbl text{{font-size:11px;font-weight:650}}.lbl.f text{{font-weight:500}}
+.legend{{font-size:13.5px;color:var(--mut);margin:10px 0}}.legend .k{{display:inline-block;width:22px;border-top:2px solid var(--pass);margin:0 6px 3px 14px;vertical-align:middle}}
+.legend .k:first-child{{margin-left:0}}.k.pl{{border-top-style:dashed}}.k.no{{border-top:2px dashed var(--fail)}}.k.cf{{border-top:2px dashed var(--cp)}}.legend.warn{{color:var(--fail)}}
+details.parts{{margin:6px 0 0}}details.parts summary{{cursor:pointer;font-weight:600;font-size:14.5px}}
+table.why{{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}}table.why th,table.why td{{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
+table.why th{{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}}.sw{{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}}
 h1{{font-size:28px;line-height:1.2;margin:0 0 8px}}h2{{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:40px 0 12px}}
 h3{{font-size:16px;margin:0}}p{{margin:6px 0}}a{{color:var(--link)}}code{{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}}
 .lede{{color:var(--mut);max-width:640px}}.built{{font-size:14px;color:var(--mut);margin-top:14px}}
@@ -258,6 +314,15 @@ turns amber on its own.</p>
 <a href="{SERVER}/{REPO}">repository</a> · <a href="{blob}/STATUS.md">status and plan</a> ·
 <a href="{blob}/docs/02-decisions.md">decision log</a></p>
 
+<h2>The lab on one picture</h2>
+<p class="why col">Where each part lives, which tool manages it, and who may reach what. Contours
+and words are drawn by hand; <strong>every access arrow is parsed from the policy file</strong>,
+so the picture cannot show a path the policy does not grant. Counts on the tiles are {agg_note}.</p>
+<div class="diagram">{diagram[0]}</div>
+{diagram[1]}
+<details class="parts col"><summary>What each part is for, and why it is managed the way it is</summary>{diagram[2]}</details>
+
+<div class="col">
 <h2>Checked against the live network</h2>
 {live}
 
@@ -282,7 +347,8 @@ above are what show these are the rules actually in force.</p>
 <p class="why">What is unfinished is stated in <a href="{blob}/STATUS.md">STATUS.md</a>,
 under “Open, stated plainly” — including the gaps this page cannot measure.</p>
 
-<footer>Built by <a href="{blob}/.github/workflows/evidence-page.yml">evidence-page.yml</a>
+</div>
+<footer class="col">Built by <a href="{blob}/.github/workflows/evidence-page.yml">evidence-page.yml</a>
 from <a href="{blob}/scripts/evidence_page.py">evidence_page.py</a>. The job that builds
 this page holds no network or cloud credential; it can write to this page and nothing else.</footer>
 </main>
@@ -337,15 +403,19 @@ def main():
          branch_protected(), 30),
     ]
     built = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    agg = tailnet_aggregate()
+    diagram = evidence_diagram.render((ROOT / "policy" / "policy.hujson.tmpl").read_text(), agg)
     page = render({"live": [(c, w, r, s, *x) for c, w, r, s, *x in live],
                    "every": [(c, w, r, s) for c, w, r, s in every]},
-                  policy_figures(), decision_figures(), built)
+                  policy_figures(), decision_figures(), built, diagram, agg)
 
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(page)
     (out / ".nojekyll").write_text("")
     summary = {c: (None if r is None else r["ok"]) for c, _, r, *_ in live + every}
+    summary["_aggregate"] = bool(agg)
+    summary["_unplaced_on_diagram"] = diagram[3]
     print(json.dumps(summary, indent=1))
 
 

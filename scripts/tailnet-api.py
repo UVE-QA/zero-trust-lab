@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Read-only access to the tailnet's policy API, for CI.
 
-    tailnet-api.py validate policy/.rendered/policy.hujson
-    tailnet-api.py drift    policy/.rendered/policy.hujson
+    tailnet-api.py validate  policy/.rendered/policy.hujson
+    tailnet-api.py drift     policy/.rendered/policy.hujson
+    tailnet-api.py inventory out/aggregate.json
 
 validate  Submit a proposed policy to the tailnet without applying it. The
           control plane parses it and runs its `tests` section against the
           real tailnet -- the same evaluation that refuses a bad save in the
           console, available before merge instead of at apply time.
+
+inventory Count the tailnet's nodes by role, OS and state, and its routes by
+          prefix length, and write ONLY those counts. No name, address,
+          route or identity leaves this function; the file is published.
 
 drift     Read the policy in force and compare it, byte for byte, with the
           render of main. The console stores the file verbatim (D-040), so any
@@ -203,9 +208,78 @@ def cmd_drift(policy):
     return 1
 
 
+def cmd_inventory(out_path):
+    """Aggregate the device list into counts. The output feeds a public page,
+    so it is built from an allowlist of derived numbers -- nothing from the
+    device records is copied through."""
+    token = tailscale_token()
+    status, body = call("GET", "/tailnet/-/devices?fields=all", token)
+    if status != 200:
+        die(f"reading devices returned HTTP {status}")
+    devices = json.loads(body).get("devices", [])
+
+    roles, os_user = {}, {}
+    online = key_expiry_off = updates = ssh_nodes = 0
+    prefixes, advertised_only = {}, 0
+    trusted = user_owned = 0
+    for d in devices:
+        on = bool(d.get("connectedToControl"))
+        online += on
+        key_expiry_off += bool(d.get("keyExpiryDisabled"))
+        updates += bool(d.get("updateAvailable"))
+        ssh_nodes += bool(d.get("sshEnabled"))
+        tags = d.get("tags") or []
+        if tags:
+            for t in tags:
+                r = roles.setdefault(t, {"count": 0, "online": 0})
+                r["count"] += 1; r["online"] += on
+        else:
+            user_owned += 1
+            osname = str(d.get("os") or "other")
+            os_user[osname] = os_user.get(osname, 0) + 1
+            st, ab = call("GET", f"/device/{d['id']}/attributes", token)
+            attrs = (json.loads(ab).get("attributes") or {}) if st == 200 and ab else {}
+            if attrs.get("node:tsStateEncrypted") is True and attrs.get("node:tsReleaseTrack") == "stable":
+                trusted += 1
+        enabled = set(d.get("enabledRoutes") or [])
+        for r in enabled:
+            ln = "/" + r.rsplit("/", 1)[-1]
+            prefixes[ln] = prefixes.get(ln, 0) + 1
+        advertised_only += len(set(d.get("advertisedRoutes") or []) - enabled)
+
+    lens = [int(k[1:]) for k in prefixes]
+    agg = {
+        "read_at": dt_now(),
+        "nodes": {"total": len(devices), "online": online},
+        "tagged_roles": {k: roles[k] for k in sorted(roles)},
+        "user_owned": {"count": user_owned, "by_os": dict(sorted(os_user.items())),
+                       "meeting_operator_posture": trusted},
+        "routes_into_other_networks": {
+            "enabled": sum(prefixes.values()),
+            "by_prefix_length": dict(sorted(prefixes.items())),
+            "widest": (f"/{min(lens)}" if lens else None),
+            "advertised_not_approved": advertised_only,
+        },
+        "key_expiry_disabled": key_expiry_off,
+        "client_update_available": updates,
+        "tailscale_ssh_enabled": ssh_nodes,
+    }
+    pathlib.Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(out_path).write_text(json.dumps(agg, indent=1) + "\n")
+    print(f"OK: {len(devices)} nodes aggregated into counts -> {out_path}")
+    return 0
+
+
+def dt_now():
+    import datetime
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift"):
+    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift", "inventory"):
         die(__doc__.split("\n\n")[1])
+    if sys.argv[1] == "inventory":
+        sys.exit(cmd_inventory(sys.argv[2]))
     path = pathlib.Path(sys.argv[2])
     if not path.is_file():
         die(f"{path} not found -- render it first: scripts/render-policy.py --from-env")
