@@ -517,3 +517,32 @@ not interfered with. It also holds an outbound session to its vendor's cloud,
 which no policy in this repo touches — the same limitation the robot vacuum
 illustrates, now present on a device that *is* in scope. Both belong in
 `docs/00-threat-model.md` as findings.
+
+### D-011 addendum — 2026-09-09: the unauthenticated read is live, not static
+
+Recorded as an addendum rather than an edit, since this file is append-only.
+
+While establishing which physical unit was which, a positive control was run
+that also strengthens this finding. Switching the accessory through its normal
+control path — the home ecosystem's hub, over the accessory protocol — was
+immediately visible through the **unauthenticated** local HTTP interface, with a
+current timestamp.
+
+So the exposure is not limited to static disclosure of hardware and account
+details. Anything on the local network can **monitor the actuator's physical
+state in real time**, without credentials, and learn when someone switched it
+and when.
+
+That also raises the confidence of the write inference recorded above — the
+unauthenticated interface is demonstrably live and authoritative about state,
+not a stale cache. The write is **still not tested**, and still should not be
+tested merely to make the point.
+
+The methodological note is worth keeping too. The identification initially
+rested on a negative — one unit *not* changing — with no control behind it.
+Taken at face value it happened to be right, but it was unsupported: the local
+interface and the accessory protocol are separate control planes, and had the
+first not reflected the second, the same reading would have appeared regardless
+of which device was switched. The control cost one extra step and converted a
+guess into evidence. Same lesson as D-007, applied before the mistake rather
+than after it.
