@@ -105,6 +105,16 @@ that rewrites the global policy file.
 | **D-015** | superseded | **Correction.** The account authenticates via a consumer identity provider, not a passkey — the handoff's claim otherwise is factually wrong, and that unchecked premise shaped the wrong test and the wrong fix. |
 | **D-016** | closed | **Break-glass verified**, phone on cellular, off tailnet. The gate on Phase 2 is lifted and no second credential was created. Records the guard: when a document supplies a fact about a system you can query, query it before building on it. |
 
+### Phase 1
+
+| id | state | summary |
+|---|---|---|
+| **D-017** | open | **Two** subnet routers into the home network, not one — the second is deliberate failover redundancy, and it is the node the model most wants isolated. The property that makes a good backup router is the property that makes a poor thing to trust: availability and least privilege pull opposite ways and both are right. Also corrects a device mix-up in D-008. |
+| **D-018** | accepted | Tags assigned from the console rather than by re-authenticating with a tagged auth key: no credential minted, no re-registration on a node reachable only over the tailnet or one in daily household use, reversible in the same place. The handoff's method stays right for provisioning new nodes. |
+| **D-019** | accepted | `tag:kiosk` renamed to `tag:appliance` — "kiosk" already means a display mode on two personal handhelds here, so the policy would have read as governing one device while governing another. General rule: do not name a tag after a word the environment already uses. |
+| **D-020** | open | Tagging from the console does **not** disable key expiry, contrary to the handoff. Measured, not assumed. Better posture, but tagged nodes will now expire in ~6 months and re-authenticating them needs the auth key the method avoided minting. Trade-off left explicitly open rather than settled in passing. |
+| **D-021** | — | Phase 1 applied and verified against a before/after baseline; nothing the household depends on moved. Names the unmet part of the acceptance criterion. Two operational facts: the service **reformats the policy on save** (false drift for the future GitOps check), and the console editor **can show an empty diff while holding new content** — make the UI show you the change before saving. |
+
 ## The starting state, stated plainly
 
 Phase 2 is judged against this, so it belongs in one place:
