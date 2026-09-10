@@ -3,8 +3,8 @@
 **Purpose.** Let `tailnet-check.yml` validate proposed policies and detect drift,
 with no stored Tailscale secret and no ability to change the tailnet.
 
-**Status:** not yet executed. The workflow and scripts exist; the credential does
-not.
+**Status:** executed 2026-09-10. Proven from both sides: the introducing pull
+request passed, and a deliberately broken test failed and named itself.
 See D-041 for why it is shaped this way.
 
 ---

@@ -2282,15 +2282,28 @@ file carries the real values.
   addresses, operating systems and versions, tags. That is a map of the tailnet
   and of which devices are behind on updates. Nothing reachable with it changes
   what anyone can connect to.
-- **Unverified until the first run:** that the exchange request, mirrored from
-  Tailscale's own client source, is accepted as written; and that reading the
-  policy through the API returns the same bytes the console editor holds. If the
-  second fails, the drift check fails on its first run, and that goes here as a
-  finding rather than being tuned away.
+- **Verified on the first run, both sides.** The exchange request, mirrored
+  from Tailscale's own client source, was accepted as written. On the pull
+  request that introduced the workflow, the tailnet parsed the render and every
+  test passed; the render CI produced from environment secrets was
+  byte-identical to the local one and to the policy in force. Then a throwaway
+  pull request moved the broker port from `deny` to `accept` in one test.
+  `validate` failed with exit code 1 — a test failure, not an infrastructure
+  error — named that exact assertion, and printed the operator as
+  `<operator_identity>`: the script's own redaction, the second layer, doing its
+  job. Neither run's log contains any of the four real values or a token. A
+  check only ever seen passing has not been shown to check anything; this one
+  has now been seen refusing.
+- **Still unverified:** that reading the policy through the API returns the same
+  bytes the console editor holds. The drift job first runs on merge. If it fails
+  there, that is a finding for this entry, not a reason to loosen the
+  comparison.
 
-### Not done
+### Done
 
-The trust credential, the `tailnet-read` environment and its secrets do not
-exist yet. Each widens what something other than the owner can reach, and is
-created only on the owner's go-ahead. The steps are in
-`docs/runbooks/tailnet-ci-credential.md`.
+The trust credential exists, with the exact subject and the three read scopes
+the console insists on — the owner approved that set after being shown it.
+The `tailnet-read` environment holds the two non-secret identifiers and the four
+values, set from the inventory through standard input so none reached a command
+line. Revoking the credential in the console ends CI's access at once; there is
+no secret to rotate.
