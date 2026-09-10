@@ -55,6 +55,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # TEMPORARY diagnostic. Prints only the `sub` and `aud` claims -- never the
+      # token, which is a credential. Removed once the subject is confirmed.
+      - name: what subject does this token actually carry
+        run: |
+          T=$(curl -sSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          python3 - "$T" <<'EOF'
+          import base64, json, sys
+          payload = sys.argv[1].split('.')[1]
+          payload += '=' * (-len(payload) % 4)
+          c = json.loads(base64.urlsafe_b64decode(payload))
+          print("  sub =", c.get("sub"))
+          print("  aud =", c.get("aud"))
+          print("  environment =", c.get("environment"))
+          print("  ref =", c.get("ref"))
+          EOF
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
