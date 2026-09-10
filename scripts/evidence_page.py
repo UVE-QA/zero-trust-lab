@@ -283,12 +283,15 @@ main{{max-width:1220px;margin:0 auto;padding:48px 20px 64px}}.col{{max-width:880
 .diagram{{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px}}
 .diagram svg{{min-width:960px;width:100%;height:auto;display:block;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}}
 .ct{{fill:none;stroke-width:1.5}}.ct.ci{{stroke:var(--mut)}}.ct.cp{{stroke:var(--cp)}}.ct.cloud{{stroke:var(--cl);fill:rgba(194,65,12,.035)}}
-.ct.tailnet{{stroke:#5b4fd6;stroke-dasharray:9 6;fill:rgba(91,79,214,.03)}}.ct.home{{stroke:#3f8624;fill:rgba(63,134,36,.04)}}
+.ct.tailnet{{stroke:#5b4fd6;stroke-dasharray:9 6;fill:rgba(91,79,214,.03)}}.ct.future{{stroke:var(--mut);stroke-opacity:.6;stroke-dasharray:3 6;fill:rgba(128,128,128,.035)}}.ct.home{{stroke:#3f8624;fill:rgba(63,134,36,.04)}}
 .grp{{fill:none;stroke:var(--mut);stroke-opacity:.45;stroke-dasharray:3 4}}.ctl{{font-size:13px;font-weight:650;fill:var(--fg)}}.ctn{{font-size:11.5px;fill:var(--mut)}}
 .tile .t{{font-size:13px;font-weight:650;fill:var(--fg)}}.tile .s{{font-size:11px;fill:var(--mut)}}.tile .b{{font-size:10.5px;fill:var(--mut);font-family:ui-monospace,Menlo,monospace}}
 .lbl text{{font-size:11px;font-weight:650}}.lbl.f text{{font-weight:500}}
-.legend{{font-size:13.5px;color:var(--mut);margin:10px 0}}.legend .k{{display:inline-block;width:22px;border-top:2px solid var(--pass);margin:0 6px 3px 14px;vertical-align:middle}}
-.legend .k:first-child{{margin-left:0}}.k.pl{{border-top-style:dashed}}.k.no{{border-top:2px dashed var(--fail)}}.k.cf{{border-top:2px dashed var(--cp)}}.legend.warn{{color:var(--fail)}}
+.legend{{font-size:13.5px;color:var(--mut);margin:10px 0}}.legend.warn{{color:var(--fail)}}
+.k{{display:inline-block;width:22px;border-top:2px solid var(--pass);vertical-align:middle}}.k.no{{border-top:2px dashed var(--fail)}}.k.cf{{border-top:2px dashed var(--cp)}}
+.layers{{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13.5px;color:var(--mut);padding:4px 8px 6px}}
+.layers label{{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--fg)}}
+#labmap.hide-grant .layer-grant,#labmap.hide-refusal .layer-refusal,#labmap.hide-control .layer-control{{display:none}}
 details.parts{{margin:6px 0 0}}details.parts summary{{cursor:pointer;font-weight:600;font-size:14.5px}}
 table.why{{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}}table.why th,table.why td{{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
 table.why th{{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}}.sw{{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}}
@@ -353,6 +356,8 @@ from <a href="{blob}/scripts/evidence_page.py">evidence_page.py</a>. The job tha
 this page holds no network or cloud credential; it can write to this page and nothing else.</footer>
 </main>
 <script>
+document.querySelectorAll('.layers input').forEach(function(i){{i.addEventListener('change',function(){{
+document.getElementById('labmap').classList.toggle('hide-'+i.dataset.layer,!i.checked);}});}});
 (function(){{var now=Date.now();document.querySelectorAll('time[datetime]').forEach(function(t){{
 var d=Date.parse(t.getAttribute('datetime'));if(isNaN(d))return;var h=(now-d)/36e5;
 var s=h<1?Math.round(h*60)+' min ago':h<48?Math.round(h)+' h ago':Math.round(h/24)+' days ago';

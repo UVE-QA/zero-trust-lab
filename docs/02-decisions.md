@@ -2627,3 +2627,22 @@ refusal it most wanted to show — the identical smart plug an operator is denie
 `docs/01-inventory.md` is now marked as the Phase 0 snapshot it always was, and
 points to the live counts. It had become a trap: a public document still naming
 a tag that was renamed and a sign-in method that was corrected.
+
+### Layout, layers, and where the lab could grow
+
+The first version routed arrows as diagonal curves, and the result looked busy
+even when every arrow was correct. The layout was redrawn around the flows
+instead: the hub sits directly above the devices it routes to, the operators and
+the production host share a row so the SSH grant is one straight line, the
+planned roles form their own block, and every arrow runs horizontally and
+vertically with rounded corners. No contour title sits where an arrow lands.
+Three toggles — granted, refused, who changes what — let a reader strip the
+picture down to the access map alone.
+
+A band along the bottom shows the growth path, explicitly marked as not built:
+an identity provider for many users and their groups, device management as the
+source of posture, just-in-time access, log streaming to a SIEM, IAM Identity
+Center for people's cloud access, and the certificate authority that would
+switch Roles Anywhere on. Each tile says what it plugs into and which phase or
+decision it belongs to. None of them has an arrow: a diagram that draws
+connections to things that do not exist invites reading them as real.
