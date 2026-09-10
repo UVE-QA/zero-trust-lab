@@ -812,3 +812,94 @@ The method notes in `STATUS.md` carry the general form. This entry records the
 specific variant that is easiest to miss, because it does not feel like
 measuring at all — inheriting a fact from documentation rather than from the
 system.
+
+---
+
+# Phase 1 — Tag the machine identities
+
+## D-017 — Finding: there are **two** subnet routers, and one is the node meant to be isolated
+
+**Status:** open finding. Amends D-003 and D-008. **Nothing touched.**
+
+D-003 recorded one approved route into the home LAN, served by a user-owned
+personal desktop. That was incomplete, and the way it was incomplete is
+instructive.
+
+**The media appliance also advertises the same route, and it is approved too.**
+
+The earlier reading came from the client's status output, which reports the
+*primary* holder of a route. When two nodes advertise the same prefix only one
+is primary, so the second is simply absent from that view. The console's device
+pages show both. A field that answers a narrower question than the one being
+asked will quietly give a smaller answer.
+
+### Why this one matters more than the first
+
+The design assigns that appliance `tag:kiosk`, described as *deliberately
+isolated, appears in no `src`*. It is currently a gateway into the entire home
+network. The single node the model most wants cut off from everything is, in the
+starting state, one of only two ways in.
+
+That is a better illustration of the project's premise than anything that could
+have been constructed deliberately: intent expressed in a document, and the
+opposite arrangement live on the network, with nothing in between to notice the
+contradiction. Phase 2's `tests` section is exactly the thing that would have
+noticed.
+
+### Consequences
+
+- **Phase 1.5 has two migrations, not one.** Withdrawing one route leaves the
+  other serving the same prefix, and the exposure is unchanged.
+- **Tagging the appliance does not remove its route.** Tags govern access; route
+  advertisement and approval are separate. Tagging it `tag:kiosk` while it still
+  routes the LAN would produce a policy that reads isolated and behaves like a
+  gateway. The route must be dealt with explicitly, not assumed away.
+- D-008's conclusion is unchanged: the route is load-bearing for almost nothing,
+  so removing both should still be cheap.
+
+### Correction to D-008
+
+D-008 identified which media device was the tailnet node by matching names
+resolved over multicast. That mapping was **backwards** — the appliance's own
+endpoint list settles it, and the device that is a tailnet node is the other one
+of the pair. The counts and conclusions in D-008 are unaffected; the labels on
+two rows were wrong.
+
+---
+
+## D-018 — Tags are assigned from the console, not by re-authenticating with a tagged key
+
+**Status:** accepted. Deviates from the handoff's stated method, deliberately.
+
+The handoff specifies: *re-authenticate every non-human node with a tagged auth
+key.* That is the classic method and it works, but the console exposes a direct
+**edit ACL tags** action on an existing machine, and that is the better path
+here.
+
+Three reasons, in order of weight:
+
+1. **No credential is created.** The auth-key method requires minting a tagged
+   pre-authentication key, putting it on the target host, and disposing of it.
+   That is a credential with a blast radius — anything holding it can register a
+   node under that tag — and it exists only to accomplish a state change the
+   console can make directly. The best-managed secret remains the one never
+   issued.
+2. **No re-registration.** Re-authenticating restarts the client and re-registers
+   the node. One of the targets is reachable only over the tailnet, and another
+   is in daily household use. A method whose failure mode is "the node does not
+   come back" should not be chosen when an equivalent method has no such mode.
+3. **It is reversible in the same place.** Tags edited in the console can be
+   edited back, without touching the host at all.
+
+The handoff's method is not wrong; it is the right method when provisioning a
+*new* node, which is exactly what the fleet scripts will do later. For nodes
+that already exist and already work, changing their identity in place is less
+machinery for the same result.
+
+### The consequence that needs consent, not just recording
+
+Tagging a node **transfers it from the owning user to the tag**, and Tailscale
+disables key expiry on tagged nodes. Disabling key expiry is on the handoff's
+short list of things to confirm with the owner before doing. So the tagging step
+is gated on explicit approval, and this entry records the reasoning rather than
+the completed action.

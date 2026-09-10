@@ -5,7 +5,12 @@ Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-**Phase 0 is complete. All seven tasks executed, all acceptance checks met.**
+**Phase 0 complete** — merged. **Phase 1 in progress: tag the machine identities.**
+
+> **Phase 1 is paused for approval before any change is made.** The policy delta
+> that makes tags usable is written and is provably additive; the tagging step
+> itself transfers nodes from the owning user to a tag and disables key expiry,
+> which is on the handoff's confirm-first list.
 
 ---
 
