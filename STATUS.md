@@ -61,10 +61,16 @@ The firmware question is settled **against** my earlier inference: it is the
 HomeKit variant, so the handoff's §5 reasoning needs no amendment and the
 local-integration route stays closed.
 
-**What is still needed from the owner:** two candidate units are on the network
-and both report as already paired. Say which one is the seasonal spare and what
-it drives, then unpair that one. Adoption via HomeKit Controller follows, and
-check 2 is a formality after it — the protocol is local by construction.
+**Resolved:** both units are free for the lab and neither is needed by the
+household. That is better than a spare — D-010 uses them as a matched
+granted/denied pair, which demonstrates that least privilege here is per-host
+rather than per-protocol. A single device cannot show that.
+
+**What is still needed from the owner:** unpair **one** unit from the other
+ecosystem so it can be adopted via HomeKit Controller. The second is left
+completely alone — the denied control needs no adoption and no reconfiguration,
+because for policy purposes it already is what it needs to be. Check 2 is a
+formality once the first is adopted; the protocol is local by construction.
 
 ### 3. Tailscale OAuth client — not blocking Phase 0 (Q-003)
 
@@ -86,6 +92,7 @@ that rewrites the global policy file.
 | **D-007** | — | Correction to D-005. The actuator publishes a stable mDNS name that resolves, so **Option B is viable**. The firmware is confirmed to be the HomeKit variant, so the handoff's §5 reasoning stands unamended and my earlier "standard firmware" inference was wrong. Both units are already paired, so adoption does require unpairing. |
 | **D-008** | high | Measures what the subnet route is load-bearing for: **almost nothing.** Everything used remotely is already a tailnet node in its own right. The one real exposure is the site gateway's admin interface, published to the whole tailnet. Also establishes that route acceptance is a client-side toggle — not an access control. Corrects the ordering: policy first, then migrate, then withdraw. |
 | **D-009** | — | The blast-radius measurement uses a disposable ephemeral node, not a loosened trusted one: nothing has to be remembered and undone, and it measures the leaked-key claim rather than a proxy for it. Deferred to the Phase 2 window, with the sequencing hazard written up. |
+| **D-010** | — | Both actuators are free for the lab, so they are used as a matched granted/denied pair rather than one plus a spare. Proves least privilege is per-host, not per-protocol. Costs one device change, not two — the control needs no changes at all. |
 
 ## The starting state, stated plainly
 
@@ -136,6 +143,12 @@ lives, and tagging is the step that assigns it.
 3. **Then Phase 1** — re-authenticate every non-human node with a tagged auth
    key, and record in the inventory which nodes now have key expiry disabled by
    default as a result.
+
+**Carry into Phase 2 (D-010):** the first policy commit gains a pair of
+assertions that were not previously possible — the granted actuator accepted and
+the identical control host denied, same port, same source, same instant. Those
+belong alongside the household-access assertion, because they are what makes the
+actuator tier a demonstration rather than a claim.
 
 **Carry into Phase 2:** `docs/runbooks/blast-radius.md` must be executed *around*
 the first policy apply, not after it. The before-reading only exists while the

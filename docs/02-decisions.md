@@ -410,3 +410,56 @@ after-reading alone.
 Every node in the fleet consumes a tagged resource, and the plan in use caps
 them. Teardown is not housekeeping — it is what keeps the cap from blocking
 unrelated work. This is the first exercise of that discipline.
+
+---
+
+## D-010 — Two actuators, used as a granted/denied pair rather than one plus a spare
+
+**Status:** accepted. Both units confirmed by the owner as free for the lab and
+not needed by the household.
+
+The plan assumed one actuator with a second held in reserve. Both are available,
+and a matched pair is worth more than a spare.
+
+### What the pair buys that one device cannot
+
+With a single actuator the strongest available demonstration is temporal: the
+path works inside a just-in-time window and fails outside it. That is real, but
+a sceptical reader can ask whether anything was ever actually constrained, or
+whether the window simply toggled the whole class of traffic.
+
+With two **identical** devices — same model, same protocol, same port, same
+segment, both reachable only through the gateway — the grant names one host and
+the assertions prove the other is unreachable. Same everything, different
+outcome, at the same instant. That demonstrates the property that actually
+matters: least privilege here is **per host**, not per protocol or per device
+class. It is the difference between "the door was locked at night" and "this
+door is locked and the identical one beside it is not."
+
+### Role assignment, and why each way round
+
+- **The granted actuator** is the unit with no history of address instability.
+  The primary demonstration should not rest on the device known to wobble.
+- **The denied control** is the unit that has previously fallen back to a
+  link-local address, so it does double duty as the live example behind the
+  availability finding about unreliable addressing on a network whose DHCP we
+  do not control.
+
+### The control needs no changes at all
+
+This is the part worth noticing. The denied device does not need to be adopted
+by the automation hub, or unpaired from anything, or reconfigured. For policy
+purposes it already is exactly what it needs to be: an IP host of the right
+class on the right port behind the gateway. The policy simply does not grant it.
+
+So the pair costs **one** device change rather than two, and the household side
+of the second device is left entirely alone — which is the standing rule for
+anything in this environment, and here it happens to also be the better design.
+
+### Consequence for Phase 2
+
+The `tests` section gains a pair of assertions that were not previously
+possible: the granted host accepted, the control host denied, on the same port
+from the same source. Those belong in the first policy commit, alongside the
+household-access assertion, because they are what makes the actuator tier a
+demonstration rather than an assertion.
