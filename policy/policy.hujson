@@ -15,12 +15,18 @@
 	// Owned by autogroup:admin rather than a named identity, so the taxonomy
 	// survives a change of account.
 	"tagOwners": {
-		"tag:prod":         ["autogroup:admin"],
-		"tag:gateway-home": ["autogroup:admin"],
-		"tag:appliance":    ["autogroup:admin"],
-		"tag:collector":    ["autogroup:admin"],
-		"tag:sensor":       ["autogroup:admin"],
-		"tag:drone":        ["autogroup:admin"],
+		// Held by a real device as of Phase 1:
+		"tag:prod":         ["autogroup:admin"], // production server stand-in
+		"tag:gateway-home": ["autogroup:admin"], // subnet router for the IoT segment
+		"tag:appliance":    ["autogroup:admin"], // attached to the network, originates nothing
+
+		// Declared but UNHOMED -- no device holds these, and none is expected to.
+		// They are filled by simulated units the fleet scripts create in later
+		// phases. Declaring them now costs nothing and avoids editing the global
+		// policy file again later; saying so here avoids implying a fleet exists.
+		"tag:collector": ["autogroup:admin"], // telemetry sink; awaits dedicated hardware
+		"tag:sensor":    ["autogroup:admin"], // simulated sensors: push-only telemetry
+		"tag:drone":     ["autogroup:admin"], // simulated mobile units: telemetry AND a control channel
 	},
 
 	// Define grants that govern access for users, groups, autogroups, tags,

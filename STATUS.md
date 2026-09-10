@@ -5,12 +5,14 @@ Last updated 2026-09-09.
 
 Phase 1 has not been started.
 
-**Phase 0 complete** — merged. **Phase 1 in progress: tag the machine identities.**
+**Phase 0 complete** — merged. **Phase 1 applied**, acceptance partially met.
 
-> **Phase 1 is paused for approval before any change is made.** The policy delta
-> that makes tags usable is written and is provably additive; the tagging step
-> itself transfers nodes from the owning user to a tag and disables key expiry,
-> which is on the handoff's confirm-first list.
+> **Phase 1 residue, stated not glossed (D-021).** Three infrastructure nodes now
+> carry machine identities. The acceptance criterion — *no infrastructure node
+> authenticated under a personal identity* — is still **not** fully met, because
+> the primary subnet router is a personal workstation that the design correctly
+> forbids tagging. Only moving the routing role satisfies it. Recording this as
+> met would be exactly the quiet rounding-up the project argues against.
 
 ---
 

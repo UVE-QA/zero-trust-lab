@@ -1079,3 +1079,75 @@ constrain nothing. It becomes a live contradiction the moment Phase 2 writes a
 policy that says one thing while the routing table does another. Which is the
 argument for treating the route migration as part of the same piece of work,
 not as a later tidy-up.
+
+---
+
+## D-021 — Phase 1 applied. Two operational facts worth more than the tagging itself.
+
+**Status:** Phase 1 changes complete. Acceptance **partially** met — see the
+residue below, which is stated rather than glossed.
+
+All three infrastructure nodes carry machine identities:
+
+| Node role | Tag | Ownership |
+|---|---|---|
+| production stand-in | `tag:prod` | moved from the person to the tag |
+| gateway | `tag:gateway-home` | moved from the person to the tag |
+| network appliance | `tag:appliance` | moved from the person to the tag |
+
+Operator devices stay user-owned, as the design requires for posture work.
+
+Everything was verified against a baseline captured immediately before each
+change: the automation UI answers over both the tailnet and the local network,
+the broker still completes an MQTT handshake, the newly adopted actuator is
+still reachable, operator access to the production stand-in is intact, and every
+node is online. Nothing the household depends on moved.
+
+### The acceptance criterion is not fully met, and cannot be by tagging
+
+Phase 1's criterion is *no infrastructure node is authenticated under a personal
+identity*. Three nodes now satisfy it. **One does not, and it is the most
+consequential one.**
+
+The primary subnet router — the node that actually carries traffic into the home
+network — is a personal workstation, and the handoff correctly forbids tagging
+it: it is someone's daily machine and a posture subject, and tagging would strip
+the user identity that Phase 3 depends on.
+
+So an infrastructure role is running under a personal identity, and no amount of
+tagging fixes it. **Only moving the role fixes it.** That is the same conclusion
+D-017 reached from the other direction, now arriving as an unmet acceptance
+criterion rather than as an observation — which is a better place for it,
+because a criterion has to be answered.
+
+Phase 1 is therefore complete in what it can do, with the residue named: the
+routing role must move to the tagged gateway before this criterion is honestly
+met. Recording it as met would be the kind of quiet rounding-up that the whole
+project exists to argue against.
+
+### Operational fact 1: the policy file is reformatted on save
+
+The saved file came back nine bytes smaller than what was submitted. The service
+re-aligns column padding, and it does so **per block** — a blank line inside the
+tag list split it into two alignment groups, and the second group was re-padded
+to its own longest entry.
+
+Harmless in itself, and the repo copy was reconciled to match what is live.
+**But it matters for D-001.** The GitOps workflow is meant to own this file, and
+a workflow that applies the repo copy and then compares will see drift on every
+run that touches formatting. Whatever applies the policy must compare
+*semantically*, or normalise through the same formatter first, or it will report
+a difference that is not one — and a check that cries wolf gets switched off.
+
+### Operational fact 2: the editor lies about what will be saved
+
+The console editor is a legacy CodeMirror instance with a mirror textarea.
+Writing to that textarea — even correctly, with the native setter and a
+dispatched input event — updates the DOM but **not** the component state.
+"Preview changes" showed an empty diff while the textarea held the new content.
+Saving then would have silently written the *old* file, and left the tags
+apparently declared but actually absent.
+
+The habit that caught it generalises past this one editor: **before committing
+a change through someone else's UI, make the UI show you the change.** The diff
+view existed and cost one click.
