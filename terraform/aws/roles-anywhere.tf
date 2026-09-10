@@ -104,12 +104,24 @@ output "collector_role_arn" {
   description = "Role the collector assumes by certificate."
 }
 
+# Terraform treats anything derived from a sensitive input as sensitive too,
+# and `local.roles_anywhere_enabled` is derived from the CA material. That
+# default is right, and both values below are genuinely safe to print:
+#
+#   - a trust anchor ARN is an identifier, not a credential; it appears in
+#     every policy document that references it;
+#   - the boolean says only WHETHER a CA is configured, not what it is.
+#
+# So they are unwrapped explicitly rather than marked sensitive. Marking them
+# would hide them from the operator running the plan, which is the audience
+# they exist for -- and hiding a value to satisfy a checker is how a real
+# secret ends up unnoticed among a pile of falsely-hidden ones.
 output "collector_trust_anchor_arn" {
-  value       = local.roles_anywhere_enabled ? aws_rolesanywhere_trust_anchor.collector[0].arn : "not created -- no CA supplied"
+  value       = nonsensitive(local.roles_anywhere_enabled ? aws_rolesanywhere_trust_anchor.collector[0].arn : "not created -- no CA supplied")
   description = "Trust anchor. Empty until a CA is provided."
 }
 
 output "roles_anywhere_enabled" {
-  value       = local.roles_anywhere_enabled
+  value       = nonsensitive(local.roles_anywhere_enabled)
   description = "False means the certificate half is not yet built; the role exists but nothing can assume it."
 }
