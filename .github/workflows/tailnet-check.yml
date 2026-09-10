@@ -1,0 +1,88 @@
+name: tailnet-check
+
+# The tailnet's own `tests` section, evaluated by the real tailnet on every
+# change to the policy -- and a check that the policy in force is the one on
+# main.
+#
+# No credential is stored. The job's GitHub OIDC token is exchanged for a
+# short-lived Tailscale API token through a trust credential that matches this
+# repository's exact subject for the `tailnet-read` environment. The token
+# carries `policy_file:read` plus the two device reads the console bundles
+# with it: enough to validate a proposed policy and read the live one, not
+# enough to change anything. There is no write path in CI at all; a person
+# applies (D-041).
+#
+# The four values the template needs arrive as environment secrets. They are
+# masked by Actions and redacted again by the script before anything prints.
+
+on:
+  pull_request:
+    paths:
+      - policy/**
+      - scripts/render-policy.py
+      - scripts/tailnet-api.py
+      - .github/workflows/tailnet-check.yml
+  push:
+    branches: [main]
+    paths:
+      - policy/**
+      - scripts/render-policy.py
+      - scripts/tailnet-api.py
+      - .github/workflows/tailnet-check.yml
+  schedule:
+    # Daily. Catches an edit made directly in the console, which no push
+    # would ever trigger.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tailnet-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TS_OIDC_CLIENT_ID: ${{ vars.TS_OIDC_CLIENT_ID }}
+  TS_OIDC_AUDIENCE: ${{ vars.TS_OIDC_AUDIENCE }}
+
+jobs:
+  validate:
+    name: tailnet tests (validate, read-only)
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: tailnet-read
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      POLICY_VALUE_CAMERA_STREAM: ${{ secrets.POLICY_VALUE_CAMERA_STREAM }}
+      POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
+      POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
+      POLICY_VALUE_OPERATOR_IDENTITY: ${{ secrets.POLICY_VALUE_OPERATOR_IDENTITY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: render from environment secrets
+        run: ./scripts/render-policy.py --from-env
+      - name: validate against the real tailnet (does not apply)
+        run: ./scripts/tailnet-api.py validate policy/.rendered/policy.hujson
+
+  drift:
+    name: policy in force matches main
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: tailnet-read
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      POLICY_VALUE_CAMERA_STREAM: ${{ secrets.POLICY_VALUE_CAMERA_STREAM }}
+      POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
+      POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
+      POLICY_VALUE_OPERATOR_IDENTITY: ${{ secrets.POLICY_VALUE_OPERATOR_IDENTITY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: render from environment secrets
+        run: ./scripts/render-policy.py --from-env
+      - name: compare with the policy in force
+        run: ./scripts/tailnet-api.py drift policy/.rendered/policy.hujson

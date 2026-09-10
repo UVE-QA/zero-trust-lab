@@ -2,11 +2,11 @@ name: policy-check
 
 # Structural checks on the policy template. No credential required.
 #
-# This is NOT the tailnet's own `tests` section. Those evaluate real
-# reachability and run when the policy is applied; wiring them into CI needs an
-# API credential that does not exist yet. What runs here catches the mistakes
-# visible without evaluating anything -- including the one rule the design
-# states absolutely: grants by port, never `*:*`.
+# This is NOT the tailnet's own `tests` section -- that runs against the real
+# tailnet in tailnet-check.yml, which needs a (read-only, federated) identity.
+# What runs here needs nothing, so it runs everywhere, including for anyone who
+# forks the repository: the mistakes visible without evaluating anything, and
+# the one rule the design states absolutely -- grants by port, never `*:*`.
 
 on:
   pull_request:
