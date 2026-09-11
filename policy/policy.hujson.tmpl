@@ -88,6 +88,11 @@
 		// the laptop's remote wake. Phase 2 dropped it and no test noticed
 		// (D-051). `autogroup:self` is each person's own devices, so this
 		// reaches nothing a member does not already own, and no tagged node.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["autogroup:self"],
+			"ip":  ["tcp:22"],
+		},
 
 		// --- Operator to the production stand-in --------------------------
 		// Phase 4 replaces this with a time-boxed grant. Until then it is a
