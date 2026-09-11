@@ -81,8 +81,8 @@ pipeline refused (D-041, PR #7, PR #8).
 
 - ~~The collector as a real host, with one telemetry stream~~ — done. The
   hub pushes one reading every five minutes to a collector outside the house,
-  which has no path in (D-049). Open: the pet-fountain automation has not yet
-  been seen firing since the restart that change needed.
+  which has no path in (D-049). The pet-fountain automation was then seen
+  working on the first real visit after the restart that change needed.
 - ~~The lost-comms drill on that stream~~ — done, collector side: a 15-minute
   link loss, the path back in 11 s with no hands, the 7 readings sent meanwhile
   lost and none replayed, counted from both ends
