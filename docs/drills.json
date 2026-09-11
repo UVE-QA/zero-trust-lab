@@ -1,0 +1,16 @@
+{
+  "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated.",
+  "drills": [
+    {
+      "name": "Lost comms, collector side",
+      "date": "2026-09-11",
+      "runbook": "docs/runbooks/lost-comms.md",
+      "outage": "15 min 9 s",
+      "path_back": "11 s",
+      "readings_lost": "7 of 7",
+      "replayed": 0,
+      "hands": "none",
+      "not_tested": "the hub's own link, and a node restart"
+    }
+  ]
+}

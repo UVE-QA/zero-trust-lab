@@ -276,6 +276,16 @@ def render(measured, pol, dec, built, diagram, agg, home):
                 if agg else "shown once the network job has published its first count")
     live = "".join(card(*m) for m in measured["live"])
     every = "".join(card(*m) for m in measured["every"])
+    drills = ""
+    for d in json.loads((ROOT / "docs" / "drills.json").read_text()).get("drills", []):
+        drills += (f'<h3>{E(d["name"])} · {E(d["date"])}</h3><div class="grid">'
+                   f'<div class="fig"><b>{E(d["path_back"])}</b><span>for the network path to come back '
+                   f'after a {E(d["outage"])} outage, with no hands</span></div>'
+                   f'<div class="fig"><b>{E(d["readings_lost"])}</b><span>readings sent during the outage '
+                   f'were lost; {E(str(d["replayed"]))} replayed — nothing is buffered, by design</span></div>'
+                   f'<div class="fig"><b>{E(d["hands"])}</b><span>manual steps to recover</span></div></div>'
+                   f'<p class="ev">Not tested: {E(d["not_tested"])} · '
+                   f'<a href="{blob}/{E(d["runbook"])}">runbook, with the timeline</a></p>')
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -334,8 +344,9 @@ turns amber on its own.</p>
 ({routes_note}). Everything else is refused by default.</p></div>
 <div><h3>Live, checked daily</h3><p>The policy in force equals <code>main</code>. {pol['accept'] + pol['deny']} policy
 assertions — {pol['deny']} of them refusals — run against the live network. CI holds no stored key for
-the network or the cloud.</p></div>
-<div><h3>Not built, and why</h3><p>Collector and field units: hardware, next. Device-management posture
+the network or the cloud.</p><p>Measured once, not counted: after a 15-minute link loss the telemetry path came
+back in 11 s with no hands; the readings sent meanwhile were lost, not queued.</p></div>
+<div><h3>Not built, and why</h3><p>Field units: simulated, next. Device-management posture
 and multi-user sign-in: a paid tier ($8/user/mo) and one user. Just-in-time access and log streaming:
 $18/user/mo. The before-and-after exposure reading: missed, and <a href="{blob}/STATUS.md">stated</a>, not reconstructed.</p></div>
 <div><h3>Read with care</h3><p>Posture on this plan is <strong>reported by the client itself</strong>: it shows how a
@@ -357,6 +368,12 @@ so the picture cannot show a path the policy does not grant. Counts on the tiles
 
 <h2>Checked on every change</h2>
 {every}
+
+<h2>Measured by watching the system</h2>
+<p class="why">Not a check that passes or fails: numbers observed while something was
+deliberately broken, counted from both ends, and written down once. They change only when
+the drill is run again.</p>
+{drills}
 
 <h2>From the code, not measured</h2>
 <p class="why">Counted from the repository's files when the page was built. The live checks

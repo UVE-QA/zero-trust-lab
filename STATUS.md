@@ -84,8 +84,10 @@ pipeline refused (D-041, PR #7, PR #8).
   hub pushes one reading every five minutes to a collector outside the house,
   which has no path in (D-049). Open: the pet-fountain automation has not yet
   been seen firing since the restart that change needed.
-- The lost-comms drill on that stream: the first number on the evidence page
-  that comes from watching the system rather than counting the repository.
+- ~~The lost-comms drill on that stream~~ — done, collector side: a 15-minute
+  link loss, the path back in 11 s with no hands, the 7 readings sent meanwhile
+  lost and none replayed, counted from both ends
+  ([runbook](docs/runbooks/lost-comms.md)). The household side stays in Phase 6.
 - The "after" half of the exposure reading, from a disposable node.
 
 **Weeks two to three — Phase 6**
