@@ -3099,3 +3099,12 @@ byte. The D-040 test was true only because every line it saved was already in
 the console's format. The integrity check stands, since a file in that format
 is stored as given; long lists are now written one entry per line, and the
 drift check, not the claim, is what catches it.
+
+**D-049, the last open item closed.** The first real visit after the hub's
+restart was checked by the session that manages the house: the occupancy
+sensor turned on and off with the cat, the pet-fountain automation held and
+released the pump on time, and the lab's own automation ran once. The visit
+event at the collector matches the recorder's stored record on id, label,
+camera, start, end and the median score. The single-frame score does not — it
+moved between the live message and the stored record — so the median is the
+field that counts, and the other is never used to join or compare.
