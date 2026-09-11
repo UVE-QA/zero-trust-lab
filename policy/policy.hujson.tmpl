@@ -81,6 +81,14 @@
 			"ip":  ["tcp:8123"],
 		},
 
+		// --- The household's own recovery path: SSH between its devices ---
+		// Before this policy the tailnet allowed everything, and the house
+		// relied on that without writing it down: SSH from the owner's laptop
+		// to the home server carries its duty timers, the recorder tunnel and
+		// the laptop's remote wake. Phase 2 dropped it and no test noticed
+		// (D-051). `autogroup:self` is each person's own devices, so this
+		// reaches nothing a member does not already own, and no tagged node.
+
 		// --- Operator to the production stand-in --------------------------
 		// Phase 4 replaces this with a time-boxed grant. Until then it is a
 		// standing one, which is exactly the thing JIT is meant to remove.
@@ -185,6 +193,13 @@
 			"src":    "{{operator_identity}}",
 			"accept": ["tag:gateway-home:8123"],
 			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
+		},
+
+		// The household's SSH between its own devices, asserted: a user as
+		// the destination means that user's devices.
+		{
+			"src":    "{{operator_identity}}",
+			"accept": ["{{operator_identity}}:22"],
 		},
 
 		// The only way into the production stand-in. Its SSH port is closed
