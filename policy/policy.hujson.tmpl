@@ -187,6 +187,15 @@
 			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
 		},
 
+		// The only way into the production stand-in. Its SSH port is closed
+		// to the internet (D-042), so a change that dropped this grant would
+		// lock the operator out of the machine two projects run on. The build
+		// fails first.
+		{
+			"src":    "{{operator_identity}}",
+			"accept": ["tag:prod:22"],
+		},
+
 		// Action tier, asserted on two axes at once.
 		//
 		// Per HOST: two identical devices, same model, same port, behind the
