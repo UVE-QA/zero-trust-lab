@@ -96,12 +96,16 @@ NODES = {
                   "tag", ["tag:collector"], "Telemetry sink: a container on the cloud dev host, "
                   "outside the house. The hub pushes readings to it on one port; it has no way "
                   "in, and the tests assert that.", "D-049"),
-    "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · ephemeral",
-                  "planned", ["tag:drone"], "Simulated field units: send telemetry, "
-                  "take control commands.", "Phase 6"),
-    "sensor":    (980, 330, "antenna", "planned", "Sensors", "tag:sensor · push-only",
-                  "planned", ["tag:sensor"], "Simulated sensors: may reach exactly one "
-                  "port on one role.", "Phase 6"),
+    "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · not built",
+                  "design pending", ["tag:drone"], "A unit that reports AND takes commands. The "
+                  "candidate is the house's robot vacuum, which cannot run a client: it would need "
+                  "an adapter with a path into the hub, which is a widening to decide, not a default.",
+                  "Phase 6"),
+    "sensor":    (980, 330, "antenna", "planned", "Sensors", "tag:sensor · not built",
+                  "deferred", ["tag:sensor"], "Push-only field units. The house's own sensors cannot "
+                  "run a client, so their readings arrive through the hub. Simulated ones would run "
+                  "on the cloud dev host, which serves two projects on 2 GB and no swap: deferred. "
+                  "A real one is a single-board computer and a sensor, about $30.", "Phase 6"),
     "prod":      (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),
@@ -262,6 +266,9 @@ def render(policy_text, agg=None, home=None):
     layers = {"grant": [], "refusal": [], "control": []}
     unplaced = []
     ok, no, mu, cp, cl = "var(--pass)", "var(--fail)", "var(--mut)", "var(--cp)", "var(--cl)"
+    # Control arrows carried out by a CI workflow name it, so the page's live
+    # layer can light the arrow while that workflow is running.
+    wf_of = {"read-only": "tailnet-check.yml", "terraform plan · OIDC": "terraform-plan.yml"}
 
     def route(key):
         r = ROUTES.get(key)
@@ -273,9 +280,10 @@ def render(policy_text, agg=None, home=None):
             return [(fx, fy), (tx, ty)], ((fx + tx) / 2, (fy + ty) / 2)
         return r
 
-    def arrow(layer, pts, colour, dash="", marker="ok", width=2):
+    def arrow(layer, pts, colour, dash="", marker="ok", width=2, wf=None):
+        attr = f' data-wf="{wf}"' if wf else ""
         layers[layer].append(f'<path d="{ortho(pts)}" fill="none" stroke="{colour}" stroke-width="{width}"'
-                             f'{dash} stroke-linejoin="round" marker-end="url(#m-{marker})"/>')
+                             f'{dash} stroke-linejoin="round" marker-end="url(#m-{marker})"{attr}/>')
 
     # --- grants, parsed from the policy --------------------------------------
     for g in grants:
@@ -317,7 +325,7 @@ def render(policy_text, agg=None, home=None):
 
     # --- who changes what: the design, drawn by hand -------------------------
     control = [
-        ([(208, 79), (262, 79)], mu, "", "mu", (235, 64), "read-only"),
+        ([(208, 79), (262, 79)], mu, "", "mu", (235, 36), "read-only"),
         ([(190, 48), (190, -6), (578, -6), (578, 48)], mu, "", "mu", (384, -6), "terraform plan · OIDC"),
         ([(100, 246), (100, 172), (300, 172), (300, 110)], cp, ' stroke-dasharray="6 4"', "cp",
          (200, 172), "policy apply · a person"),
@@ -329,7 +337,7 @@ def render(policy_text, agg=None, home=None):
          (813, 160), "planned: certificate → archive"),
     ]
     for pts, c, dash, m, (lx, ly), txt in control:
-        arrow("control", pts, c, dash, m, 1.6)
+        arrow("control", pts, c, dash, m, 1.6, wf_of.get(txt))
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
     counts = live_counts(agg)
@@ -366,7 +374,7 @@ def render(policy_text, agg=None, home=None):
 <rect x="12" y="222" width="1176" height="290" rx="14" class="ct tailnet"/>
 <text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
 <text x="40" y="410" class="ctn">laptop + phones = one policy role</text>
-<text x="1176" y="506" text-anchor="end" class="ctn">grey: planned roles, declared in the policy, no host yet</text>
+<text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
 <rect x="246" y="572" width="942" height="228" rx="14" class="ct home"/>
 <text x="258" y="706" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
 {proto}

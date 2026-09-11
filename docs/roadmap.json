@@ -1,0 +1,32 @@
+{
+  "_what": "What this project intends and has not built, for the evidence page. Each item says why it is not built and what it would take. Removed when built, not ticked.",
+  "items": [
+    {"what": "Production's SSH closed to the internet", "state": "in progress",
+     "why": "The last client moved to the tailnet path today; the firewall change waits on a snapshot.",
+     "takes": "one firewall rule, a snapshot first", "ref": "D-042"},
+    {"what": "Sensors as tailnet nodes", "state": "deferred",
+     "why": "The house's sensors cannot run a client. Simulated ones would share a cloud host that serves two projects on 2 GB with no swap.",
+     "takes": "a single-board computer and a sensor, about $30", "ref": "Phase 6"},
+    {"what": "A mobile unit that takes commands", "state": "design pending",
+     "why": "The candidate, the house's robot vacuum, cannot run a client; an adapter would need a path into the hub. That is a widening to decide, not a default.",
+     "takes": "a design, then the owner's decision", "ref": "Phase 6"},
+    {"what": "Cat-camera visit events in the telemetry stream", "state": "in review",
+     "why": "Pushed by the hub like the temperature, never pulled from the camera. Being agreed with the session that manages the house.",
+     "takes": "one more outbound call on the hub, no restart", "ref": "D-049"},
+    {"what": "The kiosk tablet in a role of its own", "state": "owner decision",
+     "why": "It is a member today, so formally it may do everything an operator may. A role would leave it the dashboard and nothing else.",
+     "takes": "one tag and one grant; the owner's yes", "ref": "Phase 2"},
+    {"what": "Lost comms on the household side", "state": "planned",
+     "why": "Measured so far only where the lab could break its own link. The hub's link and the control plane are the house's.",
+     "takes": "an agreed window with the household", "ref": "Phase 6"},
+    {"what": "A button that starts a check from this page", "state": "not built",
+     "why": "A public button needs an endpoint that holds a credential to start a workflow. This page holds none, on purpose.",
+     "takes": "a small cloud function with a capped, audited dispatch", "ref": "D-044"},
+    {"what": "Two stale route advertisements", "state": "owner decision",
+     "why": "Two user devices advertise a whole /24 that was never approved, so nothing is routed. Harmless, and a finding.",
+     "takes": "the owners switch the advertisement off", "ref": "D-047"},
+    {"what": "Just-in-time access to the action tier", "state": "needs a paid plan",
+     "why": "Standing access to the socket would become a grant that expires.",
+     "takes": "one time-boxed month, $18/user", "ref": "Phase 4"}
+  ]
+}
