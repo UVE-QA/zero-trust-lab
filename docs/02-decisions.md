@@ -3040,3 +3040,43 @@ and is left to it.
 
 Not yet done: **the break-glass path has not been exercised.** It should be,
 once, before it is needed.
+
+## D-051 — The policy cut the household's own paths, and its tests guarded only the lab's refusals
+
+### What happened
+
+Before this policy the tailnet allowed everything, and the household relied on
+that without writing it down. Phase 2 replaced it with deny-by-default and
+granted the one household path I knew about: the automation hub's UI. The
+session that manages the house found the rest — by measuring, with the owner
+away from home — and listed every path the house depends on. Two had been cut
+since the day Phase 2 was applied, and nothing had noticed:
+
+- **SSH from the owner's devices to the home server.** It carries the server's
+  duty timers, the recorder tunnel, and the laptop's remote wake.
+- **SSH to the hub's shell.** Worse than an omission: a test *required* it to be
+  refused. I had judged that an operator needs the UI and not a shell. That
+  shell is the documented reason the house uses Tailscale at all: when the
+  automation hub is broken, its UI is gone and the shell is the only way to fix
+  it from outside. The laptop's hourly backup of the hub rides on it too.
+
+### Why the tests missed it
+
+Thirty-one of the policy's assertions are refusals and a handful are accepts,
+all about the lab's own roles. The household appeared once, as the UI. A test
+suite built to prove that paths are refused proves nothing about the paths
+nobody listed. Least privilege applied to a household you have not inventoried
+does not reduce its exposure; it removes its recovery paths.
+
+### What changes
+
+- SSH between the owner's own devices is granted back, `autogroup:member` to
+  `autogroup:self` on 22 only — nothing a member does not already own, and no
+  tagged node — and asserted. The assertion was committed first without the
+  grant and the tailnet refused it, so it is known to reach the path.
+- The hub's shell is put to the owner as a separate decision, because it
+  reverses a refusal the policy asserted on purpose.
+- The household's paths are now an inventory kept by the session that manages
+  the house, and every path on it is to carry an accept assertion here. The
+  route to the whole home subnet stays ungranted: it would expose every camera
+  on the network, and only one is released.
