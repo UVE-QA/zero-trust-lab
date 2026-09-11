@@ -149,10 +149,11 @@
 		// makes the assertion below a demonstration rather than a claim.
 		//
 		// Phase 4 makes this time-boxed. The padding below is readability
-		// only. It is safe to rely on: the control plane stores this file
-		// verbatim and reformats nothing, which was tested by saving a
-		// render and reading it back byte-identical. That is what makes
-		// hashing the live file against the render a usable integrity check.
+		// only. The control plane stores a file in its own format verbatim,
+		// which is what makes hashing the live file against the render a
+		// usable integrity check -- but it does reformat what is not in that
+		// format: a one-line array past its width is expanded (D-051). Long
+		// lists are therefore written one entry per line.
 		{
 			"src":        ["autogroup:member"],
 			"dst":        ["actuator-granted"],
@@ -327,7 +328,12 @@
 		{
 			"src":    "tag:drone",
 			"accept": ["tag:collector:8443"],
-			"deny":   ["tag:prod:22", "tag:gateway-home:1883", "tag:gateway-home:22", "actuator-granted:52432"],
+			"deny": [
+				"tag:prod:22",
+				"tag:gateway-home:1883",
+				"tag:gateway-home:22",
+				"actuator-granted:52432",
+			],
 		},
 
 		// Production is a destination, not a source. A compromised prod host
