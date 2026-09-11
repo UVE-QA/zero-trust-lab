@@ -3,7 +3,7 @@
 **Work in progress, built in the open.** Last updated 2026-09-10.
 
 **Live evidence:** every check below, read from CI when the page was built —
-[uve-qa.github.io/zero-trust-lab](https://uve-qa.github.io/zero-trust-lab/) (D-044).
+[lab.uveapp.net](https://lab.uveapp.net/) (D-044).
 
 Phases 0, 1, 1.5, 2 and 5 are done; Phase 3 is largely done. Phase 4 needs a
 paid plan and is deliberately deferred. Phase 6 — the drills — is next. Every
@@ -73,9 +73,9 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **Next one to two weeks**
 
-3. ~~A live evidence page~~ — done (D-044); custom domain pending one DNS
-   record. Next on it: cloud IAM users counted, and routes into the home
-   network wider than `/32` counted, each by a read-only job of its own.
+3. ~~A live evidence page~~ — done (D-044), on its own domain, with a live
+   layer that reads CI from the visitor's browser (D-050). Next on it: cloud
+   IAM users counted by a read-only job of its own.
 4. ~~`validate` on a schedule~~ — done.
 
 **Next, after an outside review (D-046) — substance before more machinery**

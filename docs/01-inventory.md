@@ -3,7 +3,7 @@
 > **This is the Phase 0 snapshot, kept as the baseline the later phases are
 > judged against.** It is not updated. Current counts — nodes by role, OS and
 > state, routes by prefix length — are measured live and shown on the
-> [evidence page](https://uve-qa.github.io/zero-trust-lab/). Two things below
+> [evidence page](https://lab.uveapp.net/). Two things below
 > were later corrected: the account signs in with an identity provider, not a
 > passkey (D-015), and `tag:kiosk` became `tag:appliance` (D-019).
 

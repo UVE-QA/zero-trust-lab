@@ -2942,3 +2942,42 @@ the recorder publishes its next event, which needs the cat. The automation
 itself is on and still reads the occupancy sensor, which is live again. It has
 **not yet been seen to fire** since the restart — that also needs the cat, and
 it stays an open item until it does.
+
+## D-050 — The evidence page keeps itself current, and still holds nothing
+
+### What changed
+
+The page used to be true as of its build. Two things made that weaker than it
+looked. A push starts the checks and the page at the same moment, so the page
+routinely published the reading from the change before; and between builds,
+nothing on it moved except the ages.
+
+- **The page rebuilds when a check on main finishes**, not when the push lands,
+  so it carries the run it is about.
+- **A live layer in the visitor's browser** reads GitHub's public Actions API —
+  the same record the build reads — with no token. It shows what is running
+  this minute, job by job and step by step; lights the arrow on the diagram
+  that the running check travels; and moves a card forward when a newer run of
+  its check has finished. A card whose claim needs the run's log — "the plan
+  reports no changes" — is not flipped by the browser, which cannot read logs
+  without a credential; it says a newer run exists and waits for the rebuild.
+- **The budget is visible.** GitHub allows sixty unauthenticated requests an
+  hour per visitor address; the page reads every three minutes when idle, every
+  thirty seconds while something runs, never while the tab is hidden, and waits
+  for the reset when fewer than eight are left. It says how many remain.
+
+### What it deliberately does not do
+
+**It does not start anything.** A button that starts a check needs an endpoint
+holding a credential that can dispatch workflows, exposed to the public. The
+page holds none, and that is the property worth keeping. If a button is ever
+added it belongs behind a small function with a capped, audited dispatch —
+listed as not built, with that price, on the page itself.
+
+### Also on the page now
+
+- **What is in the project and not built**, each with why and what it would
+  take, read from a file in the repository. An item leaves the list when it is
+  built. The diagram's grey tiles say "not built" instead of implying a fleet.
+- **Its own domain.** A single `CNAME` in the parent zone, the domain bound to
+  the repository's Pages site, and HTTPS enforced once the certificate issued.

@@ -19,6 +19,13 @@ on:
     - cron: "47 6 * * *"
   push:
     branches: [main]
+  # A push starts the checks and this page at the same moment, so the page
+  # used to publish the previous reading. Rebuild when a check on main has
+  # finished, so the page carries the run it is about.
+  workflow_run:
+    workflows: [tailnet-check, leak-scan, policy-check, terraform-plan]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

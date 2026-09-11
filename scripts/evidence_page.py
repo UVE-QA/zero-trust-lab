@@ -118,6 +118,8 @@ def latest_job(workflow, job_name, events=MAIN_EVENTS, need=None):
                 "sha": (run.get("head_sha") or "")[:7],
                 "event": run.get("event"),
                 "detail": detail,
+                # for the page's live layer: which run this card shows
+                "wf": workflow, "job": job_name, "run": run["id"], "need": need is not None,
             }
     return None
 
@@ -260,7 +262,11 @@ def card(claim, why, result, stale_hours, expect_failure=False):
               f'<p class="ev"><time data-stale-hours="{stale_hours}" '
               f'datetime="{E(result["at"] or "")}">{E(result["at"] or "")}</time>'
               f' · <a href="{E(result["url"] or "#")}">{E(result.get("link", "open the run →"))}</a></p>')
-    return (f'<article class="card {state}"><div class="row"><h3>{E(claim)}</h3>'
+    live = ""
+    if result and result.get("wf"):
+        live = (f' data-wf="{E(result["wf"])}" data-job="{E(result["job"])}" data-run="{result["run"]}"'
+                + (' data-need="log"' if result.get("need") else ""))
+    return (f'<article class="card {state}"{live}><div class="row"><h3>{E(claim)}</h3>'
             f'<span class="pill">{E(label)}</span></div><p class="why">{E(why)}</p>{ev}</article>')
 
 
@@ -286,6 +292,10 @@ def render(measured, pol, dec, built, diagram, agg, home):
                    f'<div class="fig"><b>{E(d["hands"])}</b><span>manual steps to recover</span></div></div>'
                    f'<p class="ev">Not tested: {E(d["not_tested"])} · '
                    f'<a href="{blob}/{E(d["runbook"])}">runbook, with the timeline</a></p>')
+    roadmap = "".join(
+        f'<tr><td><b>{E(i["what"])}</b></td><td><span class="st">{E(i["state"])}</span></td>'
+        f'<td>{E(i["why"])}</td><td>{E(i["takes"])}</td><td>{E(i["ref"])}</td></tr>'
+        for i in json.loads((ROOT / "docs" / "roadmap.json").read_text()).get("items", []))
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -328,7 +338,18 @@ h3{{font-size:16px;margin:0}}p{{margin:6px 0}}a{{color:var(--link)}}code{{font:1
 .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}}
 .fig{{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}}.fig b{{display:block;font-size:26px}}.fig span{{color:var(--mut);font-size:14px}}
 footer{{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:var(--mut);font-size:14px}}
-</style></head><body><main>
+.now{{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:18px 0 8px}}
+.nowhead{{display:flex;align-items:center;gap:12px}}.nowhead h2{{margin:0;font-size:18px}}
+.nowhead button{{margin-left:auto;font:inherit;font-size:13px;padding:4px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);cursor:pointer}}
+.meta{{font-size:12.5px;color:var(--mut)}}.now .run{{border-top:1px solid var(--line);padding:8px 0}}.now .run:first-child{{border-top:0}}
+.now ul{{list-style:none;padding:0;margin:6px 0 0}}.now li{{font-size:14px;margin:3px 0}}.now .ic{{display:inline-block;width:1.2em;text-align:center;font-weight:700}}
+.now .success,.now .job.success .ic{{color:var(--pass)}}.now .failure,.now .job.failure .ic{{color:var(--fail)}}.now .job.in_progress .ic{{color:var(--cp)}}
+.card.updated .pill::after{{content:" · live";font-weight:500}}
+#labmap path.running{{stroke:var(--cp);stroke-width:2.6;stroke-dasharray:7 5;animation:flow .9s linear infinite}}
+#n-gha.busy rect:first-of-type{{stroke:var(--cp);stroke-width:2.2}}
+@keyframes flow{{to{{stroke-dashoffset:-12}}}}@media (prefers-reduced-motion:reduce){{#labmap path.running{{animation:none}}}}
+.tw{{overflow-x:auto}}table.road td:first-child{{min-width:170px}}.st{{display:inline-block;font-size:12px;padding:1px 8px;border-radius:9px;background:var(--nonebg);color:var(--none);white-space:nowrap}}
+</style></head><body data-repo="{E(REPO)}"><main>
 <h1>zero-trust-lab · live evidence</h1>
 <p class="lede">A Zero Trust access model on a real home network, built in the open.
 Every status below was read from GitHub Actions when this page was built, and links to
@@ -346,13 +367,22 @@ turns amber on its own.</p>
 assertions — {pol['deny']} of them refusals — run against the live network. CI holds no stored key for
 the network or the cloud.</p><p>Measured once, not counted: after a 15-minute link loss the telemetry path came
 back in 11 s with no hands; the readings sent meanwhile were lost, not queued.</p></div>
-<div><h3>Not built, and why</h3><p>Field units: simulated, next. Device-management posture
+<div><h3>Not built, and why</h3><p>Field units: deferred — the house's sensors cannot run a
+client, and the cloud host that would run simulated ones serves two projects. Device-management posture
 and multi-user sign-in: a paid tier ($8/user/mo) and one user. Just-in-time access and log streaming:
 $18/user/mo. The before-and-after exposure reading: missed, and <a href="{blob}/STATUS.md">stated</a>, not reconstructed.</p></div>
 <div><h3>Read with care</h3><p>Posture on this plan is <strong>reported by the client itself</strong>: it shows how a
 device is configured, not that it is intact. SSH to production is still reachable from the internet
 while its last client moves to the overlay (D-042).</p></div>
 </div>
+
+<section class="now" aria-live="polite"><div class="nowhead"><h2>Now</h2>
+<button id="now-refresh" type="button">Refresh</button></div>
+<p id="now-meta" class="meta">Reading GitHub…</p>
+<div id="now-body"><p class="why">This panel reads GitHub's public Actions API from your browser: what is
+running this minute, step by step, and the last runs. Everything else on the page moves forward with it.</p></div>
+<noscript><p class="why">Without JavaScript the page shows what was true when it was built.</p></noscript>
+</section>
 
 <h2>The lab on one picture</h2>
 <p class="why col">Where each part lives, which tool manages it, and who may reach what. Contours
@@ -389,9 +419,12 @@ above are what show these are the rules actually in force.</p>
 <p class="ev"><a href="{blob}/policy/policy.hujson.tmpl">policy template</a> ·
 <a href="{blob}/docs/02-decisions.md">decision log</a></p>
 
-<h2>Not shown here</h2>
-<p class="why">What is unfinished is stated in <a href="{blob}/STATUS.md">STATUS.md</a>,
-under “Open, stated plainly” — including the gaps this page cannot measure.</p>
+<h2>In the project, not built yet</h2>
+<p class="why">What this lab intends and does not have, why, and what each would take.
+An item leaves this list when it is built; nothing here is drawn on the diagram as if it existed.
+The full plan is in <a href="{blob}/STATUS.md">STATUS.md</a>.</p>
+<div class="tw"><table class="why road"><thead><tr><th>What</th><th>State</th><th>Why not yet</th>
+<th>What it takes</th><th>Ref</th></tr></thead><tbody>{roadmap}</tbody></table></div>
 
 </div>
 <footer class="col">Built by <a href="{blob}/.github/workflows/evidence-page.yml">evidence-page.yml</a>
@@ -414,6 +447,7 @@ var lim=parseFloat(t.getAttribute('data-stale-hours'));var c=t.closest('.card');
 if(c&&lim&&h>lim&&c.classList.contains('pass')){{c.classList.remove('pass');c.classList.add('stale');c.querySelector('.pill').textContent='stale';}}
 }});}})();
 </script>
+<script src="live.js" defer></script>
 </body></html>
 """
 
@@ -467,6 +501,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(page)
     (out / ".nojekyll").write_text("")
+    (out / "live.js").write_text((ROOT / "scripts" / "evidence_live.js").read_text())
     summary = {c: (None if r is None else r["ok"]) for c, _, r, *_ in live + every}
     summary["_aggregate"] = bool(agg)
     summary["_unplaced_on_diagram"] = diagram[3]
