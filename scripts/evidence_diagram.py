@@ -35,6 +35,7 @@ ICONS = {
     "hub": '<path d="M3 11l9-7 9 7v9H3z"/><circle cx="12" cy="14" r="2.2"/>',
     "server": '<rect x="4" y="3.5" width="16" height="7" rx="1.5"/><rect x="4" y="13.5" width="16" height="7" rx="1.5"/><path d="M8 7h.01M8 17h.01"/>',
     "camera": '<rect x="2.5" y="7" width="13" height="10" rx="2"/><path d="M15.5 11l6-3.5v9l-6-3.5"/>',
+    "vacuum": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.5" r="2"/><path d="M5.5 15h13"/>',
     "plug": '<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/>',
     "mesh": '<circle cx="5" cy="12" r="2"/><circle cx="19" cy="5.5" r="2"/><circle cx="19" cy="18.5" r="2"/><path d="M7 11l10-4.5M7 13l10 4.5M19 7.5v9"/>',
     "dots": ''.join(f'<circle cx="{x}" cy="{y}" r="1.8" fill="#fff" stroke="none"/>'
@@ -53,7 +54,7 @@ COL = {"future": "#9aa0a6", "home": "#3f8624", "tailnet": "#5b4fd6", "cloud": "#
        "ci": "#57606a", "cp": "#1f6feb", "planned": "#8c8c8c", "off": "#8c8c8c"}
 
 TW, TH = 180, 62
-W, H = 1200, 972
+W, H = 1200, 1052
 VB_TOP = -28
 
 NODES = {
@@ -83,9 +84,11 @@ NODES = {
     "phones":    (40, 330, "phone", "tailnet", "Operator phones", "break-glass path",
                   "by hand", ["autogroup:member"], "Posture subjects, and the way back in "
                   "if everything else fails — verified off-network.", "D-016"),
-    "desktop":   (40, 432, "desktop", "tailnet", "Shared desktop", "not ours to tag",
-                  "by hand", [], "Stays user-owned permanently: it is someone's daily "
-                  "machine, so it gets no machine identity.", "Phase 1"),
+    "desktop":   (40, 432, "desktop", "tailnet", "Home server", "user-owned · untagged",
+                  "by hand", ["autogroup:self"], "Runs the camera recorder and the house's duty "
+                  "timers, and is someone's daily machine, so it stays user-owned with no machine "
+                  "identity. Members reach their own devices on SSH only -- the house's recovery "
+                  "path, restored after the lab's policy had cut it.", "D-051"),
     "appliance": (250, 432, "tv", "tailnet", "Media appliance", "tag:appliance",
                   "tag", ["tag:appliance"], "A device on the network that should reach "
                   "nothing — and is tested to reach nothing.", "D-019"),
@@ -118,27 +121,37 @@ NODES = {
     "plug_c":    (700, 610, "plug", "home", "Smart plug", "identical · refused",
                   "one /32", ["actuator-control"], "The same model on the same port, never "
                   "granted. Proves least privilege is per host, not per protocol.", "D-010"),
+    # Home devices the lab uses without any route to them.
+    "catcam":    (270, 610, "camera", "home", "Cat camera", "released · events only",
+                  "no route", [], "The one camera the owner released for the lab. Nothing on the "
+                  "tailnet can reach it: the recorder in the house watches it, and at the end of each "
+                  "visit the hub pushes the event -- id, times, scores, no image -- to the collector. "
+                  "Named in the recorder, never addressed.", "D-049"),
+    "vacuum":    (270, 720, "vacuum", "home", "Robot vacuum", "via the vendor's cloud",
+                  "no route · not built", [], "Run by the hub through its vendor's cloud, not the home "
+                  "network. The candidate for the mobile-unit role; it cannot run a client, so it would "
+                  "need an adapter with a path into the hub -- a widening to decide, not built.", "Phase 6"),
 }
 # The growth path: not built. What a multi-user or company deployment adds,
 # and where each part would plug in. Drawn so a reader can see the lab's
 # shape grow, never mistaken for something that exists.
 NODES.update({
-    "idp":  (28, 870, "idp", "future", "Identity provider", "SSO · users, groups",
+    "idp":  (28, 950, "idp", "future", "Identity provider", "SSO · users, groups",
              "Standard $8/user/mo", [], "One login for many people; their groups become policy sources "
              "instead of every member. Plugs into the control plane and cloud sign-in.", "multi-user"),
-    "mdm":  (224, 870, "mdm", "future", "MDM / EDR", "posture from the fleet",
+    "mdm":  (224, 950, "mdm", "future", "MDM / EDR", "posture from the fleet",
              "Standard $8/user/mo", [], "Posture from the fleet's management system instead of the client's "
              "own report. An integration a paid plan adds.", "D-040"),
-    "jit":  (420, 870, "clock", "future", "Just-in-time", "grants that expire",
+    "jit":  (420, 950, "clock", "future", "Just-in-time", "grants that expire",
              "Premium $18/user/mo", [], "Standing access to the action tier replaced by grants that "
              "expire. Needs a paid plan: one time-boxed month.", "Phase 4"),
-    "siem": (616, 870, "logs", "future", "Log streaming", "flow + audit → SIEM",
+    "siem": (616, 950, "logs", "future", "Log streaming", "flow + audit → SIEM",
              "Premium $18/user/mo", [], "Who connected to what, kept and searchable. The drills in "
              "Phase 6 would read it.", "Phase 6"),
-    "sso":  (812, 870, "org", "future", "Identity Center", "people's cloud sign-in",
+    "sso":  (812, 950, "org", "future", "Identity Center", "people's cloud sign-in",
              "AWS: no charge", [], "Cloud sign-in for people through the identity provider. Lives in "
              "the organisation's management account, not this stack.", "D-030"),
-    "ca":   (1008, 870, "ca", "future", "Private CA", "certs for the collector",
+    "ca":   (1008, 950, "ca", "future", "Private CA", "certs for the collector",
              "free, or $50+/mo", [], "The missing half of Roles Anywhere: machines get certificates, "
              "never keys. Switches the cloud tile above on.", "Phase 5"),
 })
@@ -164,6 +177,7 @@ ROUTES = {
     ("operators", "gateway"):           ([(220, 345), (500, 345)], (362, 345)),
     ("operators", "gateway", "plug_g"): ([(220, 372), (500, 372)], None),
     ("gateway", "plug_g"):              ([(590, 392), (590, 610)], (590, 500)),
+    ("operators", "desktop"):           ([(130, 392), (130, 432)], (160, 412)),
     ("operators", "prod"):              ([(220, 277), (980, 277)], (640, 277)),
     ("operators", "drone"):             ([(220, 388), (238, 388), (238, 414), (738, 414), (738, 463), (760, 463)], (420, 414)),
     ("gateway", "collector"):           ([(680, 348), (760, 348)], (720, 348)),
@@ -263,7 +277,7 @@ def live_counts(agg):
 
 def render(policy_text, agg=None, home=None):
     grants, refusals, n_tests = parse_policy(policy_text)
-    layers = {"grant": [], "refusal": [], "control": []}
+    layers = {"grant": [], "refusal": [], "control": [], "data": []}
     unplaced = []
     ok, no, mu, cp, cl = "var(--pass)", "var(--fail)", "var(--mut)", "var(--cp)", "var(--cl)"
     # Control arrows carried out by a CI workflow name it, so the page's live
@@ -286,27 +300,34 @@ def render(policy_text, agg=None, home=None):
                              f'{dash} stroke-linejoin="round" marker-end="url(#m-{marker})"{attr}/>')
 
     # --- grants, parsed from the policy --------------------------------------
+    # Grants with the same two ends share one arrow and list their ports, so
+    # two grants to one host do not draw two labels on the same spot.
+    edges = {}
     for g in grants:
-        port = ", ".join(p.replace("tcp:", "") for p in g.get("ip", []))
         via = role_to_node(g["via"][0]) if g.get("via") else None
         tag = " · posture" if g.get("srcPosture") else ""
         for src in g["src"]:
             for dst in g["dst"]:
                 frm, to = role_to_node(src), role_to_node(dst)
                 if not frm or not to:
+                    port = ", ".join(p.replace("tcp:", "") for p in g.get("ip", []))
                     unplaced.append(f"{src} → {dst}:{port}")
                     continue
-                planned = any(n != "operators" and NODES[n][3] == "planned" for n in (frm, to))
-                dash = ' stroke-dasharray="6 5"' if planned else ""
-                if via:
-                    pts, _ = route((frm, via, to))
-                    arrow("grant", pts, ok, dash)
-                    pts, lp = route((via, to))
-                else:
-                    pts, lp = route((frm, to))
-                arrow("grant", pts, ok, dash)
-                if lp:
-                    layers["grant"].append(label(lp[0], lp[1], f"{port}{tag}", ok))
+                ports = edges.setdefault((frm, via, to, tag), [])
+                ports += [p.replace("tcp:", "") for p in g.get("ip", []) if p.replace("tcp:", "") not in ports]
+    for (frm, via, to, tag), ports in edges.items():
+        port = ", ".join(ports)
+        planned = any(n != "operators" and NODES[n][3] == "planned" for n in (frm, to))
+        dash = ' stroke-dasharray="6 5"' if planned else ""
+        if via:
+            pts, _ = route((frm, via, to))
+            arrow("grant", pts, ok, dash)
+            pts, lp = route((via, to))
+        else:
+            pts, lp = route((frm, to))
+        arrow("grant", pts, ok, dash)
+        if lp:
+            layers["grant"].append(label(lp[0], lp[1], f"{port}{tag}", ok))
 
     # --- refusals, parsed from the tests -------------------------------------
     home_roles = {"tag:gateway-home", "actuator-granted", "actuator-control"}
@@ -340,12 +361,16 @@ def render(policy_text, agg=None, home=None):
         arrow("control", pts, c, dash, m, 1.6, wf_of.get(txt))
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
+    # --- data inside the house: no tailnet path, drawn by hand ---------------
+    arrow("data", [(360, 610), (360, 545), (630, 545), (630, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(470, 545, "visit events · LAN", "#3f8624", "lbl f"))
+
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts, n_tests) for n in NODES)
 
     proto, rest = "", ""
     if home:
-        proto = (f'<text x="258" y="726" class="ctn">connected over: '
+        proto = (f'<text x="258" y="826" class="ctn">connected over: '
                  f'{E(" · ".join(home.get("protocols", [])))}</text>')
         cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
         x0, y0 = 900, 596
@@ -373,33 +398,35 @@ def render(policy_text, agg=None, home=None):
 <text x="492" y="124" class="ctn">planned by CI · applied by a person</text>
 <rect x="12" y="222" width="1176" height="290" rx="14" class="ct tailnet"/>
 <text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
-<text x="40" y="410" class="ctn">laptop + phones = one policy role</text>
+<text x="110" y="240" class="ctn">laptop + phones = one policy role</text>
 <text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
-<rect x="246" y="572" width="942" height="228" rx="14" class="ct home"/>
-<text x="258" y="706" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
+<rect x="246" y="572" width="942" height="308" rx="14" class="ct home"/>
+<text x="258" y="806" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
 {proto}
-<text x="258" y="790" class="ctl">Home network — flat private /24 · reached only through the hub</text>
+<text x="258" y="866" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
-<rect x="12" y="820" width="1176" height="146" rx="14" class="ct future"/>
-<text x="24" y="844" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
+<rect x="12" y="900" width="1176" height="146" rx="14" class="ct future"/>
+<text x="24" y="924" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
 """
     defs = "".join(
         f'<marker id="m-{k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
         f'orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="{v}"/></marker>'
-        for k, v in (("ok", ok), ("no", no), ("mu", mu), ("cp", cp), ("cl", cl)))
+        for k, v in (("ok", ok), ("no", no), ("mu", mu), ("cp", cp), ("cl", cl), ("home", "#3f8624")))
     g = lambda k: f'<g class="layer-{k}">{"".join(x for x in layers[k] if x.startswith("<path"))}</g>'
     gl = lambda k: f'<g class="layer-{k}">{"".join(x for x in layers[k] if not x.startswith("<path"))}</g>'
     svg = (f'<svg id="labmap" viewBox="0 {VB_TOP} {W} {H - VB_TOP}" role="img" xmlns="http://www.w3.org/2000/svg" '
            f'aria-label="The lab: contours, subnets, tools and permitted paths"><defs>{defs}</defs>'
-           f'{contours}{g("control")}{g("refusal")}{g("grant")}{tiles}'
-           f'{gl("control")}{gl("refusal")}{gl("grant")}</svg>')
+           f'{contours}{g("control")}{g("data")}{g("refusal")}{g("grant")}{tiles}'
+           f'{gl("control")}{gl("data")}{gl("refusal")}{gl("grant")}</svg>')
 
     toggles = ('<div class="layers"><span>Show:</span>'
                '<label><input type="checkbox" data-layer="grant" checked> <span class="k ok"></span>granted</label>'
                '<label><input type="checkbox" data-layer="refusal" checked> <span class="k no"></span>refused</label>'
-               '<label><input type="checkbox" data-layer="control" checked> <span class="k cf"></span>who changes what</label></div>')
+               '<label><input type="checkbox" data-layer="control" checked> <span class="k cf"></span>who changes what</label>'
+               '<label><input type="checkbox" data-layer="data" checked> <span class="k hd"></span>data inside the house</label></div>')
     legend = ('<p class="legend">Green arrows are grants parsed from the policy, with the port each names; '
               'dashed green goes to a role with no host yet. Red arrows are refusals asserted by the policy tests. '
+              'Dotted green is data moving inside the house, where the tailnet has no path. '
               'Everything not drawn is refused by default.</p>')
     if unplaced:
         legend += ('<p class="legend warn">In the policy but not placed on this diagram: '
