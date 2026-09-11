@@ -372,8 +372,8 @@ client, and the cloud host that would run simulated ones serves two projects. De
 and multi-user sign-in: a paid tier ($8/user/mo) and one user. Just-in-time access and log streaming:
 $18/user/mo. The before-and-after exposure reading: missed, and <a href="{blob}/STATUS.md">stated</a>, not reconstructed.</p></div>
 <div><h3>Read with care</h3><p>Posture on this plan is <strong>reported by the client itself</strong>: it shows how a
-device is configured, not that it is intact. SSH to production is still reachable from the internet
-while its last client moves to the overlay (D-042).</p></div>
+device is configured, not that it is intact. The break-glass path into production — the cloud
+provider's console — exists but has not yet been exercised (D-042).</p></div>
 </div>
 
 <section class="now" aria-live="polite"><div class="nowhead"><h2>Now</h2>

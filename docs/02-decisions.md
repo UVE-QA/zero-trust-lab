@@ -2981,3 +2981,62 @@ listed as not built, with that price, on the page itself.
   built. The diagram's grey tiles say "not built" instead of implying a fleet.
 - **Its own domain.** A single `CNAME` in the parent zone, the domain bound to
   the repository's Pages site, and HTTPS enforced once the certificate issued.
+
+### A second stream: cat visits, as events
+
+The pet camera — the one camera the owner released for the lab — joins the
+stream the same way, pushed and never pulled. The collector gets no path to the
+camera, the recorder, or the house, and holds no camera credential.
+
+- **Events, not images.** At the end of each visit the hub sends the recorder's
+  event: its id, start and end, the label, and two scores. The session that
+  manages the house chose the source: the recorder's own end-of-visit event
+  rather than the occupancy sensor. The sensor reads "no cat" when the detector
+  is dead, gives no score, and has no id to check afterwards; an event id can
+  later be joined to human verdicts on whether it really was the cat.
+- **Named, never addressed.** The trigger filters on the camera's name in the
+  recorder. The recorder itself reaches the camera by an address, and that
+  address is not reserved: the house re-verifies it by hardware identifier.
+  That check belongs to the house, which is recorded there; the lab's part is
+  never to name anything by address.
+- **Images stay home.** Frames from this camera routinely contain people
+  crossing the room. Sending footage to a new destination is the owner's
+  decision, and it was not asked for.
+- **Cost: none to the house.** The call component was already loaded, so this
+  took two configuration reloads, no restart.
+
+Delivery was proven first with one real past event sent by hand — the command
+called directly, and nothing published on the house's message bus. The trigger
+was proven by the cat twenty minutes later: a 443-second visit whose end
+reached the collector about 0.65 s after the recorder closed it (three clocks,
+so approximate), identified as sent by the hub. It had looked missing for eight
+minutes only because the event had not ended.
+
+## D-042, closed — production's SSH is off the internet
+
+Done in the order D-042 set, each step verified before the next:
+
+1. **The desktop application restarted onto the tailnet path.** Before: 190
+   logins over the public address in a week, the last one minutes before the
+   restart. After: none; every login and every live session arrives from a
+   tailnet address, the remote session included — confirmed from the host's
+   own socket table, not from the session's environment, which still carried
+   the address it was started with.
+2. **The host's tailnet key no longer expires.** It would have dropped off the
+   tailnet in six months, and with the public path closed that is a lockout.
+   Tagged infrastructure should not expire under its operator.
+3. **The only way in is asserted.** A policy test now requires the operator to
+   reach `tag:prod:22`, so a policy change that dropped it fails before the
+   tailnet accepts it.
+4. **A snapshot, then the firewall.** The rule that admitted `22/tcp` from
+   `0.0.0.0/0` and `::/0` is gone. Port 22 now admits only the cloud provider's
+   own browser-console range — the break-glass path stays, everything else is
+   refused.
+
+Verified afterwards: SSH over the tailnet works; the public address times out
+where it answered before; every live session on the host is on the tailnet.
+The stale `80/tcp` rule for `::/0` belongs to the other project on this host
+and is left to it.
+
+Not yet done: **the break-glass path has not been exercised.** It should be,
+once, before it is needed.
