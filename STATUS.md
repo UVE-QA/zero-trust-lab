@@ -41,10 +41,9 @@ pipeline refused (D-041, PR #7, PR #8).
 
 ## Open, stated plainly
 
-- **Production SSH is still reachable from the internet** (D-042). The tailnet
-  path is fixed and verified; the public port stays open until the one client
-  that still uses it is proven on the tailnet path, so that closing it cannot
-  lock anyone out. In progress.
+- **Production's break-glass path is untested** (D-042). SSH is closed to the
+  internet and reachable only over the tailnet; the provider's browser console
+  is the way in if the tailnet fails. It has not been exercised yet.
 - **Exposed LAN devices are addressed by IP on a network without DHCP
   reservations** (D-047). A camera that turned out to be the wrong one was
   withdrawn; the two remaining sockets were verified by their own identifiers.
@@ -67,9 +66,9 @@ pipeline refused (D-041, PR #7, PR #8).
    closed in the same step: commit messages swept as well as files, the sweep
    fails rather than skipping when its denylist is unavailable, identifiers
    masked in logs, `main` protected for everyone (D-043).
-2. Finish D-042: prove the remaining client on the tailnet path, then close
-   production SSH to the internet and remove a stale firewall rule, then remove
-   the dead `ssh` rule from the policy.
+2. ~~Finish D-042~~ — production SSH closed to the internet, after the last
+   client was proven on the tailnet path. Left: exercise the break-glass path
+   once, and remove the dead `ssh` rule from the policy.
 
 **Next one to two weeks**
 
