@@ -322,7 +322,8 @@ main{{max-width:1220px;margin:0 auto;padding:48px 20px 64px}}.col{{max-width:880
 .k{{display:inline-block;width:22px;border-top:2px solid var(--pass);vertical-align:middle}}.k.no{{border-top:2px dashed var(--fail)}}.k.cf{{border-top:2px dashed var(--cp)}}
 .layers{{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13.5px;color:var(--mut);padding:4px 8px 6px}}
 .layers label{{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--fg)}}
-#labmap.hide-grant .layer-grant,#labmap.hide-refusal .layer-refusal,#labmap.hide-control .layer-control{{display:none}}
+#labmap.hide-grant .layer-grant,#labmap.hide-refusal .layer-refusal,#labmap.hide-control .layer-control,#labmap.hide-data .layer-data{{display:none}}
+.k.hd{{border-top:2px dotted #3f8624}}
 details.parts{{margin:6px 0 0}}details.parts summary{{cursor:pointer;font-weight:600;font-size:14.5px}}
 table.why{{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}}table.why th,table.why td{{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}}
 table.why th{{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}}.sw{{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}}

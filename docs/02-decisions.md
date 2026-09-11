@@ -3080,3 +3080,22 @@ does not reduce its exposure; it removes its recovery paths.
   the house, and every path on it is to carry an accept assertion here. The
   route to the whole home subnet stays ungranted: it would expose every camera
   on the network, and only one is released.
+
+**Update, same night.** The owner decided the hub's shell: members may reach
+`tag:gateway-home:22`, asserted as an accept, and every other role — collector,
+sensors, mobile units, the appliance, production — is now asserted refused it.
+The diagram shows the house's recovery paths it draws from the policy, and,
+for the first time, the two home devices the lab uses without any route to
+them: the released camera, whose visits reach the collector only as events
+pushed by the hub, and the robot vacuum, the unbuilt mobile unit's candidate.
+
+**A correction to D-040, found in the same change.** D-040 recorded that the
+control plane stores the policy file verbatim and reformats nothing, and the
+template repeated it. The drift check after this apply disagreed: the live file
+was 20 bytes longer than the render. The console had expanded one test's deny
+list — a single line that had grown past a width — into one entry per line;
+with that list written the same way, the render matched the live file byte for
+byte. The D-040 test was true only because every line it saved was already in
+the console's format. The integrity check stands, since a file in that format
+is stored as given; long lists are now written one entry per line, and the
+drift check, not the claim, is what catches it.

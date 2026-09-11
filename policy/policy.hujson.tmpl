@@ -81,6 +81,18 @@
 			"ip":  ["tcp:8123"],
 		},
 
+		// --- The hub's shell: the house's repair path ---------------------
+		// When the automation hub is broken its UI is gone, and this shell is
+		// the only way to fix it from outside; the owner's laptop also pulls
+		// the hub's backups over it. This policy once asserted it refused,
+		// judging the UI enough. It was the reason the house runs Tailscale
+		// (D-051). Members only: every other role stays refused, below.
+		{
+			"src": ["autogroup:member"],
+			"dst": ["tag:gateway-home"],
+			"ip":  ["tcp:22"],
+		},
+
 		// --- The household's own recovery path: SSH between its devices ---
 		// Before this policy the tailnet allowed everything, and the house
 		// relied on that without writing it down: SSH from the owner's laptop
@@ -137,10 +149,11 @@
 		// makes the assertion below a demonstration rather than a claim.
 		//
 		// Phase 4 makes this time-boxed. The padding below is readability
-		// only. It is safe to rely on: the control plane stores this file
-		// verbatim and reformats nothing, which was tested by saving a
-		// render and reading it back byte-identical. That is what makes
-		// hashing the live file against the render a usable integrity check.
+		// only. The control plane stores a file in its own format verbatim,
+		// which is what makes hashing the live file against the render a
+		// usable integrity check -- but it does reformat what is not in that
+		// format: a one-line array past its width is expanded (D-051). Long
+		// lists are therefore written one entry per line.
 		{
 			"src":        ["autogroup:member"],
 			"dst":        ["actuator-granted"],
@@ -196,8 +209,8 @@
 			// and rejects it here -- "unknown user or host" -- so the identity
 			// is templated like the addresses rather than committed.
 			"src":    "{{operator_identity}}",
-			"accept": ["tag:gateway-home:8123"],
-			"deny":   ["tag:gateway-home:1883", "tag:gateway-home:22"],
+			"accept": ["tag:gateway-home:8123", "tag:gateway-home:22"],
+			"deny":   ["tag:gateway-home:1883"],
 		},
 
 		// The household's SSH between its own devices, asserted: a user as
@@ -268,6 +281,7 @@
 				"tag:sensor:8443", // cannot reach a peer sensor
 				"tag:gateway-home:1883", // cannot talk to the broker directly
 				"tag:gateway-home:8123", // cannot reach the automation UI
+				"tag:gateway-home:22", // cannot reach the hub's shell
 				"actuator-granted:52432", // cannot change physical state
 			],
 		},
@@ -277,6 +291,7 @@
 			"src": "tag:appliance",
 			"deny": [
 				"tag:gateway-home:8123",
+				"tag:gateway-home:22",
 				"tag:gateway-home:1883",
 				"tag:prod:22",
 				"tag:collector:8443",
@@ -313,7 +328,12 @@
 		{
 			"src":    "tag:drone",
 			"accept": ["tag:collector:8443"],
-			"deny":   ["tag:prod:22", "tag:gateway-home:1883", "actuator-granted:52432"],
+			"deny": [
+				"tag:prod:22",
+				"tag:gateway-home:1883",
+				"tag:gateway-home:22",
+				"actuator-granted:52432",
+			],
 		},
 
 		// Production is a destination, not a source. A compromised prod host
@@ -322,6 +342,7 @@
 			"src": "tag:prod",
 			"deny": [
 				"tag:gateway-home:8123",
+				"tag:gateway-home:22",
 				"actuator-granted:52432",
 			],
 		},
