@@ -386,8 +386,10 @@ def render(policy_text, agg=None, home=None):
                 f'<text x="{x0 + 14}" y="{y0 + 39}" class="s">about {home.get("total_about")} devices · '
                 f'{home.get("exposed_to_tailnet")} reachable from the tailnet</text>'
                 + "".join(rows)
-                + f'<text x="{x0 + 14}" y="{y0 + 62 + ((len(cats) + 1) // 2) * 19 + 2}" class="s">+ other, inactive or withheld</text>'
-                f'<text x="{x0 + 14}" y="{y0 + 174}" class="b">counted {E(home.get("counted_at", ""))} · cameras withheld</text></g>')
+                # Only when a category is unpublishable as a number of its own.
+                + (f'<text x="{x0 + 14}" y="{y0 + 62 + ((len(cats) + 1) // 2) * 19 + 2}" class="s">+ other, inactive or withheld</text>'
+                   if any(not isinstance(c.get("count"), int) for c in home.get("categories", [])) else "")
+                + f'<text x="{x0 + 14}" y="{y0 + 174}" class="b">counted {E(home.get("counted_at", ""))} · cameras withheld</text></g>')
 
     contours = f"""
 <rect x="12" y="10" width="222" height="120" rx="12" class="ct ci"/>
