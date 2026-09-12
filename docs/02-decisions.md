@@ -3144,6 +3144,12 @@ lab's governed share of the house look smaller than it is. A number on a page
 that says "every status here was read, not typed" has to be read the way it
 claims.
 
+The count is also narrower than "the house", and the page now says so: it is
+what the automation hub knows. A camera that was never integrated and the
+accessories that live only in the phone vendor's ecosystem are not in the
+registry and are not counted. A number is only as good as the sentence
+describing it.
+
 One category was folded on the counting session's advice. The residual group
 was three, and the cameras sit inside it, so publishing three would have given
 the camera count away by subtraction. It is merged with the pet-care devices

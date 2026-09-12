@@ -370,7 +370,7 @@ turns amber on its own.</p>
 
 <div class="brief">
 <div><h3>The one number</h3><p class="big">{routes_n} of ~{home.get("total_about")}</p>
-<p>devices in the house are reachable from the network overlay — each by one grant, on one port
+<p>devices the automation hub knows are reachable from the network overlay — each by one grant, on one port
 ({routes_note}). Everything else is refused by default.</p></div>
 <div><h3>Live, checked daily</h3><p>The policy in force equals <code>main</code>. {pol['accept'] + pol['deny']} policy
 assertions — {pol['deny']} of them refusals — run against the live network. CI holds no stored key for

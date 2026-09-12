@@ -1,7 +1,7 @@
 {
   "_what": "Devices in the house by type, for the evidence page's diagram. A snapshot counted by hand, not a live reading: giving CI a credential into the home automation hub to keep this current would be the wrong trade.",
   "counted_at": "2026-09-12",
-  "source": "the automation hub's device registry — devices, not entities. Software-only records (add-ons, integrations, weather, camera zones) are excluded, and a device recorded twice is counted once.",
+  "source": "Physical devices in the automation hub's device registry, all enabled; software and service entries excluded (add-ons, integrations, weather, virtual zones, bridges exported to other platforms); a device registered by two integrations counted once.",
   "rule": "No names, models, vendors or integration names. The number of cameras is not published (handoff 2.7). Categories that could be subtracted from a total to recover it are folded into one group, and the total is rounded. Classification checks vacuum before camera: a vacuum with a camera entity is still a vacuum.",
   "exposed_to_tailnet": 2,
   "total_about": 35,
@@ -51,5 +51,6 @@
     "HomeKit",
     "Wi-Fi",
     "a Thread / Zigbee radio"
-  ]
+  ],
+  "not_counted": "Devices the hub does not know: one camera that was never integrated, and accessories that live only in the phone vendor's ecosystem. So this is what the hub sees, not an inventory of the house."
 }
