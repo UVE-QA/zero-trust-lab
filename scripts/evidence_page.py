@@ -284,12 +284,9 @@ def render(measured, pol, dec, built, diagram, agg, home):
     every = "".join(card(*m) for m in measured["every"])
     drills = ""
     for d in json.loads((ROOT / "docs" / "drills.json").read_text()).get("drills", []):
-        drills += (f'<h3>{E(d["name"])} · {E(d["date"])}</h3><div class="grid">'
-                   f'<div class="fig"><b>{E(d["path_back"])}</b><span>for the network path to come back '
-                   f'after a {E(d["outage"])} outage, with no hands</span></div>'
-                   f'<div class="fig"><b>{E(d["readings_lost"])}</b><span>readings sent during the outage '
-                   f'were lost; {E(str(d["replayed"]))} replayed — nothing is buffered, by design</span></div>'
-                   f'<div class="fig"><b>{E(d["hands"])}</b><span>manual steps to recover</span></div></div>'
+        figs = "".join(f'<div class="fig"><b>{E(f["value"])}</b><span>{E(f["label"])}</span></div>'
+                       for f in d.get("figures", []))
+        drills += (f'<h3>{E(d["name"])} · {E(d["date"])}</h3><div class="grid">{figs}</div>'
                    f'<p class="ev">Not tested: {E(d["not_tested"])} · '
                    f'<a href="{blob}/{E(d["runbook"])}">runbook, with the timeline</a></p>')
     roadmap = "".join(
