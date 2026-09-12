@@ -3,8 +3,9 @@
 **Purpose.** Measure what happens to the telemetry stream when a link is lost,
 and what comes back without hands.
 
-**Status:** executed once, collector side, 2026-09-11. The household side (the
-hub losing its link) is Phase 6 and has not been run.
+**Status:** executed once, collector side, 2026-09-11, and re-run every 30
+days on the same cadence as the other drills. The household side (the hub
+losing its link) is Phase 6 and has not been run.
 
 ---
 
