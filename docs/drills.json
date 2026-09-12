@@ -1,15 +1,44 @@
 {
-  "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated.",
+  "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. Figures are rendered in order.",
   "drills": [
+    {
+      "name": "A device joins, changes role, and is revoked",
+      "date": "2026-09-11",
+      "runbook": "docs/runbooks/join-change-revoke.md",
+      "figures": [
+        {
+          "value": "1 of 8",
+          "label": "destinations a node in the sensor role could reach: the collector's ingest port, nothing else"
+        },
+        {
+          "value": "0 of 8",
+          "label": "the same machine after its role was changed in the console — with no edit to the policy"
+        },
+        {
+          "value": "1.6 s",
+          "label": "from removing the device to it being off the network, every destination refused"
+        }
+      ],
+      "not_tested": "posture, and anything the operator's own devices may reach"
+    },
     {
       "name": "Lost comms, collector side",
       "date": "2026-09-11",
       "runbook": "docs/runbooks/lost-comms.md",
-      "outage": "15 min 9 s",
-      "path_back": "11 s",
-      "readings_lost": "7 of 7",
-      "replayed": 0,
-      "hands": "none",
+      "figures": [
+        {
+          "value": "11 s",
+          "label": "for the network path to come back after a 15 min 9 s outage, with no hands"
+        },
+        {
+          "value": "7 of 7",
+          "label": "readings sent during the outage were lost; 0 replayed — nothing is buffered, by design"
+        },
+        {
+          "value": "none",
+          "label": "manual steps to recover"
+        }
+      ],
       "not_tested": "the hub's own link, and a node restart"
     }
   ]
