@@ -383,7 +383,7 @@ def render(policy_text, agg=None, home=None):
             rows.append(f'<text x="{cx}" y="{cy}" class="chip"><tspan class="n">{c["count"]}</tspan> {E(c["type"])}</text>')
         rest = (f'<g class="tile"><rect x="{x0}" y="{y0}" width="276" height="184" rx="10" fill="var(--card)" stroke="var(--line)"/>'
                 f'<text x="{x0 + 14}" y="{y0 + 22}" class="t">The rest of the house</text>'
-                f'<text x="{x0 + 14}" y="{y0 + 39}" class="s">about {home.get("total_about")} devices · '
+                f'<text x="{x0 + 14}" y="{y0 + 39}" class="s">about {home.get("total_about")} devices known to the hub · '
                 f'{home.get("exposed_to_tailnet")} reachable from the tailnet</text>'
                 + "".join(rows)
                 # Only when a category is unpublishable as a number of its own.
@@ -444,9 +444,11 @@ def render(policy_text, agg=None, home=None):
     if home:
         rows += (f'<tr><td><span class="sw" style="background:{COL["home"]}"></span>The rest of the house</td>'
                  f'<td><code>no route</code></td><td>About {home.get("total_about")} devices by type, counted by hand '
-                 f'on {E(home.get("counted_at", ""))} from the hub\'s registry. None is reachable from the '
-                 f'tailnet; the hub talks to them locally. The camera count is withheld, and categories that '
-                 f'would let it be subtracted are folded together.</td><td>D-008</td></tr>')
+                 f'on {E(home.get("counted_at", ""))} from the hub\'s registry — devices, not entities, and only '
+                 f'those the hub knows: a camera outside it and phone-vendor accessories are not in the count. '
+                 f'None is reachable from the tailnet; the hub talks to them locally. The camera count is '
+                 f'withheld, and categories that would let it be subtracted are folded together.</td>'
+                 f'<td>D-053</td></tr>')
     table = (f'<table class="why"><thead><tr><th>Part</th><th>Managed by · cost</th><th>What it is for</th>'
              f'<th>Why</th></tr></thead><tbody>{rows}</tbody></table>')
     return toggles + svg, legend, table, unplaced
