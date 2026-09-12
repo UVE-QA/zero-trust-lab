@@ -1,5 +1,5 @@
 {
-  "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. Figures are rendered in order.",
+  "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. cadence_days is how often the drill should be re-run; the page shows when the next one is due and scripts/drills_due.py raises an issue when it slips.",
   "drills": [
     {
       "name": "A device joins, changes role, and is revoked",
@@ -19,7 +19,8 @@
           "label": "from removing the device to it being off the network, every destination refused"
         }
       ],
-      "not_tested": "posture, and anything the operator's own devices may reach"
+      "not_tested": "posture, and anything the operator's own devices may reach",
+      "cadence_days": 30
     },
     {
       "name": "Lost comms, collector side",
@@ -39,7 +40,8 @@
           "label": "manual steps to recover"
         }
       ],
-      "not_tested": "the hub's own link, and a node restart"
+      "not_tested": "the hub's own link, and a node restart",
+      "cadence_days": 30
     }
   ]
 }

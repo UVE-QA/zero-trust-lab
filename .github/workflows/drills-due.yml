@@ -1,0 +1,25 @@
+name: drills-due
+
+# A measured number stops being evidence when it goes stale. This checks the
+# drills against their own cadence once a week and raises a single issue when
+# one has slipped. It reads the repository and writes nothing but that issue.
+
+on:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  due:
+    name: drills within their cadence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check each drill against its cadence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/drills_due.py

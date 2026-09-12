@@ -286,8 +286,15 @@ def render(measured, pol, dec, built, diagram, agg, home):
     for d in json.loads((ROOT / "docs" / "drills.json").read_text()).get("drills", []):
         figs = "".join(f'<div class="fig"><b>{E(f["value"])}</b><span>{E(f["label"])}</span></div>'
                        for f in d.get("figures", []))
-        drills += (f'<h3>{E(d["name"])} · {E(d["date"])}</h3><div class="grid">{figs}</div>'
-                   f'<p class="ev">Not tested: {E(d["not_tested"])} · '
+        cadence = int(d.get("cadence_days", 30))
+        due = dt.date.fromisoformat(d["date"]) + dt.timedelta(days=cadence)
+        left = (due - dt.date.today()).days
+        when = (f'<span class="st over">overdue by {-left} days</span>' if left < 0 else
+                f'<span class="st">due again in {left} days</span>')
+        drills += (f'<h3>{E(d["name"])} · {E(d["date"])} {when}</h3><div class="grid">{figs}</div>'
+                   f'<p class="ev">Re-run every {cadence} days, checked weekly by '
+                   f'<a href="{blob}/.github/workflows/drills-due.yml">drills-due.yml</a> · '
+                   f'not tested: {E(d["not_tested"])} · '
                    f'<a href="{blob}/{E(d["runbook"])}">runbook, with the timeline</a></p>')
     roadmap = "".join(
         f'<tr><td><b>{E(i["what"])}</b></td><td><span class="st">{E(i["state"])}</span></td>'
@@ -347,6 +354,7 @@ footer{{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:
 #n-gha.busy rect:first-of-type{{stroke:var(--cp);stroke-width:2.2}}
 @keyframes flow{{to{{stroke-dashoffset:-12}}}}@media (prefers-reduced-motion:reduce){{#labmap path.running{{animation:none}}}}
 .tw{{overflow-x:auto}}table.road td:first-child{{min-width:170px}}.st{{display:inline-block;font-size:12px;padding:1px 8px;border-radius:9px;background:var(--nonebg);color:var(--none);white-space:nowrap}}
+.st.over{{background:var(--stalebg);color:var(--stale)}}
 </style></head><body data-repo="{E(REPO)}"><main>
 <h1>zero-trust-lab · live evidence</h1>
 <p class="lede">A Zero Trust access model on a real home network, built in the open.

@@ -5,6 +5,9 @@ its identity and nothing else: the same machine on the same network, with the
 policy untouched throughout.
 
 **Status:** executed 2026-09-11. Lab roles only; the house was not involved.
+Re-run every 30 days: the numbers are evidence only while they are recent, so
+the evidence page shows when the next run is due and a weekly job raises an
+issue when it slips.
 
 ---
 

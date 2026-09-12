@@ -89,6 +89,14 @@ pipeline refused (D-041, PR #7, PR #8).
   ([runbook](docs/runbooks/lost-comms.md)). The household side stays in Phase 6.
 - The "after" half of the exposure reading, from a disposable node.
 
+**On a cadence, from now on**
+
+- The two drills re-run every 30 days: a device joining, changing role and
+  being revoked; and the telemetry stream losing its link. Their numbers are
+  only evidence while they are recent, so the page shows when each is due and
+  a weekly job raises an issue when one slips
+  ([drills-due.yml](.github/workflows/drills-due.yml)).
+
 **Weeks two to three — Phase 6**
 
 5. Blast radius, "after" reading, from a disposable node.
