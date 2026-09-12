@@ -16,6 +16,9 @@ on:
 
 permissions:
   contents: read
+  actions: read         # the page build reads this repository's run history
+  checks: read
+  pull-requests: read
 
 concurrency:
   group: policy-check-${{ github.ref }}
@@ -29,3 +32,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: lint the policy template
         run: ./scripts/policy-lint.py
+
+      # The evidence page parses the policy. Removing the SSH section passed
+      # every check here and then broke the page build after merge, where only
+      # the published site would have shown it. Building the page on the pull
+      # request moves that failure to where it can be fixed (D-052).
+      - name: the evidence page still builds from this policy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/evidence_page.py --out /tmp/page-check

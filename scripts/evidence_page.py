@@ -216,7 +216,10 @@ def branch_protected():
 # --- figures from the code ---------------------------------------------------
 def policy_figures():
     s = (ROOT / "policy" / "policy.hujson.tmpl").read_text()
-    grants = s[s.index('"grants"'):s.index('"ssh"')]
+    # Same boundary as the diagram's parser: SSH section if present, tests if
+    # not. The SSH section was removed when its rule became dead (D-042).
+    end = min(i for i in (s.find('"ssh"'), s.find('"tests"')) if i != -1)
+    grants = s[s.index('"grants"'):end]
     tests = s[s.index('"tests"'):]
     count = lambda key: sum(len(re.findall(r'"[^"]+"', m))
                             for m in re.findall(rf'"{key}":\s*\[([^\]]*)\]', tests))

@@ -3116,3 +3116,16 @@ the host reports SSH off, and it is the only node with that role. A rule that
 reads like a control and is not one is worse than no rule, so the section is
 now empty and says why. SSH to that host is plain OpenSSH over the tailnet,
 admitted by one grant, asserted by one test, and closed to the internet.
+
+## D-052 — Removing dead configuration broke the page, after merge
+
+The policy's SSH section went away, and two parsers — the page's figures and
+the diagram's arrows — had been slicing the file from `"grants"` to `"ssh"`.
+Every check passed: the lint, the tailnet's own tests, the drift check. The
+page build is the one thing that reads the policy and does not run on a pull
+request, so it failed after merge and the published page went stale for
+twenty minutes.
+
+Two fixes: both parsers now end the grants at whichever section follows, and
+**the pull request builds the page**. A check that only runs after merge is a
+check that reports damage rather than preventing it.
