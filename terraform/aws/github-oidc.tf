@@ -172,22 +172,6 @@ data "aws_iam_policy_document" "github_deploy_permissions" {
     resources = ["*"]
   }
 
-  # Two account-wide reads, for one claim on the evidence page: that this
-  # account has no IAM users and no root access keys. Neither action can be
-  # scoped -- IAM has no resource for either -- and both are counted rather
-  # than published: the page shows numbers, never a name. Without this the
-  # claim is a sentence in Terraform that nothing checks; with it, a read-only
-  # job re-reads it every week and the page says when (D-052).
-  statement {
-    sid    = "CountIamPrincipalsForTheEvidencePage"
-    effect = "Allow"
-    actions = [
-      "iam:ListUsers",
-      "iam:GetAccountSummary",
-    ]
-    resources = ["*"]
-  }
-
   statement {
     sid    = "ReadRolesAnywhereWhenItExists"
     effect = "Allow"

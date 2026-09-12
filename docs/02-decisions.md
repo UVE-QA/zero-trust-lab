@@ -3117,28 +3117,7 @@ reads like a control and is not one is worse than no rule, so the section is
 now empty and says why. SSH to that host is plain OpenSSH over the tailnet,
 admitted by one grant, asserted by one test, and closed to the internet.
 
-## D-052 — Two claims the page could not check, and one it broke
-
-### No long-lived key to the cloud account, now counted
-
-The page said "0 IAM users" because Terraform creates none. That is a claim
-about the code, not about the account: a user created by hand in the console
-would not appear anywhere on the page. The plan role now holds two account-wide
-reads — list users, and the account summary — and the weekly plan job writes
-what it finds: how many IAM users exist, and whether the root user has access
-keys. The page carries it as a check with its own date.
-
-Both actions are unscoped because IAM offers no resource to scope them to, and
-this account also holds another project. The trade is stated rather than
-waved through: the job may list principals, and publishes only counts — no
-name of any principal leaves it. The alternative, a claim nothing re-reads, is
-worse for a lab about verifying rather than asserting.
-
-The permission needs a `terraform apply`, which a person does. Until then the
-job is present and the page simply has no such reading; nothing shows a green
-tick it has not earned.
-
-### Removing dead configuration broke the page, after merge
+## D-052 — Removing dead configuration broke the page, after merge
 
 The policy's SSH section went away, and two parsers — the page's figures and
 the diagram's arrows — had been slicing the file from `"grants"` to `"ssh"`.
