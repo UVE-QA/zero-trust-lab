@@ -3129,3 +3129,23 @@ twenty minutes.
 Two fixes: both parsers now end the grants at whichever section follows, and
 **the pull request builds the page**. A check that only runs after merge is a
 check that reports damage rather than preventing it.
+
+## D-053 — The page overstated the house by counting entities as devices
+
+The diagram said "about 40 devices". It was not: that figure came from the
+automation hub's registry counted the wrong way. One device publishes several
+entities — a plug reports power, energy and a switch — and the count had swept
+in software-only records too: add-ons, integrations, the weather service, the
+recorder's zones. Several devices appeared twice.
+
+Recounted by the session that manages the house, by device: **33**, published
+as "about 35". Not a large error, and not a flattering one either — it made the
+lab's governed share of the house look smaller than it is. A number on a page
+that says "every status here was read, not typed" has to be read the way it
+claims.
+
+One category was folded on the counting session's advice. The residual group
+was three, and the cameras sit inside it, so publishing three would have given
+the camera count away by subtraction. It is merged with the pet-care devices
+and published as six. The rule was already written down; this is the first time
+it changed a published figure.

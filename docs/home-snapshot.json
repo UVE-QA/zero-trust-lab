@@ -1,18 +1,14 @@
 {
   "_what": "Devices in the house by type, for the evidence page's diagram. A snapshot counted by hand, not a live reading: giving CI a credential into the home automation hub to keep this current would be the wrong trade.",
-  "counted_at": "2026-09-10",
-  "source": "the automation hub's device registry, read-only, enabled devices only",
+  "counted_at": "2026-09-12",
+  "source": "the automation hub's device registry — devices, not entities. Software-only records (add-ons, integrations, weather, camera zones) are excluded, and a device recorded twice is counted once.",
   "rule": "No names, models, vendors or integration names. The number of cameras is not published (handoff 2.7). Categories that could be subtracted from a total to recover it are folded into one group, and the total is rounded. Classification checks vacuum before camera: a vacuum with a camera entity is still a vacuum.",
   "exposed_to_tailnet": 2,
-  "total_about": 40,
+  "total_about": 35,
   "categories": [
     {
-      "type": "lights",
-      "count": 6
-    },
-    {
-      "type": "plugs and switches",
-      "count": 5,
+      "type": "lights, plugs and switches",
+      "count": 8,
       "note": "two of them are the exposed pair"
     },
     {
@@ -20,12 +16,16 @@
       "count": 5
     },
     {
+      "type": "radios and bridges",
+      "count": 4
+    },
+    {
       "type": "media and TV",
       "count": 3
     },
     {
       "type": "phones, as presence",
-      "count": 3
+      "count": 2
     },
     {
       "type": "blinds",
@@ -36,17 +36,14 @@
       "count": 2
     },
     {
-      "type": "radios and bridges",
-      "count": 2
-    },
-    {
       "type": "robot vacuum",
       "count": 1,
       "note": "it carries a camera entity in the registry, so a camera-first classifier miscounted it; the owner corrected it. Home Assistant controls it through the vendor's cloud, not the local broker."
     },
     {
-      "type": "other, inactive or withheld",
-      "count": "the rest"
+      "type": "pet care, other, inactive or withheld",
+      "count": 6,
+      "note": "folded on purpose: the residual group is small enough that publishing it separately would give away the camera count"
     }
   ],
   "protocols": [
