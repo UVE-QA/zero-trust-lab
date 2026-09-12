@@ -3108,3 +3108,11 @@ event at the collector matches the recorder's stored record on id, label,
 camera, start, end and the median score. The single-frame score does not — it
 moved between the live message and the stored record — so the median is the
 field that counts, and the other is never used to join or compare.
+
+**D-042, the last piece: the dead rule is gone.** The policy still carried a
+Tailscale SSH rule for the production stand-in. It had done nothing since
+Tailscale SSH was turned off on that host, verified again before removing it:
+the host reports SSH off, and it is the only node with that role. A rule that
+reads like a control and is not one is worse than no rule, so the section is
+now empty and says why. SSH to that host is plain OpenSSH over the tailnet,
+admitted by one grant, asserted by one test, and closed to the internet.
