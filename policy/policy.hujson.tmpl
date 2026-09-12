@@ -179,19 +179,18 @@
 	],
 
 	// ------------------------------------------------------------------
-	// Tailscale SSH
+	// Tailscale SSH: none, deliberately
 	// ------------------------------------------------------------------
-	// The baseline allowed check-mode SSH to autogroup:self as root. Tagging
-	// the infrastructure removed those nodes from `self`, so this restates it
-	// narrowly: members may reach the production stand-in, in check mode.
-	"ssh": [
-		{
-			"action": "check",
-			"src":    ["autogroup:member"],
-			"dst":    ["tag:prod"],
-			"users":  ["autogroup:nonroot", "root"],
-		},
-	],
+	// There was a rule here allowing members check-mode Tailscale SSH to the
+	// production stand-in. It stopped doing anything the moment Tailscale SSH
+	// was turned off on that host, and a rule that reads like a control and is
+	// not one is worse than no rule (D-042). SSH there is now plain OpenSSH
+	// over the tailnet, admitted by the grant above and by nothing else, and
+	// the port is closed to the internet.
+	//
+	// The check mode is what caused that: it stops a session until someone
+	// completes a browser sign-in, which no non-interactive client can do, so
+	// every such client used the path the policy could not see.
 
 	// ------------------------------------------------------------------
 	// Tests. THE DELIVERABLE OF THIS PHASE.

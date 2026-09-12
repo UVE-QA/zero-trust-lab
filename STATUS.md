@@ -48,9 +48,6 @@ pipeline refused (D-041, PR #7, PR #8).
   reservations** (D-047). A camera that turned out to be the wrong one was
   withdrawn; the two remaining sockets were verified by their own identifiers.
   A daily identity check on each exposed address is next.
-- **The policy's `ssh` rule for production is dead configuration** since
-  Tailscale SSH was turned off on that host (D-042). It reads like a control and
-  is not one. To be removed.
 - **The blast-radius "before" reading was never taken.** It could only be taken
   while the tailnet was still allow-all, and that window closed with Phase 2.
   The exposure change is therefore stated from configuration — two `/24`
@@ -67,8 +64,8 @@ pipeline refused (D-041, PR #7, PR #8).
    fails rather than skipping when its denylist is unavailable, identifiers
    masked in logs, `main` protected for everyone (D-043).
 2. ~~Finish D-042~~ — production SSH closed to the internet, after the last
-   client was proven on the tailnet path. Left: exercise the break-glass path
-   once, and remove the dead `ssh` rule from the policy.
+   client was proven on the tailnet path, and the dead `ssh` rule removed.
+   Left: exercise the break-glass path once.
 
 **Next one to two weeks**
 
