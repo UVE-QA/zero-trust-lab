@@ -164,6 +164,28 @@ def tailnet_aggregate():
     return None
 
 
+def cloud_identity():
+    """Counts written by the plan job on main: how many IAM users exist in the
+    cloud account, and whether the root user has access keys. Numbers only --
+    the job that reads them can list principals and publishes none."""
+    runs = gh(f"/repos/{REPO}/actions/workflows/terraform-plan.yml/runs"
+              f"?branch=main&status=completed&per_page=20") or {}
+    for run in runs.get("workflow_runs", []):
+        if run.get("event") not in MAIN_EVENTS:
+            continue
+        arts = gh(f"/repos/{REPO}/actions/runs/{run['id']}/artifacts") or {}
+        for a in arts.get("artifacts", []):
+            if a.get("name") == "cloud-identity" and not a.get("expired"):
+                blob = gh_bytes(a["archive_download_url"])
+                if not blob:
+                    return None
+                with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                    c = json.loads(z.read("aggregate.json"))
+                c["_run"] = run.get("html_url")
+                return c
+    return None
+
+
 def plan_says_no_changes(log):
     # Terraform colours its output; the escape codes sit between the words of
     # the very sentence being looked for.
@@ -216,7 +238,10 @@ def branch_protected():
 # --- figures from the code ---------------------------------------------------
 def policy_figures():
     s = (ROOT / "policy" / "policy.hujson.tmpl").read_text()
-    grants = s[s.index('"grants"'):s.index('"ssh"')]
+    # Same boundary as the diagram's parser: SSH section if present, tests if
+    # not. The SSH section was removed when its rule became dead (D-042).
+    end = min(i for i in (s.find('"ssh"'), s.find('"tests"')) if i != -1)
+    grants = s[s.index('"grants"'):end]
     tests = s[s.index('"tests"'):]
     count = lambda key: sum(len(re.findall(r'"[^"]+"', m))
                             for m in re.findall(rf'"{key}":\s*\[([^\]]*)\]', tests))
@@ -497,6 +522,19 @@ def main():
     ]
     built = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     agg = tailnet_aggregate()
+    cloud = cloud_identity()
+    if cloud is not None:
+        ok = int(cloud.get("iam_users", -1)) == 0 and int(cloud.get("root_access_keys", 1)) == 0
+        live.append((
+            "Nobody holds a long-lived key to the cloud account",
+            "Counted in the account itself by the same read-only job that plans the stack: "
+            "IAM users, and whether the root user has access keys. Every identity that reaches "
+            "this account is federated and short-lived.",
+            {"ok": ok, "at": cloud.get("read_at"), "url": cloud.get("_run"),
+             "detail": f'{cloud.get("iam_users")} IAM users · root access keys: '
+                       f'{"none" if int(cloud.get("root_access_keys", 1)) == 0 else "present"}',
+             "sha": None, "event": None},
+            24 * 8))
     home = json.loads((ROOT / "docs" / "home-snapshot.json").read_text())
     diagram = evidence_diagram.render((ROOT / "policy" / "policy.hujson.tmpl").read_text(), agg, home)
     page = render({"live": [(c, w, r, s, *x) for c, w, r, s, *x in live],

@@ -216,7 +216,10 @@ def parse_policy(text):
     # read as a nested block and hide the operator's tests. Name them first.
     t = re.sub(r"\{\{\s*(\w+)\s*\}\}", r"@\1", re.sub(r"//[^\n]*", "", text))
     grants = []
-    body = t[t.index('"grants"'):t.index('"ssh"')]
+    # The grants run from their key to whatever section follows: the SSH
+    # section when there is one, the tests when there is not (D-042).
+    end = min(i for i in (t.find('"ssh"'), t.find('"tests"')) if i != -1)
+    body = t[t.index('"grants"'):end]
     for blk in re.findall(r"\{([^{}]*)\}", body):
         f = {k: re.findall(r'"([^"]+)"', v) for k, v in re.findall(r'"(\w+)":\s*\[([^\]]*)\]', blk)}
         if f.get("src") and f.get("dst"):

@@ -106,3 +106,27 @@ jobs:
             -var="github_owner_id=${{ github.repository_owner_id }}" \
             -var="github_repo_id=${{ github.repository_id }}" \
             -var="github_oidc_provider_exists=true"
+
+      # One claim on the evidence page is that nobody has a long-lived key in
+      # this account: no IAM users, no root access keys. Counted here, with the
+      # same read-only role, and published as numbers only -- no name of any
+      # principal leaves this job. Skipped on pull requests: the page reads
+      # this from main.
+      - name: count the account's IAM principals
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p cloud-identity
+          users=$(aws iam list-users --query 'length(Users)' --output text)
+          root_keys=$(aws iam get-account-summary --query 'SummaryMap.AccountAccessKeysPresent' --output text)
+          groups=$(aws iam get-account-summary --query 'SummaryMap.Groups' --output text)
+          mfa=$(aws iam get-account-summary --query 'SummaryMap.MFADevices' --output text)
+          printf '{"read_at":"%s","iam_users":%s,"root_access_keys":%s,"groups":%s,"mfa_devices":%s}\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$users" "$root_keys" "$groups" "$mfa" \
+            | tee cloud-identity/aggregate.json
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: cloud-identity
+          path: cloud-identity/
+          retention-days: 90
