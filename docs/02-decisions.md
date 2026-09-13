@@ -3395,3 +3395,44 @@ of configuration and the reason it exists is the more useful half.
 
 Reaching a port and being allowed to write to what is behind it are two
 permissions. The network can only ever grant the first one.
+
+---
+
+## D-060 — the production shell now depends on the state of the device
+
+**2026-09-13.** Removing Tailscale SSH (D-042) removed a dead rule, but it also
+removed the only per-session check this plan offered: SSH check mode could
+demand re-authentication before a session began. What was left was a standing
+grant from a group to a port, conditional on nothing. A laptop left open in a
+café had the same access as a laptop in a locked flat, because the policy could
+not tell them apart and was not asking.
+
+Posture is what the plan does offer, and the lab already proved it changes
+outcomes — the actuator grant has been gated on it since Phase 3. So the
+production SSH grant is now gated too, on `posture:currentOperator`: state
+encrypted at rest, the stable release track, and a client version at or above
+1.100.
+
+The version floor is the new part and the arguable one. It sits one minor
+series below what the fleet actually runs, so a client that has stopped
+updating loses the production shell while it is merely behind rather than once
+it is ancient. Every node in this tailnet reports 1.102.3 today, so the floor
+costs nothing right now; that is the point at which to add it, not later. It is
+raised by hand, and the console lists which devices pass and fail each posture,
+so the cost of raising it can be read before it is paid.
+
+What this is not: it is not re-authentication, and it is not attestation. Every
+attribute here is reported by the client about itself, on a plan with no MDM or
+EDR to check the report — a compromised node can say what it likes. It moves
+the grant from *unconditional* to *conditional on something the device says*,
+which is worth having and is worth not overstating. The tile on the diagram
+that would fix it is MDM/EDR, priced, unbought.
+
+Three assertions fail one attribute each — behind on releases, unencrypted at
+rest, unstable build — so the gate is demonstrated rather than declared. And
+the accept assertion carries the passing attributes, because the grant does:
+after this change a test without posture attributes would be refused, which is
+its own small proof that the gate is real.
+
+Measured after the apply: the operator laptop passes the new posture in the
+console and its production SSH session was unaffected.
