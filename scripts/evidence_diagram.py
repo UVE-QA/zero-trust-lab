@@ -369,6 +369,10 @@ def render(policy_text, agg=None, home=None):
     # --- data inside the house: no tailnet path, drawn by hand ---------------
     arrow("data", [(130, 610), (130, 545), (505, 545), (505, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
     layers["data"].append(label(300, 545, "visit events · LAN", "#3f8624", "lbl f"))
+    # The robot's own line reaches the hub the long way round -- out to the
+    # vendor's cloud and back -- which the label says and the drawing cannot.
+    arrow("data", [(340, 610), (340, 568), (520, 568), (520, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(380, 568, "state · via the vendor's cloud", "#3f8624", "lbl f"))
 
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts, n_tests) for n in NODES)
