@@ -506,7 +506,9 @@ def main():
          negative_control(8, "tailnet tests (validate, read-only)"), 10**9, True),
         ("Cloud infrastructure matches its code",
          "A read-only plan against the cloud account, authenticated by federation — "
-         "no access keys exist. CI can plan; only a person can apply.",
+         "no access keys exist. The role that plans cannot change anything; the role that "
+         "applies is assumable only from an environment that holds the run until a named "
+         "person approves it, and cannot modify its own permissions.",
          latest_job("terraform-plan.yml", "plan", need=plan_says_no_changes), 24 * 8),
     ]
     every = [

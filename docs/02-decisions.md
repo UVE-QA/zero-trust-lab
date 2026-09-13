@@ -3242,3 +3242,18 @@ the lab to stop depending on one laptop. So:
 What this does not change: the account is still the boundary (D-042), and the
 first apply of any change to the apply path itself comes from a person. The
 bootstrap cannot be delegated to the thing being bootstrapped.
+
+### Proven, including the part that had to fail first
+
+Adding the apply role broke the plan: the plan reads every resource in the
+stack, and its read list named two roles by ARN, not the new third. The fix —
+one more ARN in that list — could not be planned by the role that needed it,
+which is the same bootstrap problem one layer down. It became the first change
+this project applied through CI rather than from a terminal: dispatched with a
+typed confirmation, held by GitHub until the owner approved it, applied by the
+apply role from the same commit, one resource changed. The next plan reported
+no changes.
+
+Worth keeping because the sequence is the argument: a gate that can be routed
+around by the thing it gates is not a gate, and the only way to find out is to
+make it do work.
