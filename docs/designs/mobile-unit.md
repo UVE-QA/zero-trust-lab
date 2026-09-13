@@ -1,7 +1,9 @@
 # Design — a mobile unit the lab can ask, and cannot command
 
-**Status:** proposal. Nothing built, nothing changed on the hub. It needs the
-owner's decision, and the household session's agreement on the guards.
+**Status:** decided and half built. The owner said yes, with an allowlist of
+exactly one command: the light clean of the cat area. The lab side exists and
+is tested; the hub side is drafted and waits for the household session to
+correct it and the owner to approve it there. Nothing on the hub has changed.
 
 The lab has a role, `tag:drone`, for a unit that both reports and takes
 commands. It has never had a device. The candidate is the house's robot vacuum:
@@ -64,8 +66,10 @@ script; anything it does not recognise is ignored and logged.
 
 ### The allowlist, kept short on purpose
 
-Proposed, for the owner to confirm: the pet-area scenario, pause, return to
-dock, and possibly the front-door scenario.
+**Decided: one entry.** The light clean of the cat area, and nothing else — not
+even pause or return-to-dock, unless the household session judges a stop
+necessary for safety. A list of one is not a limitation of the design; it is
+the design. Every extra name is a thing a compromised collector could ask for.
 
 **Never exposed:** whole-map start (the vendor's `start` cleans everything, a
 trap recorded by the house), any setting, do-not-disturb, child lock,
@@ -97,7 +101,30 @@ robot's coordinates, or the network details — a floor plan and a position
 inside the flat are exactly the kind of thing a public evidence page must not
 carry, and the lab has no use for them.
 
-## What the owner decides
+## What the lab side actually does, as built
+
+`GET /command` on the collector's ingest port answers `{}`, or one queued name
+and an id. It is handed over **once**: the next ask gets `{}` again, so a lost
+reply loses the command instead of repeating it — the safer way round for a
+machine that moves. An operator queues one with
+[`collector/ask.sh`](../../collector/ask.sh), which writes a file next to the
+readings; it commands nothing, it leaves a name where the hub will look.
+
+Measured after deploying it: from an operator's laptop — a member device — that
+URL gets no answer at all, because no grant admits it. Only the hub's role may
+ask. The control for that measurement is the hub's own UI, which the same
+laptop opens.
+
+## What the owner decided
+
+1. **Yes**, the vacuum becomes the lab's mobile unit.
+2. **One command**: the light clean of the cat area. Quiet hours to match the
+   robot's own, unless the household session knows better.
+3. **Refusals may be published as counts** — how many were asked for, how many
+   the house refused, and why. No timestamps and no sequence: a count says the
+   guard works, a timeline says when the cat eats and when the flat is empty.
+
+## What remains open
 
 1. Whether the vacuum becomes a lab unit at all.
 2. The allowlist, and the quiet hours.
@@ -105,5 +132,7 @@ carry, and the lab has no use for them.
    which would be the most interesting part to a reader and says something
    about the household's routine.
 
-If the answer is no, this file stays as the record of a path considered and
-declined, with the reason — which is worth as much as a built feature.
+The hub side: the exact entity ids, whether a stop belongs on the list after
+all, the daily cap, and the shape of the response variable on this version of
+the hub. Those are the household session's to correct, and the owner's to
+approve there — the same order as every other change that touches the house.
