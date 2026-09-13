@@ -289,7 +289,7 @@
 		// are part of the grant: this is the operator on a device that is
 		// encrypted at rest, on the stable track, and current.
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
 			"srcPostureAttrs": {
 				"node:tsStateEncrypted": true,
 				"node:tsReleaseTrack":   "stable",
@@ -301,7 +301,7 @@
 		// The same person, refused three times, one failing attribute each.
 		// A device behind on releases:
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
 			"srcPostureAttrs": {
 				"node:tsStateEncrypted": true,
 				"node:tsReleaseTrack":   "stable",
@@ -312,7 +312,7 @@
 
 		// A device that does not encrypt its tailnet state at rest:
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
 			"srcPostureAttrs": {
 				"node:tsStateEncrypted": false,
 				"node:tsReleaseTrack":   "stable",
@@ -323,7 +323,7 @@
 
 		// And a device running an unstable build:
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
 			"srcPostureAttrs": {
 				"node:tsStateEncrypted": true,
 				"node:tsReleaseTrack":   "unstable",

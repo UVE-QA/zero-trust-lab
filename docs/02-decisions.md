@@ -3434,5 +3434,21 @@ the accept assertion carries the passing attributes, because the grant does:
 after this change a test without posture attributes would be refused, which is
 its own small proof that the gate is real.
 
-Measured after the apply: the operator laptop passes the new posture in the
-console and its production SSH session was unaffected.
+Measured after the apply, in the console's own posture view: **all four
+operator devices pass** `posture:currentOperator` — laptop, iMac, phone and
+iPad — with zero access-blocking failures, and a fresh SSH session to the
+production host succeeded at 22:16 UTC, four minutes after the file was saved.
+Nothing was lost to the gate, which is the expected result when every client
+reports 1.102.3 and is also the reason the floor was cheap to add today.
+
+One more thing the apply taught, extending D-051: the console's formatter does
+not only expand long one-line arrays. It also **collapses aligned padding**
+inside an object that contains a nested map — `"src":` followed by several
+spaces became `"src": ` in each of the four new assertions, while the same
+alignment survives untouched in objects whose keys are all simple. The saved
+file therefore differed from the render by 4 bytes of whitespace and nothing
+else, which the drift check would have caught tomorrow. It was found the same
+way it was found last time: hash the live file, compare, and when the hashes
+differ, compare again with whitespace collapsed to learn whether the
+disagreement is about content or about layout. It was layout; the template now
+writes what the console writes.
