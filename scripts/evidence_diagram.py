@@ -109,6 +109,12 @@ NODES = {
                   "run a client, so their readings arrive through the hub. Simulated ones would run "
                   "on the cloud dev host, which serves two projects on 2 GB and no swap: deferred. "
                   "A real one is a single-board computer and a sensor, about $30.", "Phase 6"),
+    "tester":    (980, 432, "idp", "planned", "Test user", "group:testers · suspended",
+                  "dormant", ["group:testers"], "A second person, kept for drills. In the tailnet "
+                  "and in a group worth exactly one port on the collector -- nothing in the house, on "
+                  "production or on anyone's laptop. Suspended between drills, so the grant is dormant: "
+                  "measured at 0 of 8 destinations while suspended, 1 of 8 when restored, and the switch "
+                  "between the two takes about three seconds (D-058).", "D-058"),
     "prod":      (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),
@@ -187,6 +193,7 @@ ROUTES = {
     ("gateway", "collector"):           ([(680, 348), (760, 348)], (720, 348)),
     ("collector", "gateway"):           ([(760, 376), (680, 376)], (720, 376)),
     ("sensor", "collector"):            ([(980, 361), (940, 361)], (960, 361)),
+    ("tester", "collector"):            ([(1070, 432), (1070, 412), (880, 412), (880, 392)], (975, 412)),
     ("drone", "collector"):             ([(850, 432), (850, 392)], (878, 412)),
     # refusals, drawn from the tests
     ("prod", "gateway"):                ([(980, 302), (640, 302), (640, 330)], (880, 302)),
