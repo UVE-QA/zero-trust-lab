@@ -13,6 +13,10 @@ Nothing is published on the host's own interfaces. The receiver accepts one
 path, `POST /ingest`, one small JSON reading per request, and appends it with
 its arrival time and sender address to `readings.jsonl` in the data volume.
 
+It accepts that write from the automation hub and from nobody else. Reaching
+the port and being allowed to write to the record are two different
+permissions, and the receiver now holds the second one itself (D-059).
+
 ## Run
 
 The data volume is made writable for the unprivileged user once:
@@ -41,6 +45,7 @@ docker run -d --name zt-collector-ingest \
   --user 65534:65534 --memory 64m --pids-limit 32 \
   --restart unless-stopped \
   -e LISTEN_ADDR="$(docker exec zt-collector-ts tailscale ip -4)" \
+  -e INGEST_FROM="$HUB_ADDR" \
   -v "$HOME/zt-collector/receiver.py:/app/receiver.py:ro" \
   -v zt-collector-data:/data \
   python:3.13-alpine python3 /app/receiver.py
@@ -77,5 +82,11 @@ the machine in the Tailscale console.
   than engineered around.
 - Readings stay on the host. Moving them to the archive bucket is the
   certificate-based cloud access of Phase 5.
-- No sender authentication in the application. The tailnet policy decides who
-  reaches the port; the receiver records who did.
+- The sender is identified by its tailnet address and nothing more. That is a
+  real credential here — the control plane assigns the address and binds it to
+  a node key, and a packet arriving over the tunnel cannot forge one — but it
+  is the tailnet's assurance, not the application's. If the collector ever
+  takes readings from outside this tailnet, it needs its own.
+- `INGEST_FROM` is set from the local inventory when the container is created,
+  so an address that changes has to be re-applied by hand. One sender, one
+  line; a fleet would want the hub to be looked up rather than typed.

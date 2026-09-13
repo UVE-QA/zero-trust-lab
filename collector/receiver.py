@@ -2,12 +2,23 @@
 """The collector's ingest endpoint: one port, one path, append-only.
 
 Readings are pushed to it by the automation hub (D-049). Nothing here reaches
-out, and nothing here authenticates the sender, deliberately: the tailnet
-policy is the credential. The port is reachable only from the roles the policy
-names, and the server binds only to the node's tailnet address, so nothing
-else on the host reaches it either.
+out. The port is reachable only from the roles the policy names, and the
+server binds only to the node's tailnet address, so nothing else on the host
+reaches it either.
 
-    LISTEN_ADDR=<tailnet address> ./receiver.py
+There is no password, and there will not be one: the sender's tailnet address
+is the credential. That address is not a claim the sender makes -- it is
+assigned by the control plane and bound to a node key, and packets carrying
+any other source address never arrive over the tunnel. So the server accepts
+writes only from the addresses in INGEST_FROM, which today is the automation
+hub alone (D-059). The policy decides who may knock; this decides who may
+write, and the two are not the same question -- a policy that admits a reader
+to the port should not thereby admit a writer to the record.
+
+    LISTEN_ADDR=<tailnet address> INGEST_FROM=<hub address> ./receiver.py
+
+INGEST_FROM is a comma-separated list, and it is required: a collector that
+would take a reading from anyone is a collector whose record means nothing.
 
 Each accepted reading becomes one JSON line in $DATA_DIR/readings.jsonl, with
 the time it arrived and the tailnet address it came from. Arrival time, not
@@ -27,6 +38,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 LISTEN_ADDR = os.environ.get("LISTEN_ADDR", "")
 PORT = int(os.environ.get("PORT", "8443"))
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
+INGEST_FROM = [a.strip() for a in os.environ.get("INGEST_FROM", "").split(",") if a.strip()]
 MAX_BODY = 4096                 # one reading, not a batch
 MAX_FILE = 5 * 1024 * 1024      # then rotate once; the archive is Phase 5's job
 
@@ -54,6 +66,12 @@ class Ingest(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/ingest":
             return self.reply(404)
+        # Refused before the body is read: an unwelcome sender does not get to
+        # spend the collector's memory on a request it was never going to
+        # keep. 403 rather than 404 -- the port is open to them by policy, and
+        # pretending otherwise would only make the next drill harder to read.
+        if self.client_address[0] not in INGEST_FROM:
+            return self.reply(403)
         try:
             n = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -94,6 +112,8 @@ class Ingest(BaseHTTPRequestHandler):
 def main():
     if not LISTEN_ADDR:
         sys.exit("LISTEN_ADDR is required: bind to the tailnet address, never to all interfaces")
+    if not INGEST_FROM:
+        sys.exit("INGEST_FROM is required: name the senders whose readings count")
     ThreadingHTTPServer((LISTEN_ADDR, PORT), Ingest).serve_forever()
 
 

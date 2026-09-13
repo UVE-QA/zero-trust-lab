@@ -3352,3 +3352,46 @@ the lab, and while the user is suspended that grant is dormant.
 One thing this makes concrete for the growth path: the group is edited by hand
 here. An identity provider would remove someone from it by their leaving; a
 file will not.
+
+---
+
+## D-059 — the test user's one door is a real device, and the collector stopped taking anybody's word
+
+**2026-09-13.** The test user's single grant pointed at the collector's ingest
+port. That was convenient and wrong twice over.
+
+Wrong as a demonstration: the collector is a container that exists because this
+lab exists. Granting a person access to it proves that a grant can be narrow,
+but not that the network protects anything anyone would miss. The point of a
+zero-trust lab on real hardware is that the things behind the policy are real,
+so the test user's one destination is now a device the household actually owns
+and uses — the media appliance, `tag:appliance`, one port, AirPlay. Nothing
+else in the house, on production, or on anyone's laptop. If that grant is ever
+abused the worst case is that something starts playing in the living room,
+which is a blast radius the owner can look at directly.
+
+Wrong as a permission: `POST /ingest` writes. The policy admits a source to a
+port; it has no opinion about what the request then does, and the receiver had
+none either — it authenticated nobody, deliberately, on the argument that the
+tailnet was the credential. That argument holds for *reaching* the port. It
+does not hold for *the record*: for two weeks any identity the policy admitted
+could have appended readings that looked exactly like the house's, and the
+lost-comms drill measures gaps in precisely that file. A test identity able to
+forge the evidence makes the evidence worthless.
+
+So the receiver now decides for itself. `INGEST_FROM` names the senders whose
+readings count — today the automation hub, alone — and everything else is
+refused with 403 before the body is read. The address is a credential worth
+resting on here and it is worth being precise about why: a tailnet address is
+not something the sender asserts. The control plane assigns it and binds it to
+a node key, and a packet arriving over the tunnel with any other source
+address does not arrive. That is a different thing from trusting a LAN
+address, which is asserted by whoever is on the LAN.
+
+Measured after deployment: a request from the collector's own node — a sender
+the policy lets nowhere near, but as close to the receiver as anything can be
+— got **403**. The hub's own readings continued to land. The check is one line
+of configuration and the reason it exists is the more useful half.
+
+Reaching a port and being allowed to write to what is behind it are two
+permissions. The network can only ever grant the first one.
