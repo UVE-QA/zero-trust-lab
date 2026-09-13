@@ -1,6 +1,8 @@
 # Design — a mobile unit that reports, and that nothing outside can move
 
-**Status:** settled, and narrower than it started. The owner decided that the
+**Status:** live, and narrower than it started. Telemetry has been arriving
+since 2026-09-13 18:20 UTC; the house's own automation runs the tidy after the
+litter box finishes its cycle, with no involvement from the lab. The owner decided that the
 house triggers the robot itself — after the litter box finishes its own
 cleaning cycle, within 09:00–18:00, and a night visit becomes one run at 09:00.
 The lab receives **telemetry only**. The command channel described below was
@@ -77,10 +79,25 @@ and by test (D-049). Every shape considered had to keep that true:
 
 ## Publishing
 
-Counts of runs only, if anything: no times, no sequence. A timeline of when the
-robot cleaned the cat's area is a timeline of when the cat used it and when the
-flat was empty. The command-outcome buckets that an earlier version of this
-document proposed no longer exist, because the commands do not.
+The owner was asked whether the run times should be dropped from what the
+collector keeps, since a post-litter clean is a visit to the litter box wearing
+a different hat. His answer: they are not secret, keep them and store them
+openly. So they are kept, with his knowledge, rather than kept quietly.
+
+What the page shows stays modest anyway: a count of runs and how fresh the
+stream is. A page that lists when a flat is empty is a different document from
+one that shows a policy working, and only the second is what this is for. The
+command-outcome buckets an earlier version proposed do not exist, because the
+commands do not.
+
+## Live, as measured
+
+The first push arrived on the change that applying it caused, at 18:20:45.381Z;
+the first scheduled tick at 18:25:45.341Z — on its second-45 offset, clear of
+the temperature push. The sender is identified by the collector's own lookup as
+the hub, `tag:gateway-home`, not by an address it was told to trust. Fields:
+battery, state, task and dock status, error, cleaning area and time. No map,
+no coordinates, no network details.
 
 ## Kept for the record: the channel as it was reviewed
 
