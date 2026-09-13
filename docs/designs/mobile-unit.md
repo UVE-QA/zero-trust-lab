@@ -136,3 +136,163 @@ The hub side: the exact entity ids, whether a stop belongs on the list after
 all, the daily cap, and the shape of the response variable on this version of
 the hub. Those are the household session's to correct, and the owner's to
 approve there — the same order as every other change that touches the house.
+
+---
+
+## The hub side, drafted
+
+Facts below were read from the hub by the household session; the guard values
+are its conservative proposal. The command names are the lab's vocabulary and
+mean nothing until the hub maps them, which is the point.
+
+**Two helpers**, created without a restart: `input_text.zt_lab_last_command_id`
+(so a repeated id is ignored) and `counter.zt_lab_vacuum_starts` (the daily
+cap, reset at midnight).
+
+```yaml
+# configuration.yaml, alongside the existing rest_command block
+  zt_lab_ask_command:
+    url: !secret zt_collector_command_url
+    method: GET
+    timeout: 5
+
+  zt_lab_push_command_result:
+    url: !secret zt_collector_ingest_url
+    method: POST
+    content_type: "application/json"
+    timeout: 5
+    payload: >-
+      {"sensor":"vacuum_command","value":{{ (result == 'accepted') | int }},
+       "id":{{ id | tojson }},"command":{{ command | tojson }},
+       "result":{{ result | tojson }},"ts":"{{ now().isoformat() }}"}
+
+  zt_lab_push_vacuum:
+    url: !secret zt_collector_ingest_url
+    method: POST
+    content_type: "application/json"
+    timeout: 5
+    payload: >-
+      {"sensor":"vacuum","value":{{ states('sensor.eufy_ae_c10_battery') | float(0) | tojson }},
+       "state":{{ states('vacuum.eufy_ae_c10') | tojson }},
+       "task_status":{{ states('sensor.eufy_ae_c10_task_status') | tojson }},
+       "dock_status":{{ states('sensor.eufy_ae_c10_dock_status') | tojson }},
+       "error":{{ states('sensor.eufy_ae_c10_error_message') | tojson }},
+       "cleaning_area":{{ state_attr('vacuum.eufy_ae_c10','cleaning_area') | tojson }},
+       "cleaning_time":{{ state_attr('vacuum.eufy_ae_c10','cleaning_time') | tojson }},
+       "ts":"{{ now().isoformat() }}"}
+```
+
+```yaml
+# automations.yaml -- the ask
+- id: zt_lab_vacuum_ask
+  alias: "zero-trust-lab: ask the collector for a command"
+  description: "Lab mobile-unit channel. The allowlist and every guard are here, not in the lab."
+  mode: single
+  triggers:
+    - trigger: time_pattern
+      minutes: "/5"
+  actions:
+    - action: rest_command.zt_lab_ask_command
+      response_variable: reply
+      continue_on_error: true
+    - variables:
+        body: "{{ reply.content if reply is defined and reply.content is mapping else {} }}"
+        cmd: "{{ body.command | default('', true) }}"
+        cmd_id: "{{ body.id | default('', true) }}"
+        reason: >-
+          {% if is_state('binary_sensor.cat_cam_cat_occupancy','on') %}cat_at_station
+          {% elif not is_state('vacuum.eufy_ae_c10','docked') %}not_docked
+          {% elif states('sensor.eufy_ae_c10_battery') | float(0) < 50 %}battery
+          {% elif states('sensor.eufy_ae_c10_error_message') not in ['','unknown','None'] %}robot_error
+          {% elif not (9 <= now().hour < 20) %}quiet_hours
+          {% elif states('counter.zt_lab_vacuum_starts') | int(0) >= 2 %}daily_cap
+          {% else %}occupancy_settling{% endif %}
+    - condition: template
+      value_template: "{{ cmd != '' and cmd_id != states('input_text.zt_lab_last_command_id') }}"
+    - action: input_text.set_value
+      target: {entity_id: input_text.zt_lab_last_command_id}
+      data: {value: "{{ cmd_id }}"}
+    - choose:
+        - conditions: "{{ cmd == 'pet_litter_light' }}"
+          sequence:
+            - choose:
+                - conditions:
+                    - condition: state
+                      entity_id: binary_sensor.cat_cam_cat_occupancy
+                      state: "off"
+                      for: "00:10:00"
+                    - condition: state
+                      entity_id: vacuum.eufy_ae_c10
+                      state: "docked"
+                    - condition: numeric_state
+                      entity_id: sensor.eufy_ae_c10_battery
+                      above: 49
+                    - condition: template
+                      value_template: "{{ states('sensor.eufy_ae_c10_error_message') in ['','unknown','None'] }}"
+                    - condition: time
+                      after: "09:00:00"
+                      before: "20:00:00"
+                    - condition: numeric_state
+                      entity_id: counter.zt_lab_vacuum_starts
+                      below: 2
+                  sequence:
+                    - action: script.vacuum_pet_litter
+                    - action: counter.increment
+                      target: {entity_id: counter.zt_lab_vacuum_starts}
+                    - action: rest_command.zt_lab_push_command_result
+                      data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: accepted}
+              default:
+                - action: rest_command.zt_lab_push_command_result
+                  data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: "refused:{{ reason }}"}
+      default:
+        - action: rest_command.zt_lab_push_command_result
+          data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: "refused:unknown_command"}
+
+# the daily cap resets with the day
+- id: zt_lab_vacuum_cap_reset
+  alias: "zero-trust-lab: reset the lab daily vacuum cap"
+  mode: single
+  triggers:
+    - trigger: time
+      at: "00:00:00"
+  actions:
+    - action: counter.reset
+      target: {entity_id: counter.zt_lab_vacuum_starts}
+
+# telemetry, the same push pattern as the temperature
+- id: zt_lab_push_vacuum
+  alias: "zero-trust-lab: push vacuum state to collector"
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id:
+        - vacuum.eufy_ae_c10
+        - sensor.eufy_ae_c10_task_status
+        - sensor.eufy_ae_c10_error_message
+        - sensor.eufy_ae_c10_dock_status
+      to: ~
+    - trigger: time_pattern
+      minutes: "/5"
+  actions:
+    - action: rest_command.zt_lab_push_vacuum
+      continue_on_error: true
+```
+
+Never pushed: the map image, the robot's coordinates, and the network details.
+A floor plan and a position inside the flat have no place on a public page.
+
+### Delivery: at most once, on purpose
+
+The collector hands a command over as it is served and forgets it. If the
+reply is lost, the command is lost and the operator queues it again; the
+alternative -- keep serving until acknowledged -- turns a lost acknowledgement
+into a second clean. The hub's memory of the last id stays as a second belt:
+two mechanisms, both cheap, and the failure mode of each is that nothing moves.
+
+### Still the owner's, not mine to widen
+
+The household session proposes four names: the cat-area light clean, a
+front-door clean, pause, and return to dock. The owner named **one**. Pause and
+return to dock only ever stop a machine that is already moving, so they are put
+to him as safety rather than as scope; the front-door clean is scope, and stays
+off the list unless he says otherwise.
