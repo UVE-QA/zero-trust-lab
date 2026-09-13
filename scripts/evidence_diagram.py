@@ -99,11 +99,11 @@ NODES = {
                   "tag", ["tag:collector"], "Telemetry sink: a container on the cloud dev host, "
                   "outside the house. The hub pushes readings to it on one port; it has no way "
                   "in, and the tests assert that.", "D-049"),
-    "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · not built",
-                  "design pending", ["tag:drone"], "A unit that reports AND takes commands. The "
-                  "candidate is the house's robot vacuum, which cannot run a client: it would need "
-                  "an adapter with a path into the hub, which is a widening to decide, not a default.",
-                  "Phase 6"),
+    "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · not built, by choice",
+                  "decided", ["tag:drone"], "A unit that takes commands over the tailnet. The candidate "
+                  "was the house's robot vacuum; a command channel was built, reviewed and then retired "
+                  "when the owner chose to have the house trigger it itself. The role stays empty on "
+                  "purpose: nothing outside the house can move that machine.", "D-056"),
     "sensor":    (980, 330, "antenna", "planned", "Sensors", "tag:sensor · not built",
                   "deferred", ["tag:sensor"], "Push-only field units. The house's own sensors cannot "
                   "run a client, so their readings arrive through the hub. Simulated ones would run "
@@ -122,15 +122,17 @@ NODES = {
                   "one /32", ["actuator-control"], "The same model on the same port, never "
                   "granted. Proves least privilege is per host, not per protocol.", "D-010"),
     # Home devices the lab uses without any route to them.
-    "catcam":    (270, 610, "camera", "home", "Cat camera", "released · events only",
+    "catcam":    (40, 610, "camera", "home", "Cat camera", "released · events only",
                   "no route", [], "The one camera the owner released for the lab. Nothing on the "
                   "tailnet can reach it: the recorder in the house watches it, and at the end of each "
                   "visit the hub pushes the event -- id, times, scores, no image -- to the collector. "
                   "Named in the recorder, never addressed.", "D-049"),
-    "vacuum":    (270, 720, "vacuum", "home", "Robot vacuum", "via the vendor's cloud",
-                  "no route · not built", [], "Run by the hub through its vendor's cloud, not the home "
-                  "network. The candidate for the mobile-unit role; it cannot run a client, so it would "
-                  "need an adapter with a path into the hub -- a widening to decide, not built.", "Phase 6"),
+    "vacuum":    (40, 720, "vacuum", "home", "Robot vacuum", "reports only",
+                  "no route", [], "The lab's only moving machine. It cannot run a client, and the hub "
+                  "reaches it through the vendor's cloud rather than the home network. It reports state, "
+                  "battery, task and area through the hub; the house alone starts it, on its own trigger "
+                  "when the litter box finishes. A command channel was built for this and retired "
+                  "unused, so nothing outside the house can move it at all.", "D-056"),
 }
 # The growth path: not built. What a multi-user or company deployment adds,
 # and where each part would plug in. Drawn so a reader can see the lab's
@@ -365,31 +367,33 @@ def render(policy_text, agg=None, home=None):
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
     # --- data inside the house: no tailnet path, drawn by hand ---------------
-    arrow("data", [(360, 610), (360, 545), (630, 545), (630, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
-    layers["data"].append(label(470, 545, "visit events · LAN", "#3f8624", "lbl f"))
+    arrow("data", [(130, 610), (130, 545), (630, 545), (630, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(330, 545, "visit events · LAN", "#3f8624", "lbl f"))
 
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts, n_tests) for n in NODES)
 
     proto, rest = "", ""
     if home:
-        proto = (f'<text x="258" y="826" class="ctn">connected over: '
+        proto = (f'<text x="40" y="846" class="ctn">connected over: '
                  f'{E(" · ".join(home.get("protocols", [])))}</text>')
         cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
         x0, y0 = 900, 596
         rows = []
+        # One column: two made the longer category names collide.
         for i, c in enumerate(cats):
-            cx, cy = x0 + 14 + (i % 2) * 134, y0 + 62 + (i // 2) * 19
-            rows.append(f'<text x="{cx}" y="{cy}" class="chip"><tspan class="n">{c["count"]}</tspan> {E(c["type"])}</text>')
-        rest = (f'<g class="tile"><rect x="{x0}" y="{y0}" width="276" height="184" rx="10" fill="var(--card)" stroke="var(--line)"/>'
+            cy = y0 + 60 + i * 18
+            rows.append(f'<text x="{x0 + 14}" y="{cy}" class="chip"><tspan class="n">{c["count"]}</tspan> {E(c["type"])}</text>')
+        h = 60 + len(cats) * 18 + 30
+        rest = (f'<g class="tile"><rect x="{x0}" y="{y0}" width="276" height="{h}" rx="10" fill="var(--card)" stroke="var(--line)"/>'
                 f'<text x="{x0 + 14}" y="{y0 + 22}" class="t">The rest of the house</text>'
                 f'<text x="{x0 + 14}" y="{y0 + 39}" class="s">about {home.get("total_about")} devices known to the hub · '
                 f'{home.get("exposed_to_tailnet")} reachable from the tailnet</text>'
                 + "".join(rows)
                 # Only when a category is unpublishable as a number of its own.
-                + (f'<text x="{x0 + 14}" y="{y0 + 62 + ((len(cats) + 1) // 2) * 19 + 2}" class="s">+ other, inactive or withheld</text>'
+                + (f'<text x="{x0 + 14}" y="{y0 + 60 + len(cats) * 18 + 2}" class="s">+ other, inactive or withheld</text>'
                    if any(not isinstance(c.get("count"), int) for c in home.get("categories", [])) else "")
-                + f'<text x="{x0 + 14}" y="{y0 + 174}" class="b">counted {E(home.get("counted_at", ""))} · cameras withheld</text></g>')
+                + f'<text x="{x0 + 14}" y="{y0 + h - 12}" class="b">counted {E(home.get("counted_at", ""))} · cameras withheld</text></g>')
 
     contours = f"""
 <rect x="12" y="10" width="222" height="120" rx="12" class="ct ci"/>
@@ -405,10 +409,11 @@ def render(policy_text, agg=None, home=None):
 <text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
 <text x="110" y="240" class="ctn">laptop + phones = one policy role</text>
 <text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
-<rect x="246" y="572" width="942" height="308" rx="14" class="ct home"/>
-<text x="258" y="806" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
+<rect x="12" y="572" width="1176" height="308" rx="14" class="ct home"/>
+<text x="40" y="796" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
+<text x="40" y="826" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
 {proto}
-<text x="258" y="866" class="ctl">Home network — flat private /24 · reached only through the hub</text>
+<text x="40" y="866" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
 <rect x="12" y="900" width="1176" height="146" rx="14" class="ct future"/>
 <text x="24" y="924" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
