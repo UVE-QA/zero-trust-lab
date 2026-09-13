@@ -17,8 +17,8 @@ variable "profile" {
     profile by design. Empty in GitHub Actions, where credentials come from the
     assumed role and no profile exists.
   EOT
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
 }
 
 variable "region" {
@@ -49,23 +49,23 @@ variable "github_repo" {
 
 variable "github_environment" {
   description = <<-EOT
-    The GitHub Environment allowed to assume the deploy role, as it appears in
+    The GitHub Environment allowed to assume the PLAN role, as it appears in
     the OIDC token `sub` claim: repo:OWNER/REPO:environment:NAME.
 
     Pinned to an environment rather than a branch, matching the pattern already
     in use in this account.
 
-    On a PUBLIC repository an environment can also require a reviewer, making
-    the apply need a human approval separate from permission to merge. This
-    repository is private, where that rule needs Enterprise -- so the pin
-    constrains WHICH workflow context may assume the role, and gates on nobody.
-    See D-033; do not mistake the pin for an approval.
+    Separate from the apply environment on purpose. Both were `aws-apply` while
+    only planning existed; once an apply role trusts an environment, any
+    unreviewed job running there can assume it and the review is decorative.
+    The plan gets its own environment and needs no reviewer, because a plan
+    changes nothing. See D-055, and D-033 for why this could not exist before.
 
     Deliberately one environment and no wildcard. An unconstrained `sub`
     accepts a token from any GitHub Actions run anywhere on GitHub.
   EOT
   type        = string
-  default     = "aws-apply"
+  default     = "aws-plan"
 
   validation {
     condition     = !can(regex("[*]", var.github_environment))
@@ -170,5 +170,21 @@ variable "github_repo_id" {
   validation {
     condition     = can(regex("^[0-9]+$", var.github_repo_id))
     error_message = "github_repo_id must be numeric."
+  }
+}
+
+variable "github_apply_environment" {
+  description = <<-EOT
+    The GitHub Environment allowed to assume the APPLY role. It must carry a
+    required reviewer: that rule, and not the role, is what makes an apply need
+    a person. Public repositories get the rule at no cost, which is why this
+    exists now and did not before (D-055).
+  EOT
+  type        = string
+  default     = "aws-apply"
+
+  validation {
+    condition     = !can(regex("[*]", var.github_apply_environment))
+    error_message = "github_apply_environment must not contain a wildcard."
   }
 }

@@ -13,14 +13,13 @@ name: terraform-plan
 # a command. Revisit when the repository is public and a required reviewer
 # becomes available.
 #
-# The `environment:` below is what makes that subject match. On a PUBLIC
-# repository it would also allow a required reviewer to gate the apply.
+# The `environment:` below is what makes that subject match. It is `aws-plan`,
+# with no reviewer, because a plan changes nothing and should not need one.
 #
-# THIS REPOSITORY IS PRIVATE, SO THERE IS NO APPROVAL GATE HERE. Protection
-# rules need Enterprise on a private repository. The environment is still
-# created implicitly and the subject still matches, so this workflow runs and
-# succeeds -- the only thing absent is the stop. Do not read `environment:`
-# below as protection it is not providing. See D-033.
+# The apply lives in `aws-apply`, which does require a reviewer, and its role
+# trusts only that environment. Keeping the two apart is the point: while both
+# used one environment, any job running there could have assumed the apply
+# role and the review would have been decorative (D-055).
 
 on:
   workflow_dispatch:
@@ -67,7 +66,7 @@ jobs:
   terraform:
     name: plan
     runs-on: ubuntu-latest
-    environment: aws-apply
+    environment: aws-plan
     steps:
       - uses: actions/checkout@v4
 

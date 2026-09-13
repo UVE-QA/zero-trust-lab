@@ -88,6 +88,14 @@ pipeline refused (D-041, PR #7, PR #8).
   ([runbook](docs/runbooks/lost-comms.md)). The household side stays in Phase 6.
 - The "after" half of the exposure reading, from a disposable node.
 
+**Applying, from now on**
+
+- `terraform apply` runs in CI, in an environment that requires the owner's
+  approval, using a role that trusts only that environment and cannot modify
+  itself (D-055). The plan runs in its own environment and stays read-only.
+  Changing the apply path itself is still done by a person from a terminal —
+  the bootstrap cannot be delegated to the thing being bootstrapped.
+
 **On a cadence, from now on**
 
 - The two drills re-run every 30 days: a device joining, changing role and

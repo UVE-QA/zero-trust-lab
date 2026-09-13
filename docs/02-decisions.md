@@ -3206,3 +3206,39 @@ its limit: the first change of this kind can only come from a person. Making
 the standing mechanism a gated apply in CI is now possible for the first time,
 because the repository is public and required reviewers stopped needing an
 Enterprise plan (D-033); that is the next thing to build, not this one.
+
+## D-055 — The apply moves into CI, behind a person
+
+Until now: **CI plans, a person applies from a terminal.** That was not a
+preference, it was the only honest option. Gating an apply needs a required
+reviewer on a GitHub Environment, and on a private repository that rule needs
+an Enterprise plan (D-033). Without it, a role able to create IAM roles
+unattended, with nobody required to look, was a worse trade than typing a
+command.
+
+Publishing the repository changed the price to nothing, and the owner asked for
+the lab to stop depending on one laptop. So:
+
+- **`aws-apply` now requires a named reviewer**, and only protected branches
+  may deploy to it. GitHub holds the job until that person approves, and the
+  OIDC token is minted for the approved run only.
+- **A second role, `ztlab-github-apply`,** trusts that environment's subject
+  and nothing else. It reaches this stack's state prefix, the archive bucket,
+  and the roles this prefix owns.
+- **The plan moved to its own environment, `aws-plan`.** This is the part worth
+  reading twice: both roles were pinned to `aws-apply` while only planning
+  existed. Had the apply role been added to that same environment, every
+  unreviewed plan run could have assumed it, and the review would have been
+  decoration. Two environments, two subjects, one reviewed.
+- **The apply role cannot modify itself.** An explicit deny on its own role
+  ARN, inside a policy whose allow statement matches every role with this
+  prefix. Without that line, one approved run could widen the policy and every
+  run after it would be unreviewed in effect. Widening the apply path stays a
+  thing a person does from a terminal.
+- **The dispatch takes a typed confirmation** and refuses anything but `main`,
+  and the run plans and applies from the same commit, so what was approved and
+  what was applied cannot drift apart.
+
+What this does not change: the account is still the boundary (D-042), and the
+first apply of any change to the apply path itself comes from a person. The
+bootstrap cannot be delegated to the thing being bootstrapped.

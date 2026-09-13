@@ -1,0 +1,101 @@
+name: terraform-apply
+
+# APPLIES the AWS stack, from CI, after a person approves the run.
+#
+# For most of this project the rule was "CI plans, a person applies from a
+# terminal", because a required reviewer needed an Enterprise plan on a private
+# repository (D-033). The repository is public now, so the approval is a
+# property of the pipeline instead of somebody remembering to type a command
+# (D-055).
+#
+# What makes this safe to have at all:
+#
+#   - It runs only when someone dispatches it, and only from main.
+#   - It runs in the `aws-apply` environment, which requires a named reviewer.
+#     GitHub holds the job until that person approves, and the OIDC token is
+#     minted only for the approved run.
+#   - The role it assumes trusts ONLY that environment's subject. The plan role
+#     lives in a different environment and cannot apply anything.
+#   - That role cannot modify itself. Widening the apply path is still a change
+#     a person makes from a terminal.
+#   - The dispatch takes a typed confirmation, so an accidental click does not
+#     change the account.
+#
+# The plan is produced and applied in the same run, from the same commit, so
+# what is approved and what is applied cannot drift apart.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type APPLY to confirm'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: apply (reviewed)
+    runs-on: ubuntu-latest
+    environment: aws-apply
+    steps:
+      - name: refuse anything but a typed confirmation
+        if: inputs.confirm != 'APPLY'
+        run: |
+          echo "::error::Type APPLY in the confirm field to run this workflow."
+          exit 1
+
+      - name: refuse to apply anything but main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::This workflow applies main only; ${{ github.ref }} was requested."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: confirm which identity is in scope
+        run: aws sts get-caller-identity --query Arn --output text
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: init
+        working-directory: terraform/aws
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TFSTATE_BUCKET }}" \
+            -backend-config="key=zero-trust-lab/aws/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+
+      - name: plan
+        working-directory: terraform/aws
+        run: |
+          terraform plan -input=false -out=tfplan \
+            -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="profile=" \
+            -var="region=${{ vars.AWS_REGION }}" \
+            -var="tfstate_bucket=${{ secrets.TFSTATE_BUCKET }}" \
+            -var="github_owner=${{ github.repository_owner }}" \
+            -var="github_repo=${{ github.event.repository.name }}" \
+            -var="github_owner_id=${{ github.repository_owner_id }}" \
+            -var="github_repo_id=${{ github.repository_id }}" \
+            -var="github_oidc_provider_exists=true"
+
+      - name: apply what was just planned
+        working-directory: terraform/aws
+        run: terraform apply -input=false tfplan
