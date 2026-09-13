@@ -2,6 +2,27 @@
   "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. cadence_days is how often the drill should be re-run; the page shows when the next one is due and scripts/drills_due.py raises an issue when it slips.",
   "drills": [
     {
+      "name": "A personal device is lost, and does not cooperate with its own revocation",
+      "date": "2026-09-13",
+      "runbook": "docs/runbooks/lost-personal-device.md",
+      "cadence_days": 90,
+      "figures": [
+        {
+          "value": "under 2 s",
+          "label": "from the suspend click to every connection refused — while the device was cut off from the control plane and never learned it had been revoked"
+        },
+        {
+          "value": "no window",
+          "label": "for a device that was switched off during the revocation: refused from its first packet on return, and for the 60 s that followed"
+        },
+        {
+          "value": "at the destination",
+          "label": "where the refusal happens: the target received the new netmap; nothing was asked of the device that had been taken away"
+        }
+      ],
+      "not_tested": "a stolen browser session registering a new device, and whether an already-open session survives"
+    },
+    {
       "name": "A second user joins, is granted one real device, suspended and restored",
       "date": "2026-09-13",
       "runbook": "docs/runbooks/second-user.md",
