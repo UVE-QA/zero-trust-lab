@@ -3597,3 +3597,44 @@ refusals in a public log rather than asserting them. It is the stronger
 evidence and it costs the first credential in CI that can create something —
 that trade deserves its own decision, not a footnote to this one
 ([design](designs/viewer-verification.md)).
+
+---
+
+## D-064 — the collector gets a certificate, and the laptop keeps the CA
+
+**2026-09-13.** The Terraform for IAM Roles Anywhere has been in the repository
+since Phase 5, gated on one variable: a certificate authority that did not
+exist. The role, its write-only policy and the trust-anchor condition were all
+written and applied around an empty string. That was honest — the page listed
+the certificate half as not built — but it was also the last piece of the
+archive path.
+
+The CA now exists. Both keys are EC P-256; the CA is valid five years with
+`pathlen:0` so it can sign leaves and nothing else, and the collector's leaf is
+valid ninety days for client authentication only.
+
+**Where the keys live is the decision, not the openssl.** The CA key is on the
+operator's laptop and has never been on a server. The collector holds only its
+own leaf. So the machine that *uses* a certificate cannot *mint* one, which is
+the property that makes this better than an access key: an access key on that
+host would be its own successor.
+
+What this is not: a managed private CA at $400 a month, with hardware custody
+and an audit trail. It is a file on an encrypted laptop. The lab says so rather
+than implying more, and the difference is priced on the page's growth path.
+
+**The gap worth naming: there is no CRL.** Roles Anywhere supports one and this
+lab has not set one up, so a leaked leaf is answered by disabling the profile —
+which stops every certificate at once — or by replacing the CA, not by revoking
+one certificate. With one collector that is a reasonable trade; with a fleet it
+would not be, and the runbook says which lever to pull when.
+
+Sessions last an hour. The permissions are `s3:PutObject` and `s3:ListBucket`
+on the archive bucket and nothing else — no read, no delete, no other bucket. A
+machine in a flat that can only add is a machine whose compromise costs storage
+rather than history.
+
+The CA certificate reaches Terraform as an environment secret in `aws-plan` and
+`aws-apply`; it is public material with nothing of the household in it, and it
+is still not committed, because the variable's contract says so and a contract
+that bends for convenience is not one.
