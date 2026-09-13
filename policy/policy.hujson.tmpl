@@ -150,13 +150,17 @@
 		},
 
 		// --- A test user, and the whole of what they may do ---------------
-		// One port on the collector: they may read what the collector serves
-		// and nothing else. This grant exists to be measured, and then to be
-		// taken away while somebody watches (D-058).
+		// One port on one real device: the media appliance's AirPlay port.
+		// It used to be the collector's ingest port, which was wrong twice
+		// over -- it pointed at a container that exists only for the demo,
+		// and the ingest port accepts writes, so a test identity could have
+		// put false readings into the stream (D-059). The appliance is a
+		// thing the household actually owns, it takes nothing but a stream,
+		// and it is the only device in the house this user may touch.
 		{
 			"src": ["group:testers"],
-			"dst": ["tag:collector"],
-			"ip":  ["tcp:8443"],
+			"dst": ["tag:appliance"],
+			"ip":  ["tcp:7000"],
 		},
 
 		// --- Telemetry tier: field units report in ------------------------
@@ -305,8 +309,9 @@
 		// The test user reaches one port on one machine, and nothing else.
 		{
 			"src":    "{{test_identity}}",
-			"accept": ["tag:collector:8443"],
+			"accept": ["tag:appliance:7000"],
 			"deny": [
+				"tag:collector:8443", // cannot write to the telemetry stream
 				"tag:gateway-home:8123", // not the house's automation UI
 				"tag:gateway-home:22", // not the house's shell
 				"tag:prod:22", // not production

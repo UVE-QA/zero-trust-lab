@@ -91,7 +91,10 @@ NODES = {
                   "path, restored after the lab's policy had cut it.", "D-051"),
     "appliance": (250, 432, "tv", "tailnet", "Media appliance", "tag:appliance",
                   "tag", ["tag:appliance"], "A device on the network that should reach "
-                  "nothing — and is tested to reach nothing.", "D-019"),
+                  "nothing — and is tested to reach nothing. It is also the one destination the "
+                  "test user is granted: a real device the household owns, rather than a container "
+                  "raised for the demonstration, and one whose worst case is audible from the "
+                  "sofa.", "D-059"),
     "gateway":   (500, 330, "hub", "tailnet", "Automation hub", "tag:gateway-home",
                   "tag", ["tag:gateway-home"], "The only door into the home: it advertises "
                   "one /32 route per exposed device, never the subnet.", "D-024"),
@@ -111,8 +114,9 @@ NODES = {
                   "A real one is a single-board computer and a sensor, about $30.", "Phase 6"),
     "tester":    (980, 432, "idp", "planned", "Test user", "group:testers · suspended",
                   "dormant", ["group:testers"], "A second person, kept for drills. In the tailnet "
-                  "and in a group worth exactly one port on the collector -- nothing in the house, on "
-                  "production or on anyone's laptop. Suspended between drills, so the grant is dormant: "
+                  "and in a group worth exactly one port on one real device -- the media appliance's "
+                  "AirPlay port, and nothing else anywhere. Suspended between drills, so the grant is "
+                  "dormant: "
                   "measured at 0 of 8 destinations while suspended, 1 of 8 when restored, and the switch "
                   "between the two takes about three seconds (D-058).", "D-058"),
     "prod":      (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
@@ -193,7 +197,7 @@ ROUTES = {
     ("gateway", "collector"):           ([(680, 348), (760, 348)], (720, 348)),
     ("collector", "gateway"):           ([(760, 376), (680, 376)], (720, 376)),
     ("sensor", "collector"):            ([(980, 361), (940, 361)], (960, 361)),
-    ("tester", "collector"):            ([(1070, 432), (1070, 412), (880, 412), (880, 392)], (975, 412)),
+    ("tester", "appliance"):            ([(1160, 452), (1176, 452), (1176, 236), (340, 236), (340, 432)], (760, 236)),
     ("drone", "collector"):             ([(850, 432), (850, 392)], (878, 412)),
     # refusals, drawn from the tests
     ("prod", "gateway"):                ([(980, 302), (640, 302), (640, 330)], (880, 302)),

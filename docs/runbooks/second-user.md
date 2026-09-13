@@ -28,6 +28,11 @@ wrong one, so the grants were narrowed to a group first (D-057).
   hub's UI, shell and broker, production's SSH, the home server's SSH, and both
   smart plugs.
 
+Since the 2026-09-13 run the granted destination has changed: the test user's
+one port is the media appliance's, not the collector's (D-059). Re-run the
+probe with the appliance in the targets file; the shape of the result — 0, 1,
+0, 1 — is what the drill is watching, not which port it is.
+
 A note for whoever repeats this: every Tailscale account gets its own empty
 tailnet, so the device-connect screen offers a choice of two. Choosing the
 personal one puts the node somewhere harmless and useless.
@@ -37,7 +42,7 @@ personal one puts the node somewhere harmless and useless.
 | state | reachable, of 8 | measured |
 |---|---|---|
 | in the tailnet, in no group | **0** | nothing at all, including the collector |
-| added to a group with one grant | **1** | the collector's ingest port, nothing else |
+| added to a group with one grant | **1** | the collector's ingest port, nothing else (now the appliance's) |
 | user suspended | **0** | **about 3 s** from the click |
 | user restored | **1** | **about 2 s** from the click |
 
