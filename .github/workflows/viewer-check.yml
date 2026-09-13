@@ -77,16 +77,16 @@ jobs:
           fi
           echo "go=yes" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/checkout@v4
+        if: steps.cool.outputs.go == 'yes'
+
       - name: say it is running
         if: steps.cool.outputs.go == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number }}
           URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: gh issue comment "$ISSUE" --body "Running — [watch it]($URL). This reads the live policy and compares it with \`main\`; it changes nothing and cannot reach the home network."
-
-      - uses: actions/checkout@v4
-        if: steps.cool.outputs.go == 'yes'
+        run: gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "Running — [watch it]($URL). This reads the live policy and compares it with \`main\`; it changes nothing and cannot reach the home network."
 
       - name: render from environment secrets
         if: steps.cool.outputs.go == 'yes'
@@ -127,11 +127,11 @@ jobs:
           D: ${{ steps.drift.outcome }}
         run: |
           if [ "$RAN" != "yes" ]; then
-            gh issue comment "$ISSUE" --body "Someone ran this less than five minutes ago, so this one is skipped — the result would be the same file and the same answer. Try again in about ${WAIT}s, or read the [last runs](${{ github.server_url }}/${{ github.repository }}/actions/workflows/viewer-check.yml)."
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "Someone ran this less than five minutes ago, so this one is skipped — the result would be the same file and the same answer. Try again in about ${WAIT}s, or read the [last runs](${{ github.server_url }}/${{ github.repository }}/actions/workflows/viewer-check.yml)."
             exit 0
           fi
           mark() { [ "$1" = "success" ] && echo "passed" || echo "FAILED"; }
-          gh issue comment "$ISSUE" --body "$(cat <<EOF
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "$(cat <<EOF
           Done — [full log]($URL).
 
           | check | result |
