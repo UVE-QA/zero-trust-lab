@@ -139,147 +139,167 @@ approve there — the same order as every other change that touches the house.
 
 ---
 
-## The hub side, drafted
+## The hub side, reviewed
 
-Facts below were read from the hub by the household session; the guard values
-are its conservative proposal. The command names are the lab's vocabulary and
-mean nothing until the hub maps them, which is the point.
+The first draft was written from the household session's facts; it reviewed it
+against the hub and corrected six things. The corrections are the interesting
+part, so they are kept here rather than quietly folded in.
 
-**Two helpers**, created without a restart: `input_text.zt_lab_last_command_id`
-(so a repeated id is ignored) and `counter.zt_lab_vacuum_starts` (the daily
-cap, reset at midnight).
+**A safety gap I had missed.** One command, handed over once, still lets an
+operator queue it again every five minutes: the robot would clean the cat's
+area, dock, and set off again, all day. My draft counted starts in a helper.
+The house's answer is better and needs no helper: require the vacuum to have
+been **docked, unchanged, for three hours**. That caps lab starts at about four
+a day inside the window, refuses a lab start stacking on a clean the household
+just ran, and refuses automatically when the vendor cloud flaps — because an
+`unavailable` resets the clock.
+
+**The failure I wrote in.** My template read `reply.content` unguarded. When
+the poll times out, `continue_on_error` lets the run continue and the variable
+is never set, so the automation would have failed every five minutes for as
+long as the collector was down — turning our outage into their noise. It now
+checks `reply is defined and reply.status == 200 and reply.content is mapping`.
+
+**Do not call the household's script.** I had reused `script.vacuum_pet_litter`,
+which is the button in the house's own app. It has been repointed once already,
+and if it is repointed again the lab's command silently becomes something else.
+The corrected version selects the scenario itself, matched by name prefix, and
+refuses with `no_scenario` if the option is missing.
+
+**Waiting long enough to mean it.** "Accepted" only meant the hub pressed a
+button in the vendor's cloud. It now waits up to 90 seconds for the vacuum to
+report `cleaning` and answers `started` or `sent_no_start`.
+
+**Two small ones:** the poll runs at second 30 so it never shares an instant
+with the temperature push, and the automation is `max_exceeded: silent`.
+
+**Stops are not needed after all.** I was going to put pause and return-to-dock
+to the owner as safety. The house already keeps its own stops — the vendor app
+and the wall tablet — so adding them to the lab's list buys nothing and widens
+it. The allowlist stays at one command.
+
+**What may be published.** Three counts only: started, refused by a house
+guard, and not on the allowlist. The per-guard reasons stay in the collector's
+own log: published over time, a `cat_not_clear` count is a count of how often
+the cat was at his bowls, which is the household's business and not the
+reader's.
+
+### The corrected draft, as it will be applied
+
+Reviewed against the hub by the household session, which applies it after the
+owner approves there. The one allowed command and every guard live in this
+file, on the hub — not in the lab.
 
 ```yaml
-# configuration.yaml, alongside the existing rest_command block
+# secrets.yaml
+zt_collector_command_url: "http://<collector tailnet address>/command"
+
+# configuration.yaml, under the existing rest_command block
   zt_lab_ask_command:
     url: !secret zt_collector_command_url
     method: GET
     timeout: 5
 
-  zt_lab_push_command_result:
+  zt_lab_push_command_outcome:
     url: !secret zt_collector_ingest_url
     method: POST
     content_type: "application/json"
     timeout: 5
     payload: >-
-      {"sensor":"vacuum_command","value":{{ (result == 'accepted') | int }},
-       "id":{{ id | tojson }},"command":{{ command | tojson }},
-       "result":{{ result | tojson }},"ts":"{{ now().isoformat() }}"}
-
-  zt_lab_push_vacuum:
-    url: !secret zt_collector_ingest_url
-    method: POST
-    content_type: "application/json"
-    timeout: 5
-    payload: >-
-      {"sensor":"vacuum","value":{{ states('sensor.eufy_ae_c10_battery') | float(0) | tojson }},
-       "state":{{ states('vacuum.eufy_ae_c10') | tojson }},
-       "task_status":{{ states('sensor.eufy_ae_c10_task_status') | tojson }},
-       "dock_status":{{ states('sensor.eufy_ae_c10_dock_status') | tojson }},
-       "error":{{ states('sensor.eufy_ae_c10_error_message') | tojson }},
-       "cleaning_area":{{ state_attr('vacuum.eufy_ae_c10','cleaning_area') | tojson }},
-       "cleaning_time":{{ state_attr('vacuum.eufy_ae_c10','cleaning_time') | tojson }},
+      {"sensor":"vacuum_command_outcome","value":{{ outcome | tojson }},
+       "reason":{{ reason | tojson }},"id":{{ id | tojson }},
        "ts":"{{ now().isoformat() }}"}
 ```
 
 ```yaml
-# automations.yaml -- the ask
+# automations.yaml
 - id: zt_lab_vacuum_ask
-  alias: "zero-trust-lab: ask the collector for a command"
-  description: "Lab mobile-unit channel. The allowlist and every guard are here, not in the lab."
+  alias: "zero-trust-lab: ask the collector for a vacuum command"
+  description: "Lab mobile-unit channel. The hub asks; the one allowed command and every guard live here, not in the lab."
   mode: single
+  max_exceeded: silent
   triggers:
     - trigger: time_pattern
       minutes: "/5"
+      seconds: 30
   actions:
     - action: rest_command.zt_lab_ask_command
       response_variable: reply
       continue_on_error: true
     - variables:
-        body: "{{ reply.content if reply is defined and reply.content is mapping else {} }}"
+        body: "{{ reply.content if (reply is defined and reply.status == 200 and reply.content is mapping) else {} }}"
         cmd: "{{ body.command | default('', true) }}"
         cmd_id: "{{ body.id | default('', true) }}"
-        reason: >-
-          {% if is_state('binary_sensor.cat_cam_cat_occupancy','on') %}cat_at_station
-          {% elif not is_state('vacuum.eufy_ae_c10','docked') %}not_docked
-          {% elif states('sensor.eufy_ae_c10_battery') | float(0) < 50 %}battery
-          {% elif states('sensor.eufy_ae_c10_error_message') not in ['','unknown','None'] %}robot_error
-          {% elif not (9 <= now().hour < 20) %}quiet_hours
-          {% elif states('counter.zt_lab_vacuum_starts') | int(0) >= 2 %}daily_cap
-          {% else %}occupancy_settling{% endif %}
     - condition: template
-      value_template: "{{ cmd != '' and cmd_id != states('input_text.zt_lab_last_command_id') }}"
-    - action: input_text.set_value
-      target: {entity_id: input_text.zt_lab_last_command_id}
-      data: {value: "{{ cmd_id }}"}
-    - choose:
-        - conditions: "{{ cmd == 'pet_litter_light' }}"
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: state
-                      entity_id: binary_sensor.cat_cam_cat_occupancy
-                      state: "off"
-                      for: "00:10:00"
-                    - condition: state
-                      entity_id: vacuum.eufy_ae_c10
-                      state: "docked"
-                    - condition: numeric_state
-                      entity_id: sensor.eufy_ae_c10_battery
-                      above: 49
-                    - condition: template
-                      value_template: "{{ states('sensor.eufy_ae_c10_error_message') in ['','unknown','None'] }}"
-                    - condition: time
-                      after: "09:00:00"
-                      before: "20:00:00"
-                    - condition: numeric_state
-                      entity_id: counter.zt_lab_vacuum_starts
-                      below: 2
-                  sequence:
-                    - action: script.vacuum_pet_litter
-                    - action: counter.increment
-                      target: {entity_id: counter.zt_lab_vacuum_starts}
-                    - action: rest_command.zt_lab_push_command_result
-                      data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: accepted}
-              default:
-                - action: rest_command.zt_lab_push_command_result
-                  data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: "refused:{{ reason }}"}
-      default:
-        - action: rest_command.zt_lab_push_command_result
-          data: {id: "{{ cmd_id }}", command: "{{ cmd }}", result: "refused:unknown_command"}
-
-# the daily cap resets with the day
-- id: zt_lab_vacuum_cap_reset
-  alias: "zero-trust-lab: reset the lab daily vacuum cap"
-  mode: single
-  triggers:
-    - trigger: time
-      at: "00:00:00"
-  actions:
-    - action: counter.reset
-      target: {entity_id: counter.zt_lab_vacuum_starts}
-
-# telemetry, the same push pattern as the temperature
-- id: zt_lab_push_vacuum
-  alias: "zero-trust-lab: push vacuum state to collector"
-  mode: single
-  triggers:
-    - trigger: state
-      entity_id:
-        - vacuum.eufy_ae_c10
-        - sensor.eufy_ae_c10_task_status
-        - sensor.eufy_ae_c10_error_message
-        - sensor.eufy_ae_c10_dock_status
-      to: ~
-    - trigger: time_pattern
-      minutes: "/5"
-  actions:
-    - action: rest_command.zt_lab_push_vacuum
-      continue_on_error: true
+      value_template: "{{ cmd != '' }}"
+    - variables:
+        reason: >-
+          {%- set occ = states.binary_sensor.cat_cam_cat_occupancy -%}
+          {%- set vac = states.vacuum.eufy_ae_c10 -%}
+          {%- set opts = state_attr('select.eufy_ae_c10_scene_task','options') | default([], true) | select('search','^Pet Litter Light') | list -%}
+          {%- if cmd != 'pet_area_light' -%}not_allowlisted
+          {%- elif occ is none or occ.state != 'off' or (now() - occ.last_changed).total_seconds() < 600 -%}cat_not_clear
+          {%- elif vac is none or vac.state != 'docked' -%}not_docked
+          {%- elif (now() - vac.last_changed).total_seconds() < 10800 -%}cooldown
+          {%- elif states('sensor.eufy_ae_c10_battery') | float(0) < 50 -%}battery
+          {%- elif states('sensor.eufy_ae_c10_error_message') not in ['', 'unknown'] -%}robot_error
+          {%- elif not (today_at('08:00') <= now() < today_at('20:30')) -%}quiet_hours
+          {%- elif opts | count == 0 -%}no_scenario
+          {%- else -%}ok{%- endif -%}
+    - if:
+        - condition: template
+          value_template: "{{ reason == 'ok' }}"
+      then:
+        - action: select.select_option
+          target:
+            entity_id: select.eufy_ae_c10_scene_task
+          data:
+            option: "{{ state_attr('select.eufy_ae_c10_scene_task','options') | select('search','^Pet Litter Light') | list | first }}"
+        - wait_for_trigger:
+            - trigger: state
+              entity_id: vacuum.eufy_ae_c10
+              to: cleaning
+          timeout: "00:01:30"
+          continue_on_timeout: true
+        - action: rest_command.zt_lab_push_command_outcome
+          data:
+            outcome: "{{ 'started' if wait.trigger else 'sent_no_start' }}"
+            reason: ""
+            id: "{{ cmd_id }}"
+          continue_on_error: true
+      else:
+        - action: rest_command.zt_lab_push_command_outcome
+          data:
+            outcome: refused
+            reason: "{{ reason }}"
+            id: "{{ cmd_id }}"
+          continue_on_error: true
 ```
 
-Never pushed: the map image, the robot's coordinates, and the network details.
-A floor plan and a position inside the flat have no place on a public page.
+The guards, in words: the cat has been out of frame for ten minutes and the
+sensor is not merely unavailable; the vacuum is docked and has been for three
+hours; the battery is at least half; the robot reports no error; the local time
+is between 08:00 and 20:30, so a ten-to-fifteen minute clean finishes before
+the robot's own quiet hours begin; and the scenario still exists under the name
+the automation matches.
+
+Telemetry — state, battery, task and dock status, errors, cleaning area and
+time, consumables — is pushed the same way the temperature is. Never pushed:
+the map image, the robot's coordinates, the network details. A floor plan and a
+position inside the flat have no place on a public page.
+
+### The order the first commands run in
+
+1. An idle poll returns `{}`, and the household session confirms the response
+   shape from the hub's own trace.
+2. An unknown name: refused, `not_allowlisted`. Nothing moves.
+3. The real name at a moment a guard is certain to fail — after 20:30, so
+   `quiet_hours`. Nothing moves.
+4. Only then a real start, in hours, with the household told first, and the
+   camera-watching session warned that the robot will be in frame.
+
+Refusals before motion is the right order, and it is the household session's
+condition, not a courtesy.
 
 ### Delivery: at most once, on purpose
 
@@ -289,10 +309,9 @@ alternative -- keep serving until acknowledged -- turns a lost acknowledgement
 into a second clean. The hub's memory of the last id stays as a second belt:
 two mechanisms, both cheap, and the failure mode of each is that nothing moves.
 
-### Still the owner's, not mine to widen
+### One command, settled
 
-The household session proposes four names: the cat-area light clean, a
-front-door clean, pause, and return to dock. The owner named **one**. Pause and
-return to dock only ever stop a machine that is already moving, so they are put
-to him as safety rather than as scope; the front-door clean is scope, and stays
-off the list unless he says otherwise.
+The household session first proposed four names; the owner named one. The stops
+turned out to be unnecessary — the house keeps its own, in the vendor's app and
+on the wall tablet — so the list stays at the cat-area light clean, and every
+other name is answered `not_allowlisted` without anything moving.
