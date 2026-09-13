@@ -104,7 +104,8 @@ jobs:
             -var="github_repo=${{ github.event.repository.name }}" \
             -var="github_owner_id=${{ github.repository_owner_id }}" \
             -var="github_repo_id=${{ github.repository_id }}" \
-            -var="github_oidc_provider_exists=true"
+            -var="github_oidc_provider_exists=true" \
+            -var="collector_ca_certificate_pem=${{ secrets.COLLECTOR_CA_CERTIFICATE_PEM }}"
 
       # One claim on the evidence page is that nobody has a long-lived key in
       # this account: no IAM users, no root access keys. Counted here, with the

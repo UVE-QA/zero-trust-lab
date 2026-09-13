@@ -94,7 +94,8 @@ jobs:
             -var="github_repo=${{ github.event.repository.name }}" \
             -var="github_owner_id=${{ github.repository_owner_id }}" \
             -var="github_repo_id=${{ github.repository_id }}" \
-            -var="github_oidc_provider_exists=true"
+            -var="github_oidc_provider_exists=true" \
+            -var="collector_ca_certificate_pem=${{ secrets.COLLECTOR_CA_CERTIFICATE_PEM }}"
 
       - name: apply what was just planned
         working-directory: terraform/aws
