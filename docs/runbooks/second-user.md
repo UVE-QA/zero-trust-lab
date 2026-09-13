@@ -4,8 +4,9 @@
 restored actually do — on the live network, with a second identity, rather than
 from the policy file.
 
-**Status:** run on 2026-09-13. The test user stays in the tailnet, **suspended
-between drills**, so the drill can be repeated without a new invitation.
+**Status:** run twice on 2026-09-13 — the second time after the grant moved to
+a real device (D-059). The test user stays in the tailnet, **suspended between
+drills**, so the drill can be repeated without a new invitation.
 
 ---
 
@@ -37,16 +38,35 @@ A note for whoever repeats this: every Tailscale account gets its own empty
 tailnet, so the device-connect screen offers a choice of two. Choosing the
 personal one puts the node somewhere harmless and useless.
 
-## Observed
+## Observed — second run, 2026-09-13, ten destinations
+
+The probe now includes the media appliance's AirPlay port, which is the test
+user's only grant since D-059, and keeps the collector's ingest port as a
+destination that must be refused.
+
+| state | reachable, of 10 | measured |
+|---|---|---|
+| granted, user active | **1** | the appliance's AirPlay port. It answered — so the grant names a live service, not a hole in a policy file |
+| user suspended | **0** | **about 1.6 s** from the click: last open at 22:34:30, first refused at 22:34:32 |
+| user restored | **1** | **about 1.7 s** from the click: clicked 22:35:35.3, open at 22:35:37 |
+| suspended again, full sweep | **0** | appliance, collector ingest and shell, hub UI, shell and broker, production, home server, both plugs |
+
+Poll resolution is one second, so each figure carries that. Both transitions
+were quicker than the first run's ~3 s and ~2 s; with two samples that is a
+range, not a trend.
+
+The refusal that matters as much as the acceptance: **the collector's ingest
+port is now refused** for this identity. Before D-059 it was the one thing the
+test user could reach, and it accepts writes.
+
+## Observed — first run, 2026-09-13, eight destinations
 
 | state | reachable, of 8 | measured |
 |---|---|---|
 | in the tailnet, in no group | **0** | nothing at all, including the collector |
-| added to a group with one grant | **1** | the collector's ingest port, nothing else (now the appliance's) |
+| added to a group with one grant | **1** | the collector's ingest port, nothing else |
 | user suspended | **0** | **about 3 s** from the click |
 | user restored | **1** | **about 2 s** from the click |
-
-Poll resolution is one second, so each figure carries that.
 
 ## What it shows
 
@@ -66,6 +86,11 @@ Poll resolution is one second, so each figure carries that.
 
 The test user stays suspended. To run the drill again: restore the user in the
 console, start a node as them, measure, suspend, measure.
+
+**The login is paid.** The node registered on 2026-09-13 keeps its state in the
+named volume `zt-testuser-ts` on the cloud dev host, so the next run starts it
+with `docker start zt-testuser` and needs nobody's browser. The paragraph below
+is why that matters and what the first two runs cost.
 
 **Budget for a browser login.** The two nodes from the first run still appear
 in the console under the test user, but they are dead: the container kept its
