@@ -3178,3 +3178,31 @@ The other half of that sentence is the residual risk, and it belongs here:
 that host**, whatever the tailnet policy says. The account is the boundary. It
 has no IAM users and no root access keys — which is the claim the next change
 turns into a measurement rather than an assertion.
+
+## D-054 — "No IAM users" was a claim about the code, not the account
+
+The page said the cloud account has 0 IAM users. Terraform creates none, so the
+sentence was true about the stack — and said nothing about the account. A user
+created by hand in the console, or left over from before, would never have
+shown up on a page whose whole claim is that its statuses are read rather than
+typed.
+
+The read-only plan role now holds two account-wide reads — list users, and the
+account summary — and the weekly plan job publishes what it finds: how many IAM
+users exist, whether the root user has access keys, and when it looked. The
+page carries it as a check with its own date, and shows nothing at all until
+the job has run.
+
+**The trade, stated rather than waved through.** Neither action can be scoped:
+IAM offers no resource for either, so both are `"*"`. The account also holds
+another project. What the role gains is the ability to list principals; what
+leaves the job is counts. No name of any principal is published, and the same
+role still cannot read a policy document, a key, or anything else in the
+account. A claim nothing re-reads is worse than a narrow, stated widening.
+
+Applied by hand from the operator's laptop, because the role deliberately
+cannot change IAM — including its own policy. That is the right shape and also
+its limit: the first change of this kind can only come from a person. Making
+the standing mechanism a gated apply in CI is now possible for the first time,
+because the repository is public and required reviewers stopped needing an
+Enterprise plan (D-033); that is the next thing to build, not this one.
