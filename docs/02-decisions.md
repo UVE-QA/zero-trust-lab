@@ -3288,3 +3288,31 @@ worth showing.
 
 What the lab can say now is stronger than what the channel would have earned:
 **nothing outside the house can move the robot at all.**
+
+## D-057 — "Everyone in the tailnet" was not a group, it was a default
+
+Every grant to a person said `autogroup:member`: every human in the tailnet.
+With one human that reads like "the operator" and behaves like it, which is
+exactly why it survived seven phases without being noticed. It is not the same
+thing. It means the next person invited arrives already holding the automation
+hub's UI, the hub's shell, SSH to the production stand-in, SSH to the owner's
+own machines, and a socket in the house — before anybody decides they should
+have any of it.
+
+That became concrete when the owner asked for a second user to rehearse
+offboarding against. Adding a test identity to a tailnet whose grants say
+"members" is not a test; it is a grant.
+
+So the grants now name **`group:operators`**, which today contains one person.
+Adding a person and granting a person are two separate acts. A new user joins,
+matches no group, and reaches nothing — deny-by-default finally applies to
+people as well as to machines.
+
+This is what the growth path lists an identity provider for: groups that come
+from somewhere, per person, at $8 a seat. A group in the policy file buys the
+separation for nothing on this plan. What it does not buy is the provider's
+lifecycle — a group here is edited by hand, and nobody is removed from it by
+leaving a company.
+
+The invite flow already required an admin's approval before a user can join;
+that stops a stranger joining, and this stops a joiner inheriting the house.
