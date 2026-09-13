@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The collector's endpoints: readings in, and one command waiting to be asked for.
+"""The collector's ingest endpoint: one port, one path, append-only.
 
 Readings are pushed to it by the automation hub (D-049). Nothing here reaches
 out, and nothing here authenticates the sender, deliberately: the tailnet
@@ -13,11 +13,10 @@ Each accepted reading becomes one JSON line in $DATA_DIR/readings.jsonl, with
 the time it arrived and the tailnet address it came from. Arrival time, not
 the sender's clock, is what a lost-comms drill measures.
 
-GET /command is the mobile-unit channel (docs/designs/mobile-unit.md). The hub
-asks; this answers with at most one queued command name and then forgets it.
-The collector cannot make the house do anything: the name means nothing here,
-the allowlist lives in the hub, and the hub applies its own guards before it
-acts. An operator queues a command with collector/ask.sh.
+This receives and nothing else. It briefly served a command the hub could ask
+for; the house now decides for itself when the robot runs, so that endpoint is
+gone and the collector has no way to ask the house for anything at all
+(docs/designs/mobile-unit.md, D-056).
 """
 import json
 import os
@@ -75,30 +74,13 @@ class Ingest(BaseHTTPRequestHandler):
         self.reply(204)
 
     def do_GET(self):
-        if self.path != "/command":
-            return self.reply(404)
-        # One command, handed over once. Taken from the queue as it is served,
-        # so a repeated poll gets nothing and a lost reply loses the command
-        # rather than repeating it -- the safer way round for a machine that
-        # moves.
-        path = os.path.join(DATA_DIR, "command.json")
-        body = b"{}"
-        try:
-            with open(path, "rb") as f:
-                queued = json.loads(f.read() or b"{}")
-            os.remove(path)
-        except (FileNotFoundError, ValueError):
-            queued = {}
-        if queued.get("command"):
-            queued["served_at"] = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
-            append({"received_at": queued["served_at"], "peer": self.client_address[0],
-                    "served_command": queued})
-            body = json.dumps({"command": queued["command"], "id": queued.get("id", "")}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        # There was a GET /command here: the hub asked, and the answer could
+        # name one command from an allowlist the hub held. The owner then
+        # decided the house should trigger the robot itself, on its own event,
+        # with no dependency on anything outside it -- so the endpoint was
+        # removed rather than left unused. An endpoint nobody asks for is
+        # still an endpoint (D-056).
+        self.reply(404)
 
     def do_404(self):
         self.reply(404)
