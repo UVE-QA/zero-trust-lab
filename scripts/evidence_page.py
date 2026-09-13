@@ -401,7 +401,8 @@ back in 11 s with no hands; the readings sent meanwhile were lost, not queued.</
 <div><h3>Not built, and why</h3><p>Field units: deferred — the house's sensors cannot run a
 client, and the cloud host that would run simulated ones serves two projects. Device-management posture
 and multi-user sign-in: a paid tier ($8/user/mo) and one user. Just-in-time access and log streaming:
-$18/user/mo. The before-and-after exposure reading: missed, and <a href="{blob}/STATUS.md">stated</a>, not reconstructed.</p></div>
+$18/user/mo. The exposure reading's "before" half: missed while the network was still open, and
+<a href="{blob}/STATUS.md">stated</a> rather than reconstructed — the "after" half is measured below.</p></div>
 <div><h3>Read with care</h3><p>Posture on this plan is <strong>reported by the client itself</strong>: it shows how a
 device is configured, not that it is intact. The break-glass path into production — the cloud
 provider's console — was exercised on 2026-09-13: it works, and it means the cloud account, not the

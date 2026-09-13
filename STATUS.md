@@ -50,11 +50,14 @@ pipeline refused (D-041, PR #7, PR #8).
   reservations** (D-047). A camera that turned out to be the wrong one was
   withdrawn; the two remaining sockets were verified by their own identifiers.
   A daily identity check on each exposed address is next.
-- **The blast-radius "before" reading was never taken.** It could only be taken
-  while the tailnet was still allow-all, and that window closed with Phase 2.
-  The exposure change is therefore stated from configuration — two `/24`
-  routes became three `/32` — not from a before/after reachability
-  measurement. The "after" reading is still possible and is in the plan.
+- **The blast-radius "before" reading was never taken**, and cannot be: it
+  could only have been taken while the tailnet was still allow-all, and that
+  window closed with Phase 2. The exposure change is therefore stated from
+  configuration — two `/24` routes became three `/32`, now two — not from a
+  before/after pair. The **"after" half is measured**: a disposable node
+  registered in a role reached 1 of 8 destinations, and 0 of 8 in another role
+  ([the join-and-revoke drill](docs/runbooks/join-change-revoke.md)). A number
+  without its pair, said as such.
 - **Phase 4 waits on a paid plan** — one time-boxed month on a single seat.
 
 ## Plan
@@ -106,8 +109,10 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **Weeks two to three — Phase 6**
 
-5. Blast radius, "after" reading, from a disposable node.
-6. Lost device: time to revoke, and what stops working.
+6. Lost device: time to revoke, and what stops working. Half measured
+   already — a machine role loses everything about 1.6 s after the device is
+   removed in the console. The half that matters for a lost phone, where the
+   identity is a person's, is not.
 7. Offboarding: what has to be revoked, and what never existed to revoke.
 8. Lost comms: what keeps working in the household when the control plane
    cannot be reached.
