@@ -4,9 +4,10 @@
 see. What can a visitor verify without an account, what could they be allowed
 to *run*, and what would that cost the household?
 
-**Status:** the read-only half is built (D-062). The two ways of letting a
-visitor trigger something are specified here and **not built**: they change what
-the outside world can cause, so they are the owner's decision, not mine.
+**Status:** the read-only half is built (D-062). Of the two ways of letting a
+visitor trigger something, the owner chose **B**, which is built (D-063); **C**
+remains specified and unbuilt, because it would put the first create-capable
+credential into CI.
 
 ---
 
@@ -57,7 +58,7 @@ that accepts a parameter is a trigger that eventually accepts the wrong one.
 Needs write access to the repository. Handing that out to see a check run is
 absurd; a fork's run would not carry the trust credentials anyway.
 
-### B. A phrase on one pinned issue re-runs the read-only checks
+### B. A phrase on one pinned issue re-runs the read-only checks — built (D-063)
 
 Anyone with a GitHub account comments a fixed phrase on one pinned issue; a
 workflow reacts, re-runs the checks that already run on a schedule, and replies
@@ -73,6 +74,13 @@ in the thread with the result and a link to the run.
   owner can lock.
 - **What it buys:** a visitor stops reading a record of runs and watches one
   happen. That is a different quality of evidence for the same underlying job.
+- **As built:** [`viewer-check.yml`](../../.github/workflows/viewer-check.yml).
+  Gated on the `public-check` label rather than an issue number, so the
+  invitation is withdrawn by removing the label. The comment body is passed
+  through the environment and compared in the shell, never interpolated into
+  one: it is untrusted text from a stranger, and this is the only workflow they
+  can reach. Bot comments are ignored, one run at a time, five-minute cooldown
+  with an explaining reply.
 
 ### C. A nightly probe node that measures the refusals in public
 
@@ -103,3 +111,5 @@ Build **B** — it adds no capability that does not already exist on a schedule,
 and it converts "here is a record" into "watch it happen". Treat **C** as a
 deliberate trade to be decided on its own: a real gain in provable
 deny-by-default, paid for with the first write-capable credential in CI.
+
+**Decided 2026-09-13:** B built, C left on the roadmap.

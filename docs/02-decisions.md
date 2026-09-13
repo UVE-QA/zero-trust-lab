@@ -3548,3 +3548,43 @@ this lab could publish and the most expensive: a nightly ephemeral node with no
 grants, measuring the refusals in a public log, paid for with the first
 credential in CI that can create anything. Both change what the outside world
 can cause, so both are the owner's call.
+
+---
+
+## D-063 — one button for strangers, shaped so it cannot be more than one
+
+**2026-09-13.** D-062 let a visitor check the page's claims. This lets them
+cause one: a fixed phrase in the issue carrying the `public-check` label
+re-runs the two read-only checks — the tailnet's own tests, and the
+byte-for-byte comparison of the policy in force against `main` — and answers in
+the thread with the result and a link to the log.
+
+Nothing new is possible as a result. Both checks already run on a schedule and
+on every change; what a stranger gains is watching one happen rather than
+reading a record of one. That is the whole justification, and it is worth being
+clear that the gain is rhetorical rather than technical.
+
+The safety is in the shape, not in a rule somewhere:
+
+- **No input.** The comment is a trigger, not an argument. The phrase matches or
+  the job does nothing. A trigger that accepts a parameter is a trigger that
+  eventually accepts the wrong one.
+- **No path home.** The job speaks to the Tailscale control plane and nothing
+  else; the credential is minted per run by OIDC federation and scoped to
+  reading the policy file. There is no route from a comment to the house, and
+  no workflow in this repository can change anything in the tailnet at all.
+- **Untrusted text stays text.** The comment body reaches the job through the
+  environment and is compared in the shell. It is never interpolated into a
+  script — this is the one workflow a stranger can reach, so it is the one that
+  has to assume the stranger is hostile.
+- **Withdrawable without a code change.** The gate is a label the owner
+  controls. Remove the label and the invitation is gone.
+- **Abuse costs a noisy thread.** One run at a time, a five-minute cooldown that
+  replies rather than failing silently, bot comments ignored, and Actions
+  minutes free on a public repository.
+
+What was not built, deliberately: the nightly probe node that would measure the
+refusals in a public log rather than asserting them. It is the stronger
+evidence and it costs the first credential in CI that can create something —
+that trade deserves its own decision, not a footnote to this one
+([design](designs/viewer-verification.md)).
