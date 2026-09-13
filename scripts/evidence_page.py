@@ -18,6 +18,7 @@ come from an API, and an API is input.
 """
 import argparse
 import datetime as dt
+import hashlib
 import html
 import json
 import os
@@ -295,7 +296,8 @@ def card(claim, why, result, stale_hours, expect_failure=False):
             f'<span class="pill">{E(label)}</span></div><p class="why">{E(why)}</p>{ev}</article>')
 
 
-def render(measured, pol, dec, built, diagram, agg, home):
+def render(measured, pol, dec, built, diagram, agg, home, tmpl_sha="", build_sha_full="main"):
+    build_sha = build_sha_full[:7]
     blob = f"{SERVER}/{REPO}/blob/main"
     rt = (agg or {}).get("routes_into_other_networks") or {}
     routes_n = rt.get("effective", rt.get("enabled", home.get("exposed_to_tailnet")))
@@ -358,6 +360,11 @@ table.why{{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}}ta
 table.why th{{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}}.sw{{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}}
 h1{{font-size:28px;line-height:1.2;margin:0 0 8px}}h2{{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:40px 0 12px}}
 h3{{font-size:16px;margin:0}}p{{margin:6px 0}}a{{color:var(--link)}}code{{font:13px ui-monospace,SFMono-Regular,Menlo,monospace}}
+.verify ol{{margin:0 0 14px 0;padding-left:22px}}.verify li{{margin:0 0 10px 0;line-height:1.5}}
+.verify .vs{{font-weight:600}}.verify .ok{{color:#1f7a34}}.verify .no{{color:#a3251b}}.verify .wait{{color:var(--mut)}}
+.verify .sub{{color:var(--mut);font-size:14px;display:block}}
+pre.cmd{{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+overflow-x:auto;font-size:13px}}
 .lede{{color:var(--mut);max-width:640px}}.built{{font-size:14px;color:var(--mut);margin-top:14px}}
 .card{{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--none);border-radius:8px;padding:14px 16px;margin:10px 0}}
 .card.pass{{border-left-color:var(--pass)}}.card.fail{{border-left-color:var(--fail)}}.card.stale{{border-left-color:var(--stale)}}
@@ -437,6 +444,27 @@ so the picture cannot show a path the policy does not grant. Counts on the tiles
 deliberately broken, counted from both ends, and written down once. They change only when
 the drill is run again.</p>
 {drills}
+
+<h2>Verify this yourself</h2>
+<p class="why col">Three kinds of claim are on this page and they are not equally checkable, so
+they are separated rather than blended. The checks below run <strong>in your browser</strong>, against
+GitHub, with no account and nothing of mine in the path.</p>
+<section class="verify col" data-tmpl-sha="{tmpl_sha}" data-tmpl-path="policy/policy.hujson.tmpl"
+ data-build-sha="{build_sha}">
+<ol id="verify-body"><li class="why">Reading GitHub…</li></ol>
+<p class="why"><strong>What only I can attest</strong> — the drill numbers. They were measured on a
+private network: seconds from a click to a refused connection, destinations reachable and not. You
+cannot repeat them without access to the tailnet, which is the thing being protected, and this page
+will not pretend otherwise. What you can judge is the method: every drill links a runbook with the
+exact commands, the controls used, and a section on what it did <em>not</em> test.</p>
+<details class="parts"><summary>Without trusting this page's JavaScript</summary>
+<pre class="cmd">curl -s https://raw.githubusercontent.com/{E(REPO)}/{build_sha_full}/policy/policy.hujson.tmpl | shasum -a 256
+# expect {tmpl_sha}</pre>
+<p class="why">Then read <a href="{blob}/.github/workflows/tailnet-check.yml">tailnet-check.yml</a>:
+the job renders that template with values held as secrets and asks the tailnet to compare the result,
+byte for byte, with the policy actually in force. The run log is public; the credential it uses is
+minted per job and can only read.</p></details>
+</section>
 
 <h2>From the code, not measured</h2>
 <p class="why">Counted from the repository's files when the page was built. The live checks
@@ -525,6 +553,13 @@ def main():
          branch_protected(), 30),
     ]
     built = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # For the "verify this yourself" section: the hash a visitor can recompute
+    # from the public template, and the commit this page was built from. A hash
+    # of the *rendered* policy would say more and cannot be published -- it is
+    # taken over a file holding real addresses, and the drift check compares it
+    # inside the job where that file exists (D-062).
+    tmpl_sha = hashlib.sha256((ROOT / "policy" / "policy.hujson.tmpl").read_bytes()).hexdigest()
+    build_sha_full = os.environ.get("GITHUB_SHA", "main")
     agg = tailnet_aggregate()
     cloud = cloud_identity()
     if cloud is not None:
@@ -545,7 +580,8 @@ def main():
     diagram = evidence_diagram.render((ROOT / "policy" / "policy.hujson.tmpl").read_text(), agg, home)
     page = render({"live": [(c, w, r, s, *x) for c, w, r, s, *x in live],
                    "every": [(c, w, r, s) for c, w, r, s in every]},
-                  policy_figures(), decision_figures(), built, diagram, agg, home)
+                  policy_figures(), decision_figures(), built, diagram, agg, home,
+                  tmpl_sha, build_sha_full)
 
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)

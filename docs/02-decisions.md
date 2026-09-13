@@ -3507,3 +3507,44 @@ separate question, unanswered.
 One small honest note for whoever reads a device's screen during an incident:
 the device's own client kept showing the peer as active throughout. The screen
 lies; the packets do not.
+
+---
+
+## D-062 — a stranger should not have to take this page's word
+
+**2026-09-13.** The evidence page is a portfolio artefact that makes
+measurements about a network nobody else can see. Until now every claim on it
+carried the same weight visually, which quietly overstated the weak ones: a
+hash anyone can recompute sat beside a drill timing that rests entirely on my
+say-so.
+
+They are now separated, and the separation is the point:
+
+- **What a visitor computes themselves.** The page ships four checks that run
+  in the visitor's browser: the SHA-256 of the public policy template, fetched
+  from GitHub and hashed locally against the hash built into the page; that the
+  page was built by Actions from that same commit; the conclusion and age of
+  the last comparison against the live tailnet; and a plain statement that
+  nothing here can be triggered from outside.
+- **What GitHub attests.** The workflow files say what the jobs do, the runs
+  say they ran and passed. That is a record a stranger can read rather than a
+  summary I wrote.
+- **What only I attest.** The drill numbers, measured on a private network. The
+  page now says so in as many words, and offers the method instead of the
+  measurement: every drill links a runbook with the commands, the controls, and
+  what it did not test.
+
+The rendered policy's hash would prove more and is deliberately not published:
+it is taken over a file containing the household's real addresses, and a digest
+lets a guess be confirmed. The byte-for-byte comparison therefore stays inside
+the job that holds the file, and the visitor gets its verdict.
+
+What is *not* built, and why it is written down rather than done quietly: two
+ways of letting a visitor trigger a check
+([design](designs/viewer-verification.md)). One is safe and cheap — a fixed
+phrase on a pinned issue re-runs the read-only checks, taking no input and
+reaching nothing but the control plane. The other is the strongest evidence
+this lab could publish and the most expensive: a nightly ephemeral node with no
+grants, measuring the refusals in a public log, paid for with the first
+credential in CI that can create anything. Both change what the outside world
+can cause, so both are the owner's call.
