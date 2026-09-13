@@ -113,7 +113,12 @@ pipeline refused (D-041, PR #7, PR #8).
    already — a machine role loses everything about 1.6 s after the device is
    removed in the console. The half that matters for a lost phone, where the
    identity is a person's, is not.
-7. Offboarding: what has to be revoked, and what never existed to revoke.
+7. ~~Offboarding: what has to be revoked, and what never existed to revoke~~ —
+   written from the live inventory ([runbook](docs/runbooks/offboarding.md)):
+   one tailnet user with four devices, one collaborator, one read-only
+   credential, one SSH key on the production host, and **no cloud identity
+   belonging to a person at all**. Rehearsing it for real needs a second
+   account to remove, which is a decision rather than a task.
 8. Lost comms: what keeps working in the household when the control plane
    cannot be reached.
 
