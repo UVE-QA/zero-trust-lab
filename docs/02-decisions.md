@@ -3396,6 +3396,14 @@ of configuration and the reason it exists is the more useful half.
 Reaching a port and being allowed to write to what is behind it are two
 permissions. The network can only ever grant the first one.
 
+**Measured the same evening,** with the test user restored for the length of a
+drill: 1 of 10 destinations — the appliance's AirPlay port, which answered, so
+the grant names a service that exists rather than a line in a file. The
+collector's ingest port was refused, which is the whole point of the move. With
+the user suspended: 0 of 10, about 1.6 s after the click, and about 1.7 s to
+come back. The full observed table is in
+[the runbook](runbooks/second-user.md).
+
 ---
 
 ## D-060 — the production shell now depends on the state of the device

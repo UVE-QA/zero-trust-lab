@@ -117,8 +117,9 @@ NODES = {
                   "and in a group worth exactly one port on one real device -- the media appliance's "
                   "AirPlay port, and nothing else anywhere. Suspended between drills, so the grant is "
                   "dormant: "
-                  "measured at 0 of 8 destinations while suspended, 1 of 8 when restored, and the switch "
-                  "between the two takes about three seconds (D-058).", "D-058"),
+                  "measured at 0 of 10 destinations while suspended, 1 of 10 when restored -- the "
+                  "appliance answering on its own port -- and the switch between the two takes under "
+                  "two seconds (D-058, D-059).", "D-059"),
     "prod":      (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),

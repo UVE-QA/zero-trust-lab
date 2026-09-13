@@ -2,25 +2,25 @@
   "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. cadence_days is how often the drill should be re-run; the page shows when the next one is due and scripts/drills_due.py raises an issue when it slips.",
   "drills": [
     {
-      "name": "A second user joins, is granted, suspended and restored",
+      "name": "A second user joins, is granted one real device, suspended and restored",
       "date": "2026-09-13",
       "runbook": "docs/runbooks/second-user.md",
       "cadence_days": 90,
       "figures": [
         {
-          "value": "0 of 8",
-          "label": "destinations a new member reached while in no group — joining is not being granted"
+          "value": "1 of 10",
+          "label": "destinations the test user reached with their one grant: the media appliance's AirPlay port — and it answered, so the grant points at a live service, not a hole in a policy file"
         },
         {
-          "value": "1 of 8",
-          "label": "after one grant through one group: the collector's ingest port, nothing else"
+          "value": "0 of 10",
+          "label": "the same probe with the user suspended: the appliance, the collector, the hub's UI, shell and broker, production, the home server and both plugs, all refused"
         },
         {
-          "value": "~3 s",
-          "label": "from suspending the user to their device reaching nothing; restoring took about 2 s"
+          "value": "~1.6 s",
+          "label": "from the suspend click to the port refusing; restoring took about 1.7 s, both measured at one-second poll resolution"
         }
       ],
-      "not_tested": "a device that is offline when the suspension lands"
+      "not_tested": "a device that is offline when the suspension lands, and what a suspended user still sees in the console"
     },
     {
       "name": "A device joins, changes role, and is revoked",
