@@ -27,11 +27,12 @@
 	"groups": {
 		"group:operators": ["{{operator_identity}}"],
 
-		// A second person, to find out what "add a user" actually costs. They
-		// are in the tailnet and in a group, and the group buys them one port
-		// on one machine in the lab -- nothing in the house, nothing on
-		// production, nothing on anyone's laptop (D-058).
-		"group:guests": ["{{guest_identity}}"],
+		// A second person, kept for drills: what "add a user" actually costs.
+		// They are in the tailnet and in a group, and the group buys them one
+		// port on one machine in the lab -- nothing in the house, nothing on
+		// production, nothing on anyone's laptop. Suspended between drills, so
+		// this grant is dormant rather than live (D-058).
+		"group:testers": ["{{test_identity}}"],
 	},
 
 	"tagOwners": {
@@ -148,12 +149,12 @@
 			"ip":  ["tcp:8443"],
 		},
 
-		// --- A guest, and the whole of what a guest may do ----------------
+		// --- A test user, and the whole of what they may do ---------------
 		// One port on the collector: they may read what the collector serves
 		// and nothing else. This grant exists to be measured, and then to be
 		// taken away while somebody watches (D-058).
 		{
-			"src": ["group:guests"],
+			"src": ["group:testers"],
 			"dst": ["tag:collector"],
 			"ip":  ["tcp:8443"],
 		},
@@ -301,9 +302,9 @@
 			"deny": ["actuator-granted:52432"],
 		},
 
-		// The guest reaches one port on one machine, and nothing else at all.
+		// The test user reaches one port on one machine, and nothing else.
 		{
-			"src":    "{{guest_identity}}",
+			"src":    "{{test_identity}}",
 			"accept": ["tag:collector:8443"],
 			"deny": [
 				"tag:gateway-home:8123", // not the house's automation UI
