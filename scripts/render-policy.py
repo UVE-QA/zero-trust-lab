@@ -40,8 +40,8 @@ SPEC = {
     "operator_identity": "identity",  # tests need a concrete principal:
                                       # autogroup:member is valid in grants but
                                       # NOT in the tests section
-    "guest_identity":    "identity",  # a second person, deliberately granted
-                                      # almost nothing: the drill in D-058
+    "test_identity":     "identity",  # a second person, kept for drills and
+                                      # granted almost nothing (D-058)
 }
 
 VALIDATORS = {

@@ -3316,3 +3316,39 @@ leaving a company.
 
 The invite flow already required an admin's approval before a user can join;
 that stops a stranger joining, and this stops a joiner inheriting the house.
+
+## D-058 — A second person, and what "add a user" actually cost
+
+The offboarding runbook was written from an inventory and could not be
+rehearsed: there was one person, and removing him would have ended the lab. So
+a second identity was added — a separate account, invited as a member, with a
+node of its own registered as that user rather than with an auth key.
+
+The first thing it proved was the change that had to be made *before* it
+arrived. Under the old policy, granting to `autogroup:member`, this test user
+would have joined already holding the house's automation UI, the house's shell,
+production's SSH and a socket in the flat. Narrowing to a group first (D-057)
+was not tidiness; it was the difference between a test and an incident.
+
+Measured, on the live network, one probe against eight destinations:
+
+| state | reachable |
+|---|---|
+| in the tailnet, in no group | 0 of 8 |
+| in a group with one grant | 1 of 8 — the collector's ingest port |
+| suspended | 0 of 8, about 3 s after the click |
+| restored | 1 of 8, about 2 s after the click |
+
+**Suspension is the revocation worth having.** It is done in one place, it does
+not need the device to cooperate, it takes seconds, and it is reversible — the
+account and its machines survive and simply see nothing. For offboarding that
+beats deletion: access ends now, and the decision about the account can be made
+later, unhurried.
+
+The test user stays in the tailnet, suspended between drills, so this can be
+repeated without another invitation. Its grant is one port on one machine in
+the lab, and while the user is suspended that grant is dormant.
+
+One thing this makes concrete for the growth path: the group is edited by hand
+here. An identity provider would remove someone from it by their leaving; a
+file will not.

@@ -60,7 +60,7 @@ jobs:
       POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
       POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
       POLICY_VALUE_OPERATOR_IDENTITY: ${{ secrets.POLICY_VALUE_OPERATOR_IDENTITY }}
-      POLICY_VALUE_GUEST_IDENTITY: ${{ secrets.POLICY_VALUE_GUEST_IDENTITY }}
+      POLICY_VALUE_TEST_IDENTITY: ${{ secrets.POLICY_VALUE_TEST_IDENTITY }}
     steps:
       - uses: actions/checkout@v4
       - name: render from environment secrets
@@ -84,7 +84,7 @@ jobs:
       POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
       POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
       POLICY_VALUE_OPERATOR_IDENTITY: ${{ secrets.POLICY_VALUE_OPERATOR_IDENTITY }}
-      POLICY_VALUE_GUEST_IDENTITY: ${{ secrets.POLICY_VALUE_GUEST_IDENTITY }}
+      POLICY_VALUE_TEST_IDENTITY: ${{ secrets.POLICY_VALUE_TEST_IDENTITY }}
     steps:
       - uses: actions/checkout@v4
       - name: render from environment secrets

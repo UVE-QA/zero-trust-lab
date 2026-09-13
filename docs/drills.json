@@ -2,6 +2,27 @@
   "_what": "Numbers measured by watching the system, for the evidence page. Each entry is written from a runbook's observed section, never estimated. cadence_days is how often the drill should be re-run; the page shows when the next one is due and scripts/drills_due.py raises an issue when it slips.",
   "drills": [
     {
+      "name": "A second user joins, is granted, suspended and restored",
+      "date": "2026-09-13",
+      "runbook": "docs/runbooks/second-user.md",
+      "cadence_days": 90,
+      "figures": [
+        {
+          "value": "0 of 8",
+          "label": "destinations a new member reached while in no group — joining is not being granted"
+        },
+        {
+          "value": "1 of 8",
+          "label": "after one grant through one group: the collector's ingest port, nothing else"
+        },
+        {
+          "value": "~3 s",
+          "label": "from suspending the user to their device reaching nothing; restoring took about 2 s"
+        }
+      ],
+      "not_tested": "a device that is offline when the suspension lands"
+    },
+    {
       "name": "A device joins, changes role, and is revoked",
       "date": "2026-09-11",
       "runbook": "docs/runbooks/join-change-revoke.md",
