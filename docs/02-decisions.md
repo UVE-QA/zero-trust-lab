@@ -3257,3 +3257,34 @@ no changes.
 Worth keeping because the sequence is the argument: a gate that can be routed
 around by the thing it gates is not a gate, and the only way to find out is to
 make it do work.
+
+## D-056 — The command channel was built, reviewed, and retired unused
+
+The lab's mobile-unit tier had no device. The house's robot vacuum was the
+candidate, and the question was how a machine outside the house could ask for a
+physical action without gaining a way in. Two shapes were refused for widening
+the house's exposure — a webhook needs the hub's UI port, an MQTT topic needs a
+broker whose access list is not enforced (D-048). A third was built: the hub
+asks the collector on its own tick, the answer may name one command from an
+allowlist the hub holds, and the hub applies its own guards before it acts.
+
+It worked, and the household session's review of it found a gap worth the whole
+exercise: one allowed command, handed over once, could still be re-queued every
+five minutes, so the robot would clean the cat's area, dock, and set off again
+all day. The fix was a three-hour cooldown on the dock, not a counter.
+
+**Then the owner chose a design that needs no channel.** The house triggers the
+robot itself when the litter box finishes its own cleaning cycle, inside a
+window it owns, and a night visit becomes one run in the morning. The lab
+receives telemetry and can move nothing.
+
+So the endpoint was removed from the receiver and the operator's queue script
+deleted. An unused endpoint is not free: it is a path that exists, whose guards
+must go on working for a caller that never calls, and which somebody has to
+remember when reasoning about exposure. The design document keeps the whole
+channel — including the gap and its fix — because the alternatives are the
+argument, and because a thing built and then judged unnecessary is a decision
+worth showing.
+
+What the lab can say now is stronger than what the channel would have earned:
+**nothing outside the house can move the robot at all.**
