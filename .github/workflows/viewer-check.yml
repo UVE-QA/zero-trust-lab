@@ -1,0 +1,145 @@
+name: viewer-check
+
+# A stranger's button, deliberately shaped so that it cannot be more than one.
+#
+# Anyone with a GitHub account may write one fixed phrase in the issue carrying
+# the `public-check` label, and this re-runs the read-only checks that already
+# run on a schedule, then answers in the thread with the result and a link.
+#
+# The shape is the security argument (D-063):
+#   - It takes NO input. The comment is a trigger, not an argument; the phrase
+#     matches or nothing happens. A trigger that accepts a parameter is a
+#     trigger that eventually accepts the wrong one.
+#   - It reaches the Tailscale control plane and nothing else. There is no path
+#     from here to the home network, and the credential is minted per run by
+#     OIDC federation, scoped to reading the policy. Nothing here can change
+#     anything, in any account.
+#   - It is gated on a label the owner controls, so the invitation can be
+#     withdrawn by removing the label, without touching this file.
+#   - Bot comments are ignored, one run happens at a time, and a cooldown makes
+#     the worst case a noisy thread rather than a busy runner.
+#
+# The comment body is passed through the environment and compared in the shell.
+# It is never interpolated into a script: a comment is untrusted text written by
+# a stranger, and this is the one workflow they can reach.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: viewer-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: re-run the read-only checks for a visitor
+    if: >-
+      github.event.issue.state == 'open' &&
+      !github.event.issue.pull_request &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(github.event.issue.labels.*.name, 'public-check')
+    runs-on: ubuntu-latest
+    environment: tailnet-read
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+    env:
+      COOLDOWN_SECONDS: "300"
+    steps:
+      - name: the phrase, and only the phrase
+        id: phrase
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          want="run the checks"
+          got=$(printf '%s' "$BODY" | tr -d '\r' | tr 'A-Z' 'a-z' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ "$got" = "$want" ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; else echo "go=no" >> "$GITHUB_OUTPUT"; fi
+
+      - name: not too often
+        id: cool
+        if: steps.phrase.outputs.go == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/viewer-check.yml/runs?per_page=20&status=completed" \
+                   --jq '[.workflow_runs[] | select(.conclusion == "success") | .created_at] | max // empty')
+          if [ -n "$last" ]; then
+            age=$(( $(date -u +%s) - $(date -u -d "$last" +%s) ))
+            if [ "$age" -lt "$COOLDOWN_SECONDS" ]; then
+              echo "wait=$(( COOLDOWN_SECONDS - age ))" >> "$GITHUB_OUTPUT"
+              echo "go=no" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          echo "go=yes" >> "$GITHUB_OUTPUT"
+
+      - name: say it is running
+        if: steps.cool.outputs.go == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: gh issue comment "$ISSUE" --body "Running — [watch it]($URL). This reads the live policy and compares it with \`main\`; it changes nothing and cannot reach the home network."
+
+      - uses: actions/checkout@v4
+        if: steps.cool.outputs.go == 'yes'
+
+      - name: render from environment secrets
+        if: steps.cool.outputs.go == 'yes'
+        env:
+          POLICY_VALUE_ACTUATOR_GRANTED: ${{ secrets.POLICY_VALUE_ACTUATOR_GRANTED }}
+          POLICY_VALUE_ACTUATOR_CONTROL: ${{ secrets.POLICY_VALUE_ACTUATOR_CONTROL }}
+          POLICY_VALUE_OPERATOR_IDENTITY: ${{ secrets.POLICY_VALUE_OPERATOR_IDENTITY }}
+          POLICY_VALUE_TEST_IDENTITY: ${{ secrets.POLICY_VALUE_TEST_IDENTITY }}
+        run: ./scripts/render-policy.py --from-env
+
+      - name: the tailnet runs its own tests against this policy
+        id: validate
+        if: steps.cool.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
+          TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
+        run: ./scripts/tailnet-api.py validate policy/.rendered/policy.hujson
+
+      - name: the policy in force matches this repository
+        id: drift
+        if: steps.cool.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
+          TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
+        run: ./scripts/tailnet-api.py drift policy/.rendered/policy.hujson
+
+      - name: answer in the thread
+        if: always() && steps.phrase.outputs.go == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WAIT: ${{ steps.cool.outputs.wait }}
+          RAN: ${{ steps.cool.outputs.go }}
+          V: ${{ steps.validate.outcome }}
+          D: ${{ steps.drift.outcome }}
+        run: |
+          if [ "$RAN" != "yes" ]; then
+            gh issue comment "$ISSUE" --body "Someone ran this less than five minutes ago, so this one is skipped — the result would be the same file and the same answer. Try again in about ${WAIT}s, or read the [last runs](${{ github.server_url }}/${{ github.repository }}/actions/workflows/viewer-check.yml)."
+            exit 0
+          fi
+          mark() { [ "$1" = "success" ] && echo "passed" || echo "FAILED"; }
+          gh issue comment "$ISSUE" --body "$(cat <<EOF
+          Done — [full log]($URL).
+
+          | check | result |
+          |---|---|
+          | the tailnet ran the policy's own tests, including every \`must be refused\` assertion | **$(mark "$V")** |
+          | the policy in force, read back and compared with \`main\` byte for byte | **$(mark "$D")** |
+
+          Both are read-only: the credential is minted for this run by OIDC federation and can only read the policy file. No part of this touches the home network — the run never speaks to it, and nothing in your comment reached the job.
+          EOF
+          )"
+          [ "$V" = "success" ] && [ "$D" = "success" ]

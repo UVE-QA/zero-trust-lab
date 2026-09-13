@@ -125,9 +125,11 @@
       draw();
     }).catch(function (e) { rows[2] = vRow("wait", "Could not read the network check.", esc(e.message)); draw(); });
 
-    rows[3] = vRow("ok", "Nothing here can be triggered from outside, by design.",
-      "These checks only read. The tailnet credential is minted per job, scoped to reading the policy, and cannot change anything; " +
-      "no visitor action reaches the home network, and none of these buttons exists.");
+    rows[3] = vRow("ok", "You can make the network check run, now, yourself.",
+      'Write <code>run the checks</code> in <a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">this issue</a>' +
+      " and GitHub re-runs the two checks above and answers in the thread. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
+      "the credential is minted for that run and can only read the policy, and there is no path from it to the home network. " +
+      "Everything else on this page only reads.");
     draw();
   }
   verify();
