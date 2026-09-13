@@ -3165,6 +3165,14 @@ certificate authority — not with the operator's key, which never left his
 machine. So the firewall rule that admits only the console's range does admit
 it, and the way back in does not depend on the network this lab governs.
 
+It failed once in the middle of the same test. A reconnect returned
+`SERVER_ERROR [512]` from the provider's own service, and the host logged
+nothing at all for that attempt — it never arrived, so the firewall was not
+what refused it. The next attempt succeeded, with a fresh certificate. Worth
+recording rather than tidying away: the break-glass path runs through someone
+else's service, which can fail on its own, and the only thing that proved
+where the failure was is that the host keeps its own log.
+
 The other half of that sentence is the residual risk, and it belongs here:
 **anyone who can sign in to the cloud account can get a root-capable shell on
 that host**, whatever the tailnet policy says. The account is the boundary. It
