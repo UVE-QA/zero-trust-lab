@@ -54,7 +54,7 @@ COL = {"future": "#9aa0a6", "home": "#3f8624", "tailnet": "#5b4fd6", "cloud": "#
        "ci": "#57606a", "cp": "#1f6feb", "planned": "#8c8c8c", "off": "#8c8c8c"}
 
 TW, TH = 180, 62
-W, H = 1200, 1034
+W, H = 1200, 1094
 VB_TOP = -28
 
 NODES = {
@@ -113,21 +113,21 @@ NODES = {
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),
 
-    "plug_g":    (460, 610, "plug", "home", "Smart plug", "granted · posture",
+    "plug_g":    (460, 670, "plug", "home", "Smart plug", "granted · posture",
                   "one /32", ["actuator-granted"], "The action tier: operators may switch it, "
                   "only from a device whose client reports the required posture. On this plan the "
                   "report comes from the device itself, so a compromised node is not constrained by "
                   "it — which is what the device-management tile below would change.", "D-040"),
-    "plug_c":    (670, 610, "plug", "home", "Smart plug", "identical · refused",
+    "plug_c":    (670, 670, "plug", "home", "Smart plug", "identical · refused",
                   "one /32", ["actuator-control"], "The same model on the same port, never "
                   "granted. Proves least privilege is per host, not per protocol.", "D-010"),
     # Home devices the lab uses without any route to them.
-    "catcam":    (40, 610, "camera", "home", "Cat camera", "released · events only",
+    "catcam":    (40, 670, "camera", "home", "Cat camera", "released · events only",
                   "no route", [], "The one camera the owner released for the lab. Nothing on the "
                   "tailnet can reach it: the recorder in the house watches it, and at the end of each "
                   "visit the hub pushes the event -- id, times, scores, no image -- to the collector. "
                   "Named in the recorder, never addressed.", "D-049"),
-    "vacuum":    (250, 610, "vacuum", "home", "Robot vacuum", "reports only",
+    "vacuum":    (250, 670, "vacuum", "home", "Robot vacuum", "reports only",
                   "no route", [], "The lab's only moving machine. It cannot run a client, and the hub "
                   "reaches it through the vendor's cloud rather than the home network. It reports state, "
                   "battery, task and area through the hub; the house alone starts it, on its own trigger "
@@ -138,22 +138,22 @@ NODES = {
 # and where each part would plug in. Drawn so a reader can see the lab's
 # shape grow, never mistaken for something that exists.
 NODES.update({
-    "idp":  (28, 932, "idp", "future", "Identity provider", "SSO · users, groups",
+    "idp":  (28, 992, "idp", "future", "Identity provider", "SSO · users, groups",
              "Standard $8/user/mo", [], "One login for many people; their groups become policy sources "
              "instead of every member. Plugs into the control plane and cloud sign-in.", "multi-user"),
-    "mdm":  (224, 932, "mdm", "future", "MDM / EDR", "posture from the fleet",
+    "mdm":  (224, 992, "mdm", "future", "MDM / EDR", "posture from the fleet",
              "Standard $8/user/mo", [], "Posture from the fleet's management system instead of the client's "
              "own report. An integration a paid plan adds.", "D-040"),
-    "jit":  (420, 932, "clock", "future", "Just-in-time", "grants that expire",
+    "jit":  (420, 992, "clock", "future", "Just-in-time", "grants that expire",
              "Premium $18/user/mo", [], "Standing access to the action tier replaced by grants that "
              "expire. Needs a paid plan: one time-boxed month.", "Phase 4"),
-    "siem": (616, 932, "logs", "future", "Log streaming", "flow + audit → SIEM",
+    "siem": (616, 992, "logs", "future", "Log streaming", "flow + audit → SIEM",
              "Premium $18/user/mo", [], "Who connected to what, kept and searchable. The drills in "
              "Phase 6 would read it.", "Phase 6"),
-    "sso":  (812, 932, "org", "future", "Identity Center", "people's cloud sign-in",
+    "sso":  (812, 992, "org", "future", "Identity Center", "people's cloud sign-in",
              "AWS: no charge", [], "Cloud sign-in for people through the identity provider. Lives in "
              "the organisation's management account, not this stack.", "D-030"),
-    "ca":   (1008, 932, "ca", "future", "Private CA", "certs for the collector",
+    "ca":   (1008, 992, "ca", "future", "Private CA", "certs for the collector",
              "free, or $50+/mo", [], "The missing half of Roles Anywhere: machines get certificates, "
              "never keys. Switches the cloud tile above on.", "Phase 5"),
 })
@@ -178,7 +178,7 @@ def role_to_node(role):
 ROUTES = {
     ("operators", "gateway"):           ([(220, 345), (500, 345)], (362, 345)),
     ("operators", "gateway", "plug_g"): ([(220, 372), (500, 372)], None),
-    ("gateway", "plug_g"):              ([(550, 392), (550, 610)], (550, 552)),
+    ("gateway", "plug_g"):              ([(550, 392), (550, 670)], (550, 620)),
     ("operators", "desktop"):           ([(130, 392), (130, 432)], (160, 412)),
     ("operators", "prod"):              ([(220, 277), (980, 277)], (640, 277)),
     ("operators", "drone"):             ([(220, 388), (238, 388), (238, 414), (738, 414), (738, 463), (760, 463)], (420, 414)),
@@ -189,7 +189,7 @@ ROUTES = {
     # refusals, drawn from the tests
     ("prod", "gateway"):                ([(980, 302), (640, 302), (640, 330)], (880, 302)),
     ("appliance", "gateway"):           ([(430, 463), (470, 463), (470, 386), (500, 386)], (560, 452)),
-    ("gateway", "plug_c"):              ([(650, 392), (650, 566), (760, 566), (760, 610)], (836, 566)),
+    ("gateway", "plug_c"):              ([(650, 392), (650, 606), (760, 606), (760, 670)], (846, 606)),
 }
 
 
@@ -367,22 +367,22 @@ def render(policy_text, agg=None, home=None):
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
     # --- data inside the house: no tailnet path, drawn by hand ---------------
-    arrow("data", [(130, 610), (130, 545), (505, 545), (505, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
-    layers["data"].append(label(300, 545, "visit events · LAN", "#3f8624", "lbl f"))
+    arrow("data", [(130, 670), (130, 540), (505, 540), (505, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(300, 540, "visit events · LAN", "#3f8624", "lbl f"))
     # The robot's own line reaches the hub the long way round -- out to the
     # vendor's cloud and back -- which the label says and the drawing cannot.
-    arrow("data", [(340, 610), (340, 568), (520, 568), (520, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
-    layers["data"].append(label(380, 568, "state · via the vendor's cloud", "#3f8624", "lbl f"))
+    arrow("data", [(340, 670), (340, 582), (520, 582), (520, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(380, 582, "state · via the vendor's cloud", "#3f8624", "lbl f"))
 
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts, n_tests) for n in NODES)
 
     proto, rest = "", ""
     if home:
-        proto = (f'<text x="40" y="756" class="ctn">connected over: '
+        proto = (f'<text x="40" y="816" class="ctn">connected over: '
                  f'{E(" · ".join(home.get("protocols", [])))}</text>')
         cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
-        x0, y0 = 900, 596
+        x0, y0 = 900, 656
         rows = []
         # One column: two made the longer category names collide.
         for i, c in enumerate(cats):
@@ -413,14 +413,14 @@ def render(policy_text, agg=None, home=None):
 <text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
 <text x="110" y="240" class="ctn">laptop + phones = one policy role</text>
 <text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
-<rect x="12" y="572" width="1176" height="290" rx="14" class="ct home"/>
-<text x="40" y="706" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
-<text x="40" y="734" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
+<rect x="12" y="632" width="1176" height="290" rx="14" class="ct home"/>
+<text x="40" y="766" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
+<text x="40" y="794" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
 {proto}
-<text x="40" y="846" class="ctl">Home network — flat private /24 · reached only through the hub</text>
+<text x="40" y="906" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
-<rect x="12" y="882" width="1176" height="146" rx="14" class="ct future"/>
-<text x="24" y="906" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
+<rect x="12" y="942" width="1176" height="146" rx="14" class="ct future"/>
+<text x="24" y="966" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
 """
     defs = "".join(
         f'<marker id="m-{k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
