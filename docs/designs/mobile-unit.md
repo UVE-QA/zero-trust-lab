@@ -284,9 +284,23 @@ the robot's own quiet hours begin; and the scenario still exists under the name
 the automation matches.
 
 Telemetry — state, battery, task and dock status, errors, cleaning area and
-time, consumables — is pushed the same way the temperature is. Never pushed:
+time, consumables — is pushed the same way the temperature is, on change and on
+the five-minute tick at second 45. Three jobs now share that tick: the
+temperature push, this one, and the ask at second 30. They are spread across
+the minute deliberately, and while the collector is down each logs one error
+per tick on the hub — a cost the household session accepted and wrote into the
+house's own records. Never pushed:
 the map image, the robot's coordinates, the network details. A floor plan and a
 position inside the flat have no place on a public page.
+
+### One helper, and why not two
+
+`input_text.zt_lab_last_command_id` remembers the last id handled, so a
+repeated id does nothing. It is a second belt: the collector already hands a
+command over once. A daily counter was considered and dropped — the cooldown
+caps starts at about four a day on its own, and a helper that has to be reset
+at midnight, and restored after a restart, is a moving part earning very
+little.
 
 ### The order the first commands run in
 
