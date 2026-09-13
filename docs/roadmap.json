@@ -1,26 +1,61 @@
 {
   "_what": "What this project intends and has not built, for the evidence page. Each item says why it is not built and what it would take. Removed when built, not ticked.",
   "items": [
-    {"what": "Sensors as tailnet nodes", "state": "deferred",
-     "why": "The house's sensors cannot run a client. Simulated ones would share a cloud host that serves two projects on 2 GB with no swap.",
-     "takes": "a single-board computer and a sensor, about $30", "ref": "Phase 6"},
-    {"what": "A mobile unit that takes commands", "state": "not built, by decision",
-     "why": "A command channel was built and reviewed, then retired: the owner chose to have the house trigger the robot on its own event instead. The lab receives the robot's telemetry and can move nothing. Nothing outside the house can reach it at all, which is the stronger claim.",
-     "takes": "nothing — this is the decision, not a gap", "ref": "docs/designs/mobile-unit.md"},
-    {"what": "The kiosk tablet in a role of its own", "state": "owner decision",
-     "why": "It is a member today, so formally it may do everything an operator may. A role would leave it the dashboard and nothing else.",
-     "takes": "one tag and one grant; the owner's yes", "ref": "Phase 2"},
-    {"what": "Lost comms on the household side", "state": "planned",
-     "why": "Measured so far only where the lab could break its own link. The hub's link and the control plane are the house's.",
-     "takes": "an agreed window with the household", "ref": "Phase 6"},
-    {"what": "A button that starts a check from this page", "state": "not built",
-     "why": "A public button needs an endpoint that holds a credential to start a workflow. This page holds none, on purpose.",
-     "takes": "a small cloud function with a capped, audited dispatch", "ref": "D-044"},
-    {"what": "Two stale route advertisements", "state": "owner decision",
-     "why": "Two user devices advertise a whole /24 that was never approved, so nothing is routed. Harmless, and a finding.",
-     "takes": "the owners switch the advertisement off", "ref": "D-047"},
-    {"what": "Just-in-time access to the action tier", "state": "needs a paid plan",
-     "why": "Standing access to the socket would become a grant that expires.",
-     "takes": "one time-boxed month, $18/user", "ref": "Phase 4"}
+    {
+      "what": "Sensors as tailnet nodes",
+      "state": "deferred",
+      "why": "The house's sensors cannot run a client. Simulated ones would share a cloud host that serves two projects on 2 GB with no swap.",
+      "takes": "a single-board computer and a sensor, about $30",
+      "ref": "Phase 6"
+    },
+    {
+      "what": "A mobile unit that takes commands",
+      "state": "not built, by decision",
+      "why": "A command channel was built and reviewed, then retired: the owner chose to have the house trigger the robot on its own event instead. The lab receives the robot's telemetry and can move nothing. Nothing outside the house can reach it at all, which is the stronger claim.",
+      "takes": "nothing — this is the decision, not a gap",
+      "ref": "docs/designs/mobile-unit.md"
+    },
+    {
+      "what": "The kiosk tablet in a role of its own",
+      "state": "owner decision",
+      "why": "It is a member today, so formally it may do everything an operator may. A role would leave it the dashboard and nothing else.",
+      "takes": "one tag and one grant; the owner's yes",
+      "ref": "Phase 2"
+    },
+    {
+      "what": "Lost comms on the household side",
+      "state": "planned",
+      "why": "Measured so far only where the lab could break its own link. The hub's link and the control plane are the house's.",
+      "takes": "an agreed window with the household",
+      "ref": "Phase 6"
+    },
+    {
+      "what": "A check a visitor can start from the page itself",
+      "state": "built another way",
+      "why": "A button on the page would need an endpoint holding a credential to start a workflow, and this page holds none on purpose. The same thing is now done without one: a fixed phrase in a labelled issue re-runs the read-only checks and answers in the thread (D-063). What is still missing is only the convenience of not leaving the page.",
+      "takes": "nothing worth its price — the remaining gap is one click, and closing it costs a credential",
+      "ref": "D-063"
+    },
+    {
+      "what": "Refusals measured in public, not asserted",
+      "state": "owner decision",
+      "why": "A nightly ephemeral node with no grants at all could attempt a fixed list of connections and publish \"0 of N reachable\" as a machine-produced log. It would turn the deny-by-default claim from something this lab says into something a stranger can read off a run. The cost is the first credential in CI that can create anything — a key that registers a node.",
+      "takes": "an ephemeral pre-authorised key for a tag with no grants, target addresses as secrets, and the disclosure sweep extended over the artifact",
+      "ref": "docs/designs/viewer-verification.md"
+    },
+    {
+      "what": "Two stale route advertisements",
+      "state": "owner decision",
+      "why": "Two user devices advertise a whole /24 that was never approved, so nothing is routed. Harmless, and a finding.",
+      "takes": "the owners switch the advertisement off",
+      "ref": "D-047"
+    },
+    {
+      "what": "Just-in-time access to the action tier",
+      "state": "needs a paid plan",
+      "why": "Standing access to the socket would become a grant that expires.",
+      "takes": "one time-boxed month, $18/user",
+      "ref": "Phase 4"
+    }
   ]
 }

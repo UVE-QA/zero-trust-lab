@@ -3583,6 +3583,15 @@ The safety is in the shape, not in a rule somewhere:
   replies rather than failing silently, bot comments ignored, and Actions
   minutes free on a public repository.
 
+This supersedes two earlier notes rather than contradicting them. D-044 parked
+"a button that starts a check from the public page" and D-050 said the page
+"does not start anything", both for the same reason: a button would need an
+endpoint holding a credential that can dispatch workflows. That reason still
+stands and that endpoint still does not exist. What changed is the realisation
+that the trigger did not have to be ours — GitHub already has an event for a
+stranger typing in public, and a workflow may listen to it without anyone
+holding anything. The page still holds no credential; it holds a link.
+
 What was not built, deliberately: the nightly probe node that would measure the
 refusals in a public log rather than asserting them. It is the stronger
 evidence and it costs the first credential in CI that can create something —
