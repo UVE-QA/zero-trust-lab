@@ -162,11 +162,8 @@ data "aws_iam_policy_document" "github_apply_permissions" {
     resources = ["*"]
   }
 
-  # Read-only for now. Phase 5 creates a trust anchor and a profile here, and
-  # that addition is itself an apply a person will make -- see the deny above
-  # for why that ordering is the point rather than an inconvenience.
   statement {
-    sid    = "ReadRolesAnywhereWhenItExists"
+    sid    = "ReadRolesAnywhere"
     effect = "Allow"
     actions = [
       "rolesanywhere:ListTrustAnchors",
@@ -176,6 +173,57 @@ data "aws_iam_policy_document" "github_apply_permissions" {
       "rolesanywhere:ListTagsForResource",
     ]
     resources = ["*"]
+  }
+
+  # Creating a trust anchor or a profile cannot be scoped to a resource that
+  # does not exist yet, so it is scoped to what the request carries instead:
+  # this stack's tags, which the provider attaches to everything it makes. A
+  # request without them is refused, so this permission cannot be borrowed to
+  # create somebody else's anchor (D-066).
+  statement {
+    sid    = "CreateThisStacksRolesAnywhere"
+    effect = "Allow"
+    actions = [
+      "rolesanywhere:CreateTrustAnchor",
+      "rolesanywhere:CreateProfile",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/Project"
+      values   = ["zero-trust-lab"]
+    }
+  }
+
+  # Changing or removing one is scoped to the tag the resource already carries.
+  # Disabling is in this list on purpose: it is the incident lever in the
+  # certificate runbook, and a lever a person has to reach past CI for is a
+  # lever that will not be pulled in a hurry.
+  statement {
+    sid    = "ManageThisStacksRolesAnywhere"
+    effect = "Allow"
+    actions = [
+      "rolesanywhere:UpdateTrustAnchor",
+      "rolesanywhere:UpdateProfile",
+      "rolesanywhere:DeleteTrustAnchor",
+      "rolesanywhere:DeleteProfile",
+      "rolesanywhere:EnableTrustAnchor",
+      "rolesanywhere:DisableTrustAnchor",
+      "rolesanywhere:EnableProfile",
+      "rolesanywhere:DisableProfile",
+      "rolesanywhere:TagResource",
+      "rolesanywhere:UntagResource",
+      "rolesanywhere:PutNotificationSettings",
+      "rolesanywhere:ResetNotificationSettings",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = ["zero-trust-lab"]
+    }
   }
 }
 
