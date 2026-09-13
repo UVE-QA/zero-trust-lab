@@ -3155,3 +3155,18 @@ was three, and the cameras sit inside it, so publishing three would have given
 the camera count away by subtraction. It is merged with the pet-care devices
 and published as six. The rule was already written down; this is the first time
 it changed a published figure.
+
+**D-042, the break-glass path, exercised.** The owner opened the provider's
+browser console and got a shell on the production host, with SSH closed to the
+internet and without the tailnet. Checked from the host: the session arrived
+from an address AWS publishes as its own in this region, and it authenticated
+with a short-lived certificate the console issues, signed by the provider's
+certificate authority — not with the operator's key, which never left his
+machine. So the firewall rule that admits only the console's range does admit
+it, and the way back in does not depend on the network this lab governs.
+
+The other half of that sentence is the residual risk, and it belongs here:
+**anyone who can sign in to the cloud account can get a root-capable shell on
+that host**, whatever the tailnet policy says. The account is the boundary. It
+has no IAM users and no root access keys — which is the claim the next change
+turns into a measurement rather than an assertion.

@@ -41,9 +41,11 @@ pipeline refused (D-041, PR #7, PR #8).
 
 ## Open, stated plainly
 
-- **Production's break-glass path is untested** (D-042). SSH is closed to the
-  internet and reachable only over the tailnet; the provider's browser console
-  is the way in if the tailnet fails. It has not been exercised yet.
+- **The cloud account is the boundary around production, not the tailnet**
+  (D-042). SSH is closed to the internet and reachable over the tailnet; the
+  provider's browser console is the way in if the tailnet fails, exercised on
+  2026-09-13. Anyone who can sign in to that account gets a shell on the host
+  regardless of the policy.
 - **Exposed LAN devices are addressed by IP on a network without DHCP
   reservations** (D-047). A camera that turned out to be the wrong one was
   withdrawn; the two remaining sockets were verified by their own identifiers.
@@ -64,8 +66,8 @@ pipeline refused (D-041, PR #7, PR #8).
    fails rather than skipping when its denylist is unavailable, identifiers
    masked in logs, `main` protected for everyone (D-043).
 2. ~~Finish D-042~~ — production SSH closed to the internet, after the last
-   client was proven on the tailnet path, and the dead `ssh` rule removed.
-   Left: exercise the break-glass path once.
+   client was proven on the tailnet path, the dead `ssh` rule removed, and the
+   break-glass path exercised.
 
 **Next one to two weeks**
 
