@@ -301,7 +301,16 @@ def render(policy_text, agg=None, home=None):
     ok, no, mu, cp, cl = "var(--pass)", "var(--fail)", "var(--mut)", "var(--cp)", "var(--cl)"
     # Control arrows carried out by a CI workflow name it, so the page's live
     # layer can light the arrow while that workflow is running.
-    wf_of = {"read-only": "tailnet-check.yml", "terraform plan · OIDC": "terraform-plan.yml"}
+    # Which workflow makes each hand-drawn control arrow move. A space-separated
+    # list means any of them lights it: the read-only path to the control plane
+    # is walked by the scheduled check and by the one a visitor can start, and a
+    # visitor watching the arrow they just caused is the point of that feature
+    # (D-063).
+    wf_of = {
+        "read-only": "tailnet-check.yml viewer-check.yml",
+        "terraform plan · OIDC": "terraform-plan.yml",
+        "terraform apply · a person": "terraform-apply.yml",
+    }
 
     def route(key):
         r = ROUTES.get(key)

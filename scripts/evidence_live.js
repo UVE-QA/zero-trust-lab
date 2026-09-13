@@ -175,7 +175,11 @@
     var on = {};
     running.forEach(function (x) { on[wfFile(x.run)] = 1; });
     map.querySelectorAll("[data-wf]").forEach(function (el) {
-      el.classList.toggle("running", !!on[el.getAttribute("data-wf")]);
+      // One arrow may be walked by more than one workflow -- the read-only path
+      // to the control plane is used by the scheduled check and by the run a
+      // visitor starts -- so the attribute is a space-separated list.
+      var any = el.getAttribute("data-wf").split(/\s+/).some(function (w) { return on[w]; });
+      el.classList.toggle("running", any);
     });
     var gha = document.getElementById("n-gha");
     if (gha) gha.classList.toggle("busy", running.length > 0);
