@@ -65,7 +65,19 @@ Poll resolution is one second, so each figure carries that.
 ## Repeating it
 
 The test user stays suspended. To run the drill again: restore the user in the
-console, start a node as them, measure, suspend, measure. The container:
+console, start a node as them, measure, suspend, measure.
+
+**Budget for a browser login.** The two nodes from the first run still appear
+in the console under the test user, but they are dead: the container kept its
+tailnet state in `/tmp` inside itself, so removing the container destroyed the
+node key and left two stale registrations behind. Re-running therefore needs
+the test account signed in to a browser again — which is a person's hands, not
+a script's. The fix is one flag: put the state in a named volume
+(`-v zt-testuser-ts:/var/lib/tailscale --state=/var/lib/tailscale/ts.state`)
+and the node survives the container, the way the collector's does. Do that on
+the next run and the one after it will need no login at all.
+
+The container:
 
 ```bash
 docker run -d --name zt-testuser --hostname zt-testuser \
