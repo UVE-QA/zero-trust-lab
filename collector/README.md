@@ -21,6 +21,19 @@ The data volume is made writable for the unprivileged user once:
 docker run --rm -v zt-collector-data:/data alpine:3 chown 65534:65534 /data
 ```
 
+The node container itself, once its state volume exists, takes no key:
+
+```bash
+docker run -d --name zt-collector-ts --hostname zt-collector \
+  --device /dev/net/tun --cap-add NET_ADMIN --cap-add NET_RAW \
+  --memory 128m --restart unless-stopped \
+  -e TS_USERSPACE=false -e TS_ACCEPT_DNS=false \
+  -e TS_STATE_DIR=/var/lib/tailscale \
+  -e TS_EXTRA_ARGS=--advertise-tags=tag:collector \
+  -v zt-collector-ts:/var/lib/tailscale \
+  tailscale/tailscale:v1.102.3
+```
+
 ```bash
 docker run -d --name zt-collector-ingest \
   --network container:zt-collector-ts \
@@ -32,6 +45,20 @@ docker run -d --name zt-collector-ingest \
   -v zt-collector-data:/data \
   python:3.13-alpine python3 /app/receiver.py
 ```
+
+## Registration, and why no key is stored
+
+The node registers once, with a one-time tagged key typed in at creation. Its
+identity then lives in the state volume, so the containers can be recreated
+without a key at all — which is how they run now: nothing in the container's
+environment can register anything.
+
+The first build did keep the used key in the environment. It was spent and
+could register nothing, but a credential that outlives its purpose is still
+one lying around, so it was removed by recreating both containers (about nine
+seconds of downtime, one telemetry tick, no reading lost). Replacing a lost
+state volume needs a fresh key from the console, which is the same trade as
+[the rehome runbook](../docs/runbooks/rehome-collector.md).
 
 ## Undo
 
