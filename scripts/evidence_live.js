@@ -57,6 +57,81 @@
     });
   }
 
+  // --- "verify this yourself" ---------------------------------------------
+  // Four checks, run once, in the visitor's browser. Each says what it proves
+  // and, where it matters, what it does not: the point of the section is that
+  // a stranger should not have to take this page's word, and should be told
+  // plainly where taking someone's word is unavoidable (D-062).
+  var vBox = document.querySelector(".verify");
+  var vList = document.getElementById("verify-body");
+
+  function vRow(state, claim, sub) {
+    var mark = state === "ok" ? "\u2713" : state === "no" ? "\u2717" : "\u2026";
+    return '<li><span class="vs ' + state + '">' + mark + "</span> " + claim +
+           (sub ? '<span class="sub">' + sub + "</span>" : "") + "</li>";
+  }
+  function sha256(buf) {
+    return crypto.subtle.digest("SHA-256", buf).then(function (h) {
+      return Array.prototype.map.call(new Uint8Array(h), function (b) {
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("");
+    });
+  }
+  function verify() {
+    if (!vBox || !vList || !window.crypto || !crypto.subtle) return;
+    var want = vBox.getAttribute("data-tmpl-sha");
+    var path = vBox.getAttribute("data-tmpl-path");
+    var at = vBox.getAttribute("data-build-sha") || "main";
+    var rows = [];
+    function draw() { vList.innerHTML = rows.join(""); }
+
+    fetch("https://raw.githubusercontent.com/" + REPO + "/" + at + "/" + path)
+      .then(function (r) { if (!r.ok) throw new Error("GitHub answered " + r.status); return r.arrayBuffer(); })
+      .then(sha256)
+      .then(function (got) {
+        rows[0] = got === want
+          ? vRow("ok", "The policy this page describes is the file in the repository.",
+                 "SHA-256 of <code>" + esc(path) + "</code>, fetched from GitHub and hashed here, matches the hash built into this page: <code>" + esc(got.slice(0, 16)) + "\u2026</code>")
+          : vRow("no", "The policy file does not match the hash this page was built with.",
+                 "Fetched <code>" + esc(got.slice(0, 16)) + "\u2026</code>, expected <code>" + esc(String(want).slice(0, 16)) + "\u2026</code>. Treat every claim below it as unverified.");
+        draw();
+      })
+      .catch(function (e) { rows[0] = vRow("wait", "Could not fetch the policy file to hash it.", esc(e.message)); draw(); });
+
+    get("/actions/workflows/evidence-page.yml/runs?per_page=5&status=success").then(function (d) {
+      var run = (d.workflow_runs || [])[0];
+      if (!run) throw new Error("no successful build found");
+      var same = run.head_sha && run.head_sha.slice(0, 7) === at.slice(0, 7);
+      rows[1] = vRow(same ? "ok" : "wait",
+        same ? "This page was built by GitHub Actions from that commit."
+             : "This page is not the newest build.",
+        (same ? "Run " : "The newest successful build is ") + '<a href="' + esc(run.html_url) + '">#' + run.run_number +
+        "</a>, " + esc(age(run.created_at)) + ", from <code>" + esc((run.head_sha || "").slice(0, 7)) +
+        "</code>. Nobody uploads this page by hand: the workflow that publishes it holds no network or cloud credential.");
+      draw();
+    }).catch(function (e) { rows[1] = vRow("wait", "Could not read the build history.", esc(e.message)); draw(); });
+
+    get("/actions/workflows/tailnet-check.yml/runs?per_page=10&branch=main").then(function (d) {
+      var runs = (d.workflow_runs || []).filter(function (r) { return r.status === "completed"; });
+      var run = runs[0];
+      if (!run) throw new Error("no completed run found");
+      var ok = run.conclusion === "success";
+      rows[2] = vRow(ok ? "ok" : "no",
+        ok ? "The live network agreed with that policy, and GitHub says so."
+           : "The last comparison against the live network did not pass.",
+        'Run <a href="' + esc(run.html_url) + '">#' + run.run_number + "</a>, " + esc(age(run.created_at)) +
+        ". The job renders the template with values held as secrets, asks the tailnet for the policy actually in force, and compares byte for byte. " +
+        "You are trusting GitHub's record of a job you can read, not my summary of it \u2014 but you are not seeing the network itself.");
+      draw();
+    }).catch(function (e) { rows[2] = vRow("wait", "Could not read the network check.", esc(e.message)); draw(); });
+
+    rows[3] = vRow("ok", "Nothing here can be triggered from outside, by design.",
+      "These checks only read. The tailnet credential is minted per job, scoped to reading the policy, and cannot change anything; " +
+      "no visitor action reaches the home network, and none of these buttons exists.");
+    draw();
+  }
+  verify();
+
   // --- the Now panel -------------------------------------------------------
   function icon(st, c) {
     if (st !== "completed") return st === "in_progress" ? "◐" : "○";
