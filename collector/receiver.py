@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The collector's ingest endpoint: one port, one path, append-only.
+"""The collector's endpoints: readings in, and one command waiting to be asked for.
 
 Readings are pushed to it by the automation hub (D-049). Nothing here reaches
 out, and nothing here authenticates the sender, deliberately: the tailnet
@@ -12,6 +12,12 @@ else on the host reaches it either.
 Each accepted reading becomes one JSON line in $DATA_DIR/readings.jsonl, with
 the time it arrived and the tailnet address it came from. Arrival time, not
 the sender's clock, is what a lost-comms drill measures.
+
+GET /command is the mobile-unit channel (docs/designs/mobile-unit.md). The hub
+asks; this answers with at most one queued command name and then forgets it.
+The collector cannot make the house do anything: the name means nothing here,
+the allowlist lives in the hub, and the hub applies its own guards before it
+acts. An operator queues a command with collector/ask.sh.
 """
 import json
 import os
@@ -69,9 +75,35 @@ class Ingest(BaseHTTPRequestHandler):
         self.reply(204)
 
     def do_GET(self):
+        if self.path != "/command":
+            return self.reply(404)
+        # One command, handed over once. Taken from the queue as it is served,
+        # so a repeated poll gets nothing and a lost reply loses the command
+        # rather than repeating it -- the safer way round for a machine that
+        # moves.
+        path = os.path.join(DATA_DIR, "command.json")
+        body = b"{}"
+        try:
+            with open(path, "rb") as f:
+                queued = json.loads(f.read() or b"{}")
+            os.remove(path)
+        except (FileNotFoundError, ValueError):
+            queued = {}
+        if queued.get("command"):
+            queued["served_at"] = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+            append({"received_at": queued["served_at"], "peer": self.client_address[0],
+                    "served_command": queued})
+            body = json.dumps({"command": queued["command"], "id": queued.get("id", "")}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_404(self):
         self.reply(404)
 
-    do_PUT = do_DELETE = do_PATCH = do_HEAD = do_GET
+    do_PUT = do_DELETE = do_PATCH = do_HEAD = do_404
 
     def log_message(self, fmt, *args):
         sys.stderr.write("%s %s\n" % (self.client_address[0], fmt % args))
