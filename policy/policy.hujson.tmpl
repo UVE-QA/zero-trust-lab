@@ -67,6 +67,27 @@
 			"node:tsStateEncrypted == true",
 			"node:tsReleaseTrack == 'stable'",
 		],
+
+		// Enough to be trusted with the production shell. The same two
+		// attributes, plus a floor on the client version.
+		//
+		// Tailscale SSH used to sit in front of this grant and could demand
+		// re-authentication before a session; removing it (D-042) removed the
+		// only per-session check the plan offered, and left the grant standing
+		// and unconditional. This does not bring the check back -- nothing on
+		// this plan does -- but it makes the grant depend on the state of the
+		// device rather than on nothing at all.
+		//
+		// The floor is one minor series below what the fleet runs, so a client
+		// that has stopped updating loses the production shell while it is
+		// merely behind, not once it is ancient. It is bumped by hand; the
+		// console lists which devices pass and fail each posture, so the cost
+		// of raising it is visible before it is raised (D-060).
+		"posture:currentOperator": [
+			"node:tsStateEncrypted == true",
+			"node:tsReleaseTrack == 'stable'",
+			"node:tsVersion >= '1.100'",
+		],
 	},
 
 	// ------------------------------------------------------------------
@@ -130,11 +151,15 @@
 
 		// --- Operator to the production stand-in --------------------------
 		// Phase 4 replaces this with a time-boxed grant. Until then it is a
-		// standing one, which is exactly the thing JIT is meant to remove.
+		// standing one, which is exactly the thing JIT is meant to remove --
+		// but it is no longer unconditional: the device has to report the
+		// posture above, and the assertions below fail it on each attribute in
+		// turn to show the gate is carrying weight (D-060).
 		{
-			"src": ["group:operators"],
-			"dst": ["tag:prod"],
-			"ip":  ["tcp:22"],
+			"src":        ["group:operators"],
+			"dst":        ["tag:prod"],
+			"ip":         ["tcp:22"],
+			"srcPosture": ["posture:currentOperator"],
 		},
 
 		// --- Telemetry tier: the hub pushes out ---------------------------
@@ -259,9 +284,52 @@
 		// to the internet (D-042), so a change that dropped this grant would
 		// lock the operator out of the machine two projects run on. The build
 		// fails first.
+		//
+		// The posture attributes are now part of the assertion, because they
+		// are part of the grant: this is the operator on a device that is
+		// encrypted at rest, on the stable track, and current.
 		{
-			"src":    "{{operator_identity}}",
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": true,
+				"node:tsReleaseTrack":   "stable",
+				"node:tsVersion":        "1.102.3",
+			},
 			"accept": ["tag:prod:22"],
+		},
+
+		// The same person, refused three times, one failing attribute each.
+		// A device behind on releases:
+		{
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": true,
+				"node:tsReleaseTrack":   "stable",
+				"node:tsVersion":        "1.86.0",
+			},
+			"deny": ["tag:prod:22"],
+		},
+
+		// A device that does not encrypt its tailnet state at rest:
+		{
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": false,
+				"node:tsReleaseTrack":   "stable",
+				"node:tsVersion":        "1.102.3",
+			},
+			"deny": ["tag:prod:22"],
+		},
+
+		// And a device running an unstable build:
+		{
+			"src": "{{operator_identity}}",
+			"srcPostureAttrs": {
+				"node:tsStateEncrypted": true,
+				"node:tsReleaseTrack":   "unstable",
+				"node:tsVersion":        "1.102.3",
+			},
+			"deny": ["tag:prod:22"],
 		},
 
 		// Action tier, asserted on two axes at once.

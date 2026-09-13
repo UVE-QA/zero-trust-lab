@@ -124,8 +124,12 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **After that**
 
-9. Posture on the production SSH grant, replacing the re-authentication step
-   that was lost with Tailscale SSH.
+9. ~~Posture on the production SSH grant, replacing the re-authentication step
+   that was lost with Tailscale SSH~~ — done (D-060). The grant is gated on
+   `posture:currentOperator`: encrypted state, stable track, client at or above
+   1.100. Not a replacement for re-authentication, which this plan cannot do:
+   it makes the grant conditional on what the device reports about itself, and
+   three assertions fail one attribute each to show the gate carries weight.
 10. Optional: the collector role via certificate-based cloud access.
 11. Phase 4, if and when the paid month is taken.
 
