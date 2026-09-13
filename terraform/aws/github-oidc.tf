@@ -152,6 +152,10 @@ data "aws_iam_policy_document" "github_deploy_permissions" {
     resources = [
       aws_iam_role.github_deploy.arn,
       aws_iam_role.collector.arn,
+      # The apply role is part of the stack, so the plan must read it. Read
+      # only: the plan role has no write action on any role, including this
+      # one (D-055).
+      aws_iam_role.github_apply.arn,
     ]
   }
 
