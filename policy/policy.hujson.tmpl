@@ -13,6 +13,21 @@
 	// ------------------------------------------------------------------
 	// Owned by autogroup:admin rather than a named identity, so the taxonomy
 	// survives a change of account.
+	// ------------------------------------------------------------------
+	// Who the people are. One group, and it is not "everyone".
+	// ------------------------------------------------------------------
+	// The grants below used to say autogroup:member -- every human in the
+	// tailnet. With one person that reads the same as "the operator", and it
+	// is not: it means the next person invited arrives holding the automation
+	// hub's shell and a socket in the house before anyone decides anything.
+	//
+	// A group makes adding a person and granting a person two separate acts,
+	// which is what an identity provider would buy on a paid plan and what
+	// this buys for nothing (D-057).
+	"groups": {
+		"group:operators": ["{{operator_identity}}"],
+	},
+
 	"tagOwners": {
 		// Held by a real device:
 		"tag:prod":         ["autogroup:admin"], // production server stand-in
@@ -76,7 +91,7 @@
 		// accept assertion below. If a later change breaks it, the build
 		// fails rather than someone's evening.
 		{
-			"src": ["autogroup:member"],
+			"src": ["group:operators"],
 			"dst": ["tag:gateway-home"],
 			"ip":  ["tcp:8123"],
 		},
@@ -88,7 +103,7 @@
 		// judging the UI enough. It was the reason the house runs Tailscale
 		// (D-051). Members only: every other role stays refused, below.
 		{
-			"src": ["autogroup:member"],
+			"src": ["group:operators"],
 			"dst": ["tag:gateway-home"],
 			"ip":  ["tcp:22"],
 		},
@@ -101,7 +116,7 @@
 		// (D-051). `autogroup:self` is each person's own devices, so this
 		// reaches nothing a member does not already own, and no tagged node.
 		{
-			"src": ["autogroup:member"],
+			"src": ["group:operators"],
 			"dst": ["autogroup:self"],
 			"ip":  ["tcp:22"],
 		},
@@ -110,7 +125,7 @@
 		// Phase 4 replaces this with a time-boxed grant. Until then it is a
 		// standing one, which is exactly the thing JIT is meant to remove.
 		{
-			"src": ["autogroup:member"],
+			"src": ["group:operators"],
 			"dst": ["tag:prod"],
 			"ip":  ["tcp:22"],
 		},
@@ -155,7 +170,7 @@
 		// format: a one-line array past its width is expanded (D-051). Long
 		// lists are therefore written one entry per line.
 		{
-			"src":        ["autogroup:member"],
+			"src":        ["group:operators"],
 			"dst":        ["actuator-granted"],
 			"ip":         ["tcp:52432"],
 			"via":        ["tag:gateway-home"],
@@ -166,7 +181,7 @@
 		// The distinction that makes a drone not a sensor: it can be
 		// commanded. This is the grant Phase 4 exists to constrain.
 		{
-			"src": ["autogroup:member"],
+			"src": ["group:operators"],
 			"dst": ["tag:drone"],
 			"ip":  ["tcp:8444"],
 		},
@@ -203,10 +218,10 @@
 		// The household guarantee, asserted. This is the one that must never
 		// regress, and the reason it is first.
 		{
-			// The grant above says autogroup:member; the test must name a
-			// concrete principal. Tailscale accepts the autogroup in a grant
-			// and rejects it here -- "unknown user or host" -- so the identity
-			// is templated like the addresses rather than committed.
+			// The grant above says group:operators; the test must name a
+			// concrete principal. Tailscale accepts the group in a grant and
+			// rejects it here -- "unknown user or host" -- so the identity is
+			// templated like the addresses rather than committed.
 			"src":    "{{operator_identity}}",
 			"accept": ["tag:gateway-home:8123", "tag:gateway-home:22"],
 			"deny":   ["tag:gateway-home:1883"],

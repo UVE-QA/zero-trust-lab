@@ -163,7 +163,9 @@ OPERATORS = ("laptop", "phones")
 
 
 def role_to_node(role):
-    if role == "autogroup:member":
+    # The people. One group, not everyone in the tailnet (D-057); the older
+    # name is kept so an old policy still draws.
+    if role in ("group:operators", "autogroup:member"):
         return "operators"
     for nid, n in NODES.items():
         if role in n[7] and nid not in OPERATORS:
