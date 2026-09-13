@@ -109,10 +109,13 @@ pipeline refused (D-041, PR #7, PR #8).
 
 **Weeks two to three — Phase 6**
 
-6. Lost device: time to revoke, and what stops working. Half measured
-   already — a machine role loses everything about 1.6 s after the device is
-   removed in the console. The half that matters for a lost phone, where the
-   identity is a person's, is not.
+6. ~~Lost device: time to revoke, and what stops working~~ — both halves
+   measured now. A machine role loses everything about 1.6 s after the device
+   is removed; a person's device loses everything in under 2 s after the user
+   is suspended, **including when it has been cut off from the control plane
+   and never learns it was revoked** — the refusal happens at the destination
+   ([runbook](docs/runbooks/lost-personal-device.md), D-061). A device that was
+   switched off during the revocation gets no window on the way back.
 7. ~~Offboarding: what has to be revoked, and what never existed to revoke~~ —
    written from the live inventory ([runbook](docs/runbooks/offboarding.md)):
    one tailnet user with four devices, one collaborator, one read-only

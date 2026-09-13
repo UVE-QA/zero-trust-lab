@@ -3460,3 +3460,50 @@ way it was found last time: hash the live file, compare, and when the hashes
 differ, compare again with whitespace collapsed to learn whether the
 disagreement is about content or about layout. It was layout; the template now
 writes what the console writes.
+
+---
+
+## D-061 — revocation does not need the revoked device to agree
+
+**2026-09-13.** The offboarding runbook has claimed since Phase 5 that
+suspension "does not need the device's cooperation". That was an inference from
+how the control plane works, not a measurement, and it is exactly the kind of
+claim that is comfortable to leave untested. A lost phone is the case where it
+matters: whoever has it decides whether it is online, and nobody else can make
+it listen.
+
+So the device's cooperation was removed on purpose. The test user's node was
+cut off from the control plane — its own OUTPUT chain dropping Tailscale's
+control range — while the peer-to-peer path to its one destination stayed up.
+The control for the measurement is that the appliance still answered with the
+block in place, over a direct path: the cut removed the device's ability to
+*learn*, not its ability to *connect*.
+
+Then the user was suspended. Last successful connection 22:55:36, click at
+22:55:37.4, first refusal at 22:55:38: **under two seconds**, with the revoked
+device none the wiser — its own status output still listed the appliance as an
+active peer, traffic counters and all, while every connection was being
+refused.
+
+The refusal happens at the destination. The appliance received the new netmap
+and stopped accepting the peer. That is the difference between a revocation and
+a request, and it is the property the whole offboarding story rests on.
+
+Two more results from the same run. A device that was switched off during the
+revocation gets **no window** on the way back — refused from the first packet
+and for the minute that followed. And restoring the user re-opened the path
+while the device was still cut off, which is the same mechanism read in the
+other direction: the destination admits and refuses on the control plane's
+word, never on the device's.
+
+What this does not cover is written into the runbook rather than left implied:
+a stolen browser session can still register a *new* device if the identity
+provider's session is valid, which is an account action at Google or Apple and
+not a tailnet one; the posture attribute says the tailnet state is encrypted at
+rest and nothing about the rest of the phone; and every measurement here is a
+new connection, so whether an already-open session survives a revocation is a
+separate question, unanswered.
+
+One small honest note for whoever reads a device's screen during an incident:
+the device's own client kept showing the peer as active throughout. The screen
+lies; the packets do not.
