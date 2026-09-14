@@ -41,6 +41,15 @@
 		"tag:gateway-home": ["autogroup:admin"], // subnet router for the IoT segment
 		"tag:appliance":    ["autogroup:admin"], // attached to the network, originates nothing
 
+		// The standby way in. The house has one gateway; this is the second
+		// one, carried by a device that is always on and does nothing else.
+		// It advertises the SAME two host routes as the primary -- not the
+		// subnet -- so a failover changes which machine forwards and changes
+		// nothing about what may be reached (D-069). The node holding it also
+		// holds tag:appliance: being a road is not the same as being allowed
+		// to travel, and the assertions below keep those apart.
+		"tag:gateway-standby": ["autogroup:admin"], // second subnet router, same routes
+
 		// The collector is a live node: a container on the cloud dev host
 		// (D-048). The other two are declared but UNHOMED -- filled by units
 		// the fleet scripts create in later phases. Saying so avoids implying
@@ -219,7 +228,7 @@
 			"src":        ["group:operators"],
 			"dst":        ["actuator-granted"],
 			"ip":         ["tcp:52432"],
-			"via":        ["tag:gateway-home"],
+			"via":        ["tag:gateway-home", "tag:gateway-standby"],
 			"srcPosture": ["posture:trustedOperator"],
 		},
 
@@ -400,6 +409,23 @@
 				"tag:gateway-home:8123", // cannot reach the automation UI
 				"tag:gateway-home:22", // cannot reach the hub's shell
 				"actuator-granted:52432", // cannot change physical state
+			],
+		},
+
+		// Being a road is not permission to travel. The standby gateway may
+		// carry other people's packets to the two host routes it advertises,
+		// and may start nothing of its own -- including to the sockets it
+		// forwards to.
+		{
+			"src": "tag:gateway-standby",
+			"deny": [
+				"tag:gateway-home:8123",
+				"tag:gateway-home:22",
+				"tag:gateway-home:1883",
+				"tag:prod:22",
+				"tag:collector:8443",
+				"actuator-granted:52432",
+				"actuator-control:52432",
 			],
 		},
 

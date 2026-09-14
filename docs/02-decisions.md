@@ -3797,3 +3797,54 @@ self-reported — it already gates the action tier and production. Anything
 stronger is the MDM tile on the growth path: attestation from a fleet manager
 instead of the device's own word, at $8 per user per month. Named on the page,
 not bought.
+
+---
+
+## D-069 — the standby way in stops being a subnet and starts being a route
+
+**2026-09-14.** Two personal devices — a desktop and the media appliance — each
+advertised the whole home `/24`. The evidence page called them stale
+advertisements and listed removing them as an owner decision. The owner's answer
+was that they are not stale at all: they are deliberate, a second way into the
+house for when the primary gateway is off, hung, or busy with the camera
+recorder.
+
+That reframes the finding and does not rescue the shape.
+
+**Approval is all-or-nothing per prefix.** Switching the standby on meant
+approving the entire subnet — cameras, recorder, everything that must never be
+reachable — at the moment something had already gone wrong. The primary path is
+the opposite: one `/32` per exposed socket. The emergency route was hundreds of
+addresses wider than the working one.
+
+**And it would not have worked.** The grant to the socket names
+`via tag:gateway-home`. Traffic arriving through a different machine is refused
+until the policy names that machine too, so the "one click" was a click plus a
+policy edit, under stress, by someone whose house had just stopped answering.
+
+**A desktop cannot hold the role at all.** Tagging a node removes its owner's
+identity, and that machine is somebody's daily computer — the same reason the
+tablet keeps its own (D-068). Of the two candidates only the appliance can carry
+a machine role, and it is the better one anyway: always on, doing nothing else.
+
+So the appliance takes a second tag, `tag:gateway-standby`, and will advertise
+**the same two host routes as the primary**, both approved in advance. Two nodes
+advertising one prefix is a primary and a standby to Tailscale, and it moves
+traffic to the survivor by itself. The failover needs no click, no policy change
+and no widening: what changes is which machine forwards, and nothing changes
+about what may be reached.
+
+Being a road is not permission to travel. The node keeps `tag:appliance`, and a
+new assertion proves that as a *source* the standby reaches nothing — not the
+hub, not production, not the collector, not even the sockets it forwards packets
+to.
+
+**What is true today, said on the page rather than smoothed over:** the `/24` is
+still advertised by two devices and approved by none, because the device-side
+steps are the owner's and this decision is the design, not the result. The
+failover has also not been drilled. Until it has, the standby is a plan with a
+tag, and the diagram will not draw a line that has never carried a packet.
+
+One correction to the page while passing: it claimed "the /24 itself is never
+advertised". It was never *approved*; it has been advertised by two devices the
+whole time. The line now says which.
