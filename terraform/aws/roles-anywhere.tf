@@ -33,7 +33,7 @@ resource "aws_rolesanywhere_trust_anchor" "collector" {
 
 data "aws_iam_policy_document" "collector_assume" {
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = [
       "sts:AssumeRole",
       "sts:TagSession",

@@ -3638,3 +3638,47 @@ The CA certificate reaches Terraform as an environment secret in `aws-plan` and
 `aws-apply`; it is public material with nothing of the household in it, and it
 is still not committed, because the variable's contract says so and a contract
 that bends for convenience is not one.
+
+---
+
+## D-066 — the gate held, and it cost an evening's apply
+
+**2026-09-13.** The first attempt to create the trust anchor failed:
+
+```
+AccessDeniedException: User: .../ztlab-github-apply/... is not authorized to
+perform: rolesanywhere:CreateTrustAnchor
+```
+
+Nothing was created; Terraform stopped on the first resource. The apply role
+could read Roles Anywhere and not write it — which the file itself had
+predicted in a comment written in Phase 5: "Read-only for now. Phase 5 creates
+a trust anchor and a profile here, and that addition is itself an apply a
+person will make."
+
+That is the design working, not a bug, and the reason is worth restating. The
+apply role may manage every role this stack owns *except its own* — an explicit
+Deny, `ButNeverItself`. Without it a single approved run could widen the role to
+anything and every run after it would be unreviewed in effect. So the
+permission to create a trust anchor cannot be granted by the thing that wants
+it: a person applies that change with their own credentials, and only then can
+CI use it.
+
+The new permissions are scoped by tag rather than by ARN, because the ARN of a
+resource that does not exist yet cannot be named:
+
+- **Creating** a trust anchor or profile requires `aws:RequestTag/Project =
+  zero-trust-lab`. The provider attaches that tag to everything it makes, so a
+  request without it is refused — the permission cannot be borrowed to create
+  somebody else's anchor.
+- **Changing, disabling or deleting** one requires the same tag on the resource
+  already.
+
+Disabling is deliberately in that list: it is the incident lever in the
+certificate runbook, and it should be reachable by the same reviewed path as
+everything else.
+
+The cost of the gate, measured honestly: one failed apply, one PR, and one
+apply a person has to run from a laptop before the automated one can proceed.
+Cheap, and only because it is rare — a design that needed this weekly would be
+a design people would route around.
