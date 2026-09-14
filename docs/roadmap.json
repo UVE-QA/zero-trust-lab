@@ -16,11 +16,11 @@
       "ref": "docs/designs/mobile-unit.md"
     },
     {
-      "what": "The kiosk tablet in a role of its own",
-      "state": "owner decision",
-      "why": "It is a member today, so formally it may do everything an operator may. A role would leave it the dashboard and nothing else.",
-      "takes": "one tag and one grant; the owner's yes",
-      "ref": "Phase 2"
+      "what": "The dashboard tablet in a role of its own",
+      "state": "not built, by decision",
+      "why": "It is not a kiosk. The tablet shows the house's dashboard on a wall and is also a personal device that leaves the house, so a machine role would take the second use away with the first: a tagged node stops carrying its owner's identity, and everything the person reaches from it away from home goes with the tag. The residual risk -- an unlocked tablet holds what its owner holds -- is answered by revocation rather than by a tag, and that revocation is measured (D-061).",
+      "takes": "nothing; this is the decision, not a gap",
+      "ref": "D-068"
     },
     {
       "what": "Lost comms on the household side",
