@@ -365,6 +365,11 @@ h3{{font-size:16px;margin:0}}p{{margin:6px 0}}a{{color:var(--link)}}code{{font:1
 .verify .sub{{color:var(--mut);font-size:14px;display:block}}
 pre.cmd{{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
 overflow-x:auto;font-size:13px}}
+.phrase{{display:inline-block;font:600 13.5px ui-monospace,SFMono-Regular,Menlo,monospace;
+background:var(--passbg);color:var(--pass);border:1px solid var(--pass);border-radius:7px;
+padding:3px 9px;margin:0 2px;cursor:copy;user-select:all}}
+.phrase:hover{{filter:brightness(.97)}}.phrase.copied{{background:var(--pass);color:var(--card)}}
+.phrase[data-said]::after{{content:" \2713 " attr(data-said);font-weight:600}}
 .livebar{{margin:10px 0 0;font-size:14px;line-height:2}}
 .livebar span{{color:var(--mut);margin-right:2px}}
 .livebar a{{margin-right:14px;white-space:nowrap}}
