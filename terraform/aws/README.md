@@ -52,6 +52,17 @@ identity it is written for. See the file for the design intent.
 certificate authority is supplied. Until then the role exists and nothing can
 assume it, which is the correct resting state rather than a half-built one.
 
+## One Terraform version, in two places
+
+CI and the operator host run **1.16.1**. They have to agree: Terraform records
+the version that last wrote the state, and an older binary refuses to read a
+newer snapshot. So a laptop applying with a newer version would silently break
+every CI plan until CI was upgraded to match — a failure that arrives later than
+its cause, which is the worst kind.
+
+The pin lives in `terraform-plan.yml` and `terraform-apply.yml`. Change both, or
+neither.
+
 ## Rotation and revocation
 
 - **The GitHub role** has no credential to rotate. Revoking access means
