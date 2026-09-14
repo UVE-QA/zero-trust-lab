@@ -3889,8 +3889,10 @@ still backs off, still reports the budget, and still says whose limit it is.
 
 **2026-09-14.** Two facts arrived together and changed a decision I had already
 half-made. First: the tailnet is the **only** way into this house — the vendor
-router is a T-Mobile gateway behind CGNAT with no port forwarding, no address
-reservations, nothing. Second: every node key was six months old and expiring in
+router is the carrier's own box, behind CGNAT, with no port forwarding, no
+address reservations, nothing — and naming the carrier here would be one more
+identifying detail for no gain, which is the rule this repository already keeps
+about hostnames and addresses. Second: every node key was six months old and expiring in
 the same week of March, including the hub's, and a key that expires takes its
 node off the network until somebody signs in again *on that device*. For a
 headless machine in a flat that is a dated outage: the house becomes unreachable
