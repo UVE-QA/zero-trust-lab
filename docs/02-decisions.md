@@ -3848,3 +3848,37 @@ tag, and the diagram will not draw a line that has never carried a packet.
 One correction to the page while passing: it claimed "the /24 itself is never
 advertised". It was never *approved*; it has been advertised by two devices the
 whole time. The line now says which.
+
+---
+
+## D-070 — the page stops spending a quota that is not its own
+
+**2026-09-14.** D-065 cut the evidence page from three GitHub API requests per
+load to one, and said so plainly when the visitor's quota ran out. That was the
+right patch and the wrong fix.
+
+The other project in this house — a dashboard on the same pattern — hit the
+same wall from the other side and found what the two pages have in common: the
+anonymous GitHub limit is sixty requests an hour **per address**, shared with
+every tab and every site that reads GitHub from there. Two dashboards open at
+once starve each other, and neither can see the other doing it. That team's
+answer, relayed here: take the read out of the browser.
+
+So the job that builds this page now writes `runs.json` beside it — the last
+thirty runs, plus the steps of anything still moving — using the token it
+already holds. The page renders that first: same origin, no quota, no
+credential, and already true for everything that finished before the build. It
+asks GitHub only when the snapshot has gone stale and the tab is open.
+
+A visitor who arrives between runs — which is nearly all of them — now costs
+**zero** requests. Measured after the change: a full page load, panel rendered,
+all four verification rows resolved, and no request to `api.github.com` at all.
+
+**What this costs in honesty, and how it is paid.** A snapshot the page ships
+with is the page talking about itself, which is exactly what the verification
+section exists to avoid. So when a row is drawn from the snapshot it says so,
+and links GitHub's own history for a read that owes this page nothing. The
+hash check never depended on the API and still does not.
+
+The live read is not gone: it is the fallback and the freshness path, and it
+still backs off, still reports the budget, and still says whose limit it is.
