@@ -84,8 +84,12 @@ the cost of lateral movement. So:
 ## How widespread it is, honestly
 
 Nearly every large organisation reports a zero-trust programme; that is a
-statement about slides. The slice that is genuinely widespread is **ZTNA
-replacing VPN for remote access** — the easiest, most visible win. Identity
+statement about slides. The slice that is genuinely widespread is **ZTNA — Zero
+Trust Network Access — replacing VPN for remote access**: brokering a person to
+one application after checking who they are and what they are on, rather than
+attaching their device to the network and trusting the routing. It is the
+easiest, most visible win, because it swaps one service at the edge instead of
+rebuilding what happens behind it. Identity
 deciding access *inside* the data centre is much rarer, and the common real
 state is a hybrid: modern access at the edge, classic segmentation behind it.
 
