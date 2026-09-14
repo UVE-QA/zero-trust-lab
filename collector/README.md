@@ -51,6 +51,35 @@ docker run -d --name zt-collector-ingest \
   python:3.13-alpine python3 /app/receiver.py
 ```
 
+## Shipping the readings out, with no AWS key
+
+[`uploader.py`](uploader.py) exchanges the collector's X.509 certificate for
+credentials that expire in an hour (IAM Roles Anywhere) and PUTs everything
+written since the last run as one object in the archive bucket. There is no
+access key on this host, in its environment, or in any file it reads (D-064,
+D-067).
+
+```bash
+*/15 * * * * $HOME/zt-collector/upload.sh >> $HOME/zt-collector/upload.log 2>&1
+```
+
+[`upload.sh`](upload.sh) creates and destroys a container per run, so nothing
+long-lived holds the certificate open. The image is `python:3.13-slim` because
+it ships the `openssl` binary the signing needs — installing a package at
+runtime, as root, on the machine that holds the credential, to save 40 MB, is
+the wrong trade.
+
+Two things are hand-rolled rather than imported: the `CreateSession` request
+signed with the certificate's own key, and the ordinary SigV4 for S3. AWS
+publishes a helper binary for the first; downloading and running a binary on
+the machine that holds the credential is a larger trust decision than sixty
+lines that can be read.
+
+State is one integer: the byte offset already shipped, kept outside the data
+volume. If the readings file is shorter than the offset it has been rotated,
+and the uploader starts again from the beginning rather than guessing. It never
+ships half a line.
+
 ## Registration, and why no key is stored
 
 The node registers once, with a one-time tagged key typed in at creation. Its
@@ -80,8 +109,13 @@ the machine in the Tailscale console.
 - If the node container restarts, the receiver loses the namespace it joined
   and has to be restarted after it. Acceptable for a lab sink; recorded rather
   than engineered around.
-- Readings stay on the host. Moving them to the archive bucket is the
-  certificate-based cloud access of Phase 5.
+- Readings also stay on the host after upload. Nothing prunes the local file
+  except the 5 MB rotation, and the uploader cannot delete anything anywhere —
+  by design, since its role may only add.
+- The upload runs from cron on the host, not from a supervised service. If the
+  host's clock or cron stops, readings queue locally and the next run ships
+  them; nothing alerts. The staleness of the archive is not yet measured, and
+  saying so is cheaper than pretending it is.
 - The sender is identified by its tailnet address and nothing more. That is a
   real credential here — the control plane assigns the address and binds it to
   a node key, and a packet arriving over the tunnel cannot forge one — but it

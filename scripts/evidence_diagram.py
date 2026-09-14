@@ -70,9 +70,10 @@ NODES = {
     "bucket":    (686, 48, "bucket", "cloud", "Archive bucket", "S3 · encrypted · Glacier",
                   "terraform", [], "Where the collector's data is meant to land. It exists so the "
                   "certificate credential has something real to authorise.", "D-039"),
-    "ra":        (884, 48, "cert", "off", "Roles Anywhere", "certificate → role · off",
-                  "terraform", [], "Written, switched off: no certificate authority exists yet. "
-                  "Cloud access for a machine that holds a certificate, not a key.", "Phase 5"),
+    "ra":        (884, 48, "cert", "cloud", "Roles Anywhere", "certificate → role · live",
+                  "terraform", [], "Cloud access for a machine that holds a certificate, not a key. "
+                  "The collector presents its certificate and gets an hour of credentials that may "
+                  "write to the archive and nothing else -- measured: PUT 200, GET and DELETE 403.", "D-067"),
     "state":     (1082, 48, "db", "cloud", "Terraform state", "existing bucket · lockfile",
                   "terraform", [], "State joins the account's existing bucket rather than "
                   "creating one; locking is the native lockfile.", "D-029"),
@@ -164,9 +165,10 @@ NODES.update({
     "sso":  (812, 992, "org", "future", "Identity Center", "people's cloud sign-in",
              "AWS: no charge", [], "Cloud sign-in for people through the identity provider. Lives in "
              "the organisation's management account, not this stack.", "D-030"),
-    "ca":   (1008, 992, "ca", "future", "Private CA", "certs for the collector",
-             "free, or $50+/mo", [], "The missing half of Roles Anywhere: machines get certificates, "
-             "never keys. Switches the cloud tile above on.", "Phase 5"),
+    "ca":   (1008, 992, "ca", "future", "Managed private CA", "hardware custody · audit trail",
+             "$400/mo", [], "The lab's CA is an openssl key on the operator's laptop, which already "
+             "buys the property that matters: the machine using a certificate cannot mint one. What "
+             "money would add is custody, an audit trail and per-certificate revocation.", "D-064"),
 })
 TWN = {"state": 106}          # the narrow state tile, far right of the cloud row
 
@@ -382,8 +384,8 @@ def render(policy_text, agg=None, home=None):
          (506, 200), "enforces"),
         ([(1070, 246), (1070, 176), (1135, 176), (1135, 110)], cl, ' stroke-dasharray="6 4"', "cl",
          (1070, 206), "terraform apply · a person"),
-        ([(850, 330), (850, 214), (776, 214), (776, 110)], mu, ' stroke-dasharray="3 5"', "mu",
-         (813, 160), "planned: certificate → archive"),
+        ([(850, 330), (850, 214), (776, 214), (776, 110)], mu, "", "mu",
+         (813, 160), "certificate → archive · hourly credentials"),
     ]
     for pts, c, dash, m, (lx, ly), txt in control:
         arrow("control", pts, c, dash, m, 1.6, wf_of.get(txt))
