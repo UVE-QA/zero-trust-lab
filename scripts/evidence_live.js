@@ -365,7 +365,7 @@
         var r = document.createRange(); r.selectNodeContents(el);
         var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
       } catch (err) { /* the CSS selects it on click anyway */ }
-      flash("selected \u2014 press \u2318C");
+      flash("selected \u2014 now copy it");
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { flash("copied"); }, select);
