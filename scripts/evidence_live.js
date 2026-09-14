@@ -159,8 +159,9 @@
     });
 
     rows[3] = vRow("ok", "You can make the network check run, now, yourself.",
-      'Write <code>run the checks</code> in <a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">this issue</a>' +
-      " and GitHub re-runs the two checks above and answers in the thread. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
+      'Comment <code class="phrase" title="click to copy">run the checks</code> \u2014 those three words, nothing else \u2014 in ' +
+      '<a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">this issue</a>' +
+      ", and GitHub re-runs the two checks above and answers in the thread. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
       "the credential is minted for that run and can only read the policy, and there is no path from it to the home network. " +
       "Everything else on this page only reads.");
     draw();
@@ -337,6 +338,41 @@
       });
     }).catch(function (e) { verify(null); schedule(IDLE, e.message); });
   }
+
+  // The phrase is the whole interface a stranger has, so it should be as easy
+  // to take as it is to read: one click copies it. Falls back to selecting the
+  // text, which the CSS already makes a single click's work.
+  document.addEventListener("click", function (e) {
+    var el = e.target && e.target.closest && e.target.closest(".phrase");
+    if (!el) return;
+    var text = el.textContent.trim();
+    var flash = function (what) {
+      el.classList.add("copied");
+      var was = el.getAttribute("title");
+      el.setAttribute("title", what);
+      el.setAttribute("data-said", what);
+      setTimeout(function () {
+        el.classList.remove("copied");
+        el.removeAttribute("data-said");
+        el.setAttribute("title", was && was !== what ? was : "click to copy");
+      }, 1600);
+    };
+    var select = function () {
+      // Clipboard access is refused in plenty of ordinary situations -- an
+      // unfocused tab, a browser that asks first. Say what happened rather
+      // than flashing "copied" over a clipboard that never changed.
+      try {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      } catch (err) { /* the CSS selects it on click anyway */ }
+      flash("selected \u2014 press \u2318C");
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash("copied"); }, select);
+    } else {
+      select();
+    }
+  });
 
   var btn = document.getElementById("now-refresh");
   if (btn) btn.addEventListener("click", function () { clearTimeout(timer); poll(); });
