@@ -3682,3 +3682,35 @@ The cost of the gate, measured honestly: one failed apply, one PR, and one
 apply a person has to run from a laptop before the automated one can proceed.
 Cheap, and only because it is rare — a design that needed this weekly would be
 a design people would route around.
+
+---
+
+## D-065 — the page spent a visitor's quota, then blamed GitHub for it
+
+**2026-09-13.** The owner opened the evidence page and the Now panel said
+*"GitHub not reachable: GitHub answered 403 · budget: 0 of 60 requests left this
+hour"*. Both halves were wrong in the way that matters: GitHub was reachable,
+and the exhausted budget was largely this page's own doing.
+
+**The cost.** GitHub allows sixty unauthenticated requests an hour **per
+address** — shared with everything else anyone at that address does. The "verify
+this yourself" section added in D-062 made two API calls of its own on every
+load, for answers the Now panel had already fetched in its single call. Three
+requests per load instead of one, on a page a visitor may reload while reading:
+a quota emptied by the page's own enthusiasm.
+
+The two rows now read the list the panel already has. One request per load.
+
+**The wording.** "GitHub not reachable" invites the conclusion that the lab is
+broken. What actually happened belongs to the visitor's address, so the panel
+now says so — sixty an hour, shared with anything else they do from there, and
+the page below still shows what was true when it was built. A page that reports
+someone else's limit as its own failure teaches the reader to distrust the
+wrong thing.
+
+**And a bug the same screenshot exposed:** when the panel could not read the
+API, the verification rows sat on "Reading GitHub…" for ever. They now resolve
+either way — the hash check does not touch the API and still runs, and the two
+rows that need the list say plainly that it could not be read and link the
+public history. A check that hangs silently is indistinguishable from one that
+failed.
