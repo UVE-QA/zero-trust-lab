@@ -3714,3 +3714,45 @@ either way — the hash check does not touch the API and still runs, and the two
 rows that need the list say plainly that it could not be read and link the
 public history. A check that hangs silently is indistinguishable from one that
 failed.
+
+---
+
+## D-067 — the readings leave the house's collector without a key existing
+
+**2026-09-14.** The archive path is finished. The collector presents its
+certificate to IAM Roles Anywhere, receives credentials that expire in an hour,
+and PUTs everything written since the last run into the archive bucket. There is
+no AWS access key on that machine, in its environment, or in any file it reads.
+There is no key to leak, rotate, or find in a backup.
+
+Measured on the live system, first run:
+
+| what | result |
+|---|---|
+| certificate → credentials → `PutObject` | **HTTP 200**, 1378 readings, 267 KB, object encrypted with AES256 |
+| the same credentials, `GetObject` on the object just written | **403** |
+| the same credentials, `DeleteObject` | **403** |
+| credential lifetime | **one hour**, stated in the response |
+
+A machine in a flat that can only add is a machine whose compromise costs
+storage, not history. That was the claim in D-039 when the bucket was created;
+it is now a measurement rather than a policy document.
+
+**Two things are hand-rolled, deliberately.** The `CreateSession` request is
+signed with the certificate's own key (`AWS4-X509-ECDSA-SHA256`), and the S3
+request with ordinary SigV4. AWS publishes a helper binary for the first.
+Downloading and running a vendor binary *on the machine that holds the
+credential* is a larger trust decision than sixty lines of standard library
+that anyone can read — and the sixty lines are in the repository, where the
+binary's contents would not have been.
+
+**What still needs a person:** the certificate expires in ninety days and is
+renewed by hand (the runbook is one command and a file copy). Nothing yet
+watches whether the upload is still happening; the staleness of the archive is
+unmeasured, which is written into the collector's known limits rather than left
+for someone to discover.
+
+One small thing worth keeping. `GetObject` on a key that does not exist
+returned **404** rather than 403, because the role does hold `ListBucket` on
+that bucket — AWS distinguishes the two, and so the probe accidentally
+confirmed a permission it was not testing for.
