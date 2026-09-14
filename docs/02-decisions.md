@@ -3930,3 +3930,30 @@ read-only and opens an issue thirty days before any remaining key expires
 ([keys-due.yml](../.github/workflows/keys-due.yml)). If one of the two nodes
 with expiry disabled ever appears in that issue, somebody has turned it back on,
 and the issue says so.
+
+---
+
+## D-072 — a drill may not be able to cut the only way in
+
+**2026-09-14.** Every revocation drill in this lab works by taking access away
+and timing what happens. That is the point of them, and until tonight it was
+also an unexamined hazard: the tailnet is the only way into this house, the
+test user and the owner sit two rows apart in the same console table, and
+nothing in any runbook said "check that something else is standing before you
+pull this".
+
+The owner put it plainly: fast revocation is a control for losing a device, not
+a substitute for a second path — and in a single-ingress house it is itself a
+risk, because the same click that proves the network works can lock everyone
+out of it.
+
+So every drill that removes access now opens with three lines that must all be
+true before it starts: read the identity back from the row about to be clicked;
+confirm a second path into the house answers; confirm the way back does not
+depend on the network being disturbed. If any is false the drill waits.
+
+This costs a minute and prevents the one failure this lab could cause to the
+household it runs in. It is also the honest version of a claim the page makes
+elsewhere: that the experiments are safe to run. They are safe because of a
+procedure, not because of luck, and the procedure is now written down where the
+person running it will read it.
