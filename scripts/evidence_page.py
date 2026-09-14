@@ -513,6 +513,37 @@ if(c&&lim&&h>lim&&c.classList.contains('pass')){{c.classList.remove('pass');c.cl
 """
 
 
+# Fields the live layer actually renders. Copying the whole API response would
+# publish more than the page needs and change shape whenever GitHub adds a key.
+RUN_FIELDS = ("id", "name", "event", "head_branch", "head_sha", "status", "conclusion",
+              "created_at", "updated_at", "run_started_at", "html_url", "run_number", "path")
+JOB_FIELDS = ("name", "status", "conclusion", "started_at", "completed_at")
+
+
+def runs_snapshot():
+    """The run history, published with the page so a visitor need not fetch it.
+
+    GitHub allows sixty unauthenticated requests an hour PER ADDRESS -- shared
+    with every other tab and every other site that reads GitHub from there. A
+    page that polls the API from the browser spends a quota that is not its own
+    and cannot see what else is spending it (D-070). This job already reads the
+    same data with a token, so it writes it down: the page renders the snapshot
+    first and only asks GitHub when the snapshot has gone stale.
+    """
+    runs = (gh(f"/repos/{REPO}/actions/runs?per_page=30") or {}).get("workflow_runs", [])
+    out = {"generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "runs": [{k: r.get(k) for k in RUN_FIELDS} for r in runs], "jobs": {}}
+    # Steps only for what is still moving: a finished run's detail is in its log,
+    # and the panel does not draw it.
+    for r in [x for x in runs if x.get("status") != "completed"][:2]:
+        jobs = (gh(f"/repos/{REPO}/actions/runs/{r['id']}/jobs?per_page=50") or {}).get("jobs", [])
+        out["jobs"][str(r["id"])] = [
+            {**{k: j.get(k) for k in JOB_FIELDS},
+             "steps": [{"name": st.get("name"), "status": st.get("status")} for st in (j.get("steps") or [])]}
+            for j in jobs]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="site")
@@ -588,6 +619,7 @@ def main():
     (out / "index.html").write_text(page)
     (out / ".nojekyll").write_text("")
     (out / "live.js").write_text((ROOT / "scripts" / "evidence_live.js").read_text())
+    (out / "runs.json").write_text(json.dumps(runs_snapshot(), separators=(",", ":")))
     summary = {c: (None if r is None else r["ok"]) for c, _, r, *_ in live + every}
     summary["_aggregate"] = bool(agg)
     summary["_unplaced_on_diagram"] = diagram[3]

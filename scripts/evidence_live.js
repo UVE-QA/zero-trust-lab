@@ -1,8 +1,17 @@
 // The page's live layer. The page itself is built by CI and states what was
 // true when it was built; this script keeps it current in the visitor's
-// browser by reading GitHub's public Actions API -- the same record the
-// build reads, with no token. It can only read: nothing here starts, stops
-// or changes anything.
+// browser. It can only read: nothing here starts, stops or changes anything.
+//
+// It reads two things, in this order:
+//
+//   1. runs.json, published beside the page by the same job that built it.
+//      Same origin, no quota, no credential, and already true for everything
+//      that finished before the build.
+//   2. GitHub's public Actions API -- but only when the snapshot has gone
+//      stale and the tab is open. The anonymous limit is sixty requests an
+//      hour PER ADDRESS, shared with every other tab and site that reads
+//      GitHub from there, so a page that polls on every load spends a quota
+//      that is not its own (D-070).
 //
 // Budget: GitHub allows 60 unauthenticated requests an hour per visitor
 // address. Idle, this reads once every 3 minutes; while a run is in flight,
@@ -16,6 +25,7 @@
   var MAIN_EVENTS = { push: 1, schedule: 1, workflow_dispatch: 1, workflow_run: 1 };
   var jobsCache = {};
   var budget = null, resetAt = null, timer = null, lastRead = null;
+  var snapAt = null, fromSnapshot = false;
   var meta = document.getElementById("now-meta");
   var body = document.getElementById("now-body");
   if (!REPO || !body) return;
@@ -118,7 +128,8 @@
              : "This page is not the newest build.",
         (same ? "Run " : "The newest successful build is ") + '<a href="' + esc(run.html_url) + '">#' + run.run_number +
         "</a>, " + esc(age(run.created_at)) + ", from <code>" + esc((run.head_sha || "").slice(0, 7)) +
-        "</code>. Nobody uploads this page by hand: the workflow that publishes it holds no network or cloud credential.");
+        "</code>. Nobody uploads this page by hand: the workflow that publishes it holds no network or cloud credential." +
+        (fromSnapshot ? ' Read from the snapshot this page ships with \u2014 for a read that owes this page nothing, <a href="https://github.com/' + REPO + '/actions">GitHub\u2019s own history</a> is one click away.' : ""));
       draw();
     }).catch(function (e) {
       rows[1] = vRow("wait", runs.length ? "The last build is not among the runs just read."
@@ -180,8 +191,11 @@
     }).join("");
   }
   function renderRecent(runs) {
-    return '<p class="why">Nothing is running. Checks run on a daily schedule and on every change; ' +
-      'this panel reads GitHub every ' + IDLE / 60 + ' minutes while the page is open.</p><ul class="recent">' +
+    return '<p class="why">Nothing is running. Checks run on a daily schedule and on every change. ' +
+      (fromSnapshot
+        ? "This list came with the page, written by the job that built it \u2014 no request of yours was spent on it. "
+        : "This list was just read from GitHub in your browser. ") +
+      'While the tab is open the panel refreshes at most every ' + IDLE / 60 + ' minutes.</p><ul class="recent">' +
       runs.slice(0, 6).map(function (r) {
         return '<li><span class="ic ' + esc(r.conclusion) + '">' + icon(r.status, r.conclusion) + "</span> " +
           esc(r.name) + ' <span class="meta">' + esc(r.event) + " · " + esc(r.head_branch) + " · " +
@@ -266,7 +280,9 @@
     meta.textContent = (spent
         ? "GitHub's anonymous limit for your address is used up — 60 requests an hour, shared with anything else you do from here, not with this page. What you see below is what was true when the page was built · "
         : err ? "GitHub not reachable: " + err + " · " : "") +
-      (lastRead ? "read from GitHub " + lastRead.toLocaleTimeString() : spent ? "waiting for the limit to reset" : "not read yet") +
+      (lastRead ? "read from GitHub " + lastRead.toLocaleTimeString()
+        : snapAt ? "showing the snapshot this page was built with, " + age(new Date(snapAt).toISOString())
+        : spent ? "waiting for the limit to reset" : "not read yet") +
       (budget !== null ? " · budget: " + budget + " of 60 requests left this hour" : "") +
       (next ? " · next read in " + Math.round(next) + " s" : "");
   }
@@ -276,20 +292,46 @@
     showMeta(sec, err);
     timer = setTimeout(poll, sec * 1000);
   }
+  function draw(runs, running) {
+    body.innerHTML = running.length ? renderRunning(running) : renderRecent(runs);
+    light(running);
+    verify(runs);
+    return updateCards(runs).then(ages);
+  }
+
+  // The snapshot published with the page. Free, same origin, and enough for
+  // every visitor who arrives between runs -- which is nearly all of them.
+  function readSnapshot() {
+    return fetch("runs.json").then(function (r) {
+      if (!r.ok) throw new Error("no snapshot (" + r.status + ")");
+      return r.json();
+    }).then(function (snap) {
+      var runs = snap.runs || [];
+      if (!runs.length) throw new Error("snapshot is empty");
+      snapAt = Date.parse(snap.generated_at);
+      fromSnapshot = true;
+      var running = runs.filter(function (r) { return r.status !== "completed"; }).slice(0, 2)
+        .map(function (r) { return { run: r, jobs: (snap.jobs || {})[String(r.id)] || [] }; });
+      return draw(runs, running).then(function () {
+        // Ask GitHub only for what the snapshot cannot know: what has happened
+        // since it was written.
+        var age = (Date.now() - snapAt) / 1000;
+        schedule(Math.max(5, IDLE - age));
+      });
+    }).catch(function () { poll(); });
+  }
+
   function poll() {
     if (document.hidden) { schedule(IDLE); return; }
     get("/actions/runs?per_page=30").then(function (d) {
       lastRead = new Date();
+      fromSnapshot = false;
       var runs = d.workflow_runs || [];
       var active = runs.filter(function (r) { return r.status !== "completed"; }).slice(0, 2);
       return Promise.all(active.map(function (r) {
         return jobs(r).then(function (js) { return { run: r, jobs: js }; });
       })).then(function (running) {
-        body.innerHTML = running.length ? renderRunning(running) : renderRecent(runs);
-        light(running);
-        verify(runs);
-        return updateCards(runs).then(function () {
-          ages();
+        return draw(runs, running).then(function () {
           schedule(running.length ? ACTIVE : IDLE);
         });
       });
@@ -299,5 +341,5 @@
   var btn = document.getElementById("now-refresh");
   if (btn) btn.addEventListener("click", function () { clearTimeout(timer); poll(); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { clearTimeout(timer); poll(); } });
-  poll();
+  readSnapshot();
 })();
