@@ -24,6 +24,7 @@ are the way they are.
 | `docs/00-handoff.md` | The specification. Sanitised; the original never leaves `local/`. |
 | `docs/01-inventory.md` | Roles and counts. No names, no addresses. |
 | `docs/02-decisions.md` | ADR-style, append-only. Reasoning, not just outcomes. |
+| `docs/03-applicability.md` | What an enterprise gets from this model, where it is ceremony, and how widespread it really is. An argument, not a measurement. |
 | `policy/policy.baseline.hujson` | Pre-lab snapshot. **Never edited.** The rollback target. |
 | `policy/README.md` | Tag taxonomy, and what the baseline actually contains. |
 | `scripts/leak-sweep.sh` | The disclosure boundary. Run it before every commit. |
