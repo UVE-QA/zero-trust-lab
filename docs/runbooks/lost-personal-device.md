@@ -11,6 +11,25 @@ standing in for the lost device (D-061).
 
 ---
 
+## Before you start
+
+This drill takes access away on purpose. In a house whose only way in is this
+tailnet, that is one careless row in a console away from being the wrong
+access. So, every time, in this order (D-072):
+
+1. **Name the identity you are about to act on, out loud, and read it back from
+   the console row you are about to click.** The test user and the owner sit in
+   the same table, two rows apart.
+2. **Check that a second path into the house answers** — the standby gateway,
+   or a house node other than the one this drill touches. If it does not
+   answer, fix that first: the drill can wait, the house cannot.
+3. **Confirm the way back exists without the network you are about to disturb.**
+   The console is reachable from any browser; the cloud break-glass is
+   documented and was exercised. Neither depends on the tailnet.
+
+If any of the three is not true, do not start. A measurement is worth less than
+a working house, and the drill will still be there tomorrow.
+
 ## What is actually being asked
 
 When a phone goes missing, three things are unknown and only one of them is
