@@ -1,0 +1,49 @@
+name: keys-due
+
+# A node whose key expires drops off the network until somebody signs in again
+# ON THAT DEVICE. For the two nodes that carry the only way into the house that
+# would be a dated outage, so their expiry is off (D-071). For everything that
+# travels, expiry means what it says -- and this is the warning, thirty days
+# ahead, while the device is still to hand.
+#
+# Read-only against the tailnet, using the same per-run federated credential as
+# every other job here. It writes one issue and nothing else.
+
+on:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keys-due
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: warn before a key expires
+    runs-on: ubuntu-latest
+    environment: tailnet-read
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+    env:
+      TS_OIDC_CLIENT_ID: ${{ secrets.TS_OIDC_CLIENT_ID }}
+      TS_OIDC_AUDIENCE: ${{ secrets.TS_OIDC_AUDIENCE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: read which keys expire soon
+        run: ./scripts/tailnet-api.py keys keys/expiry.json
+
+      # The file carries hostnames, which the sweep treats as real-world values
+      # unless they are the ones already published on the page. It is not
+      # uploaded anywhere; only the issue below quotes from it.
+      - name: raise or close the warning
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WARN_DAYS: "30"
+        run: ./scripts/keys_due.py keys/expiry.json

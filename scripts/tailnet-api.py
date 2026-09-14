@@ -32,6 +32,7 @@ Standard library only: a script that holds a credential, however narrow,
 should not pull a dependency tree in with it.
 """
 import base64
+import datetime as dt
 import hashlib
 import json
 import os
@@ -208,6 +209,48 @@ def cmd_drift(policy):
     return 1
 
 
+def cmd_keys(out_path):
+    """Which node keys expire soon, written as a small JSON file.
+
+    A node whose key expires stops being on the network until somebody
+    re-authenticates it in a browser ON THAT DEVICE. For a laptop that is an
+    inconvenience; for the machine that is the only way into a house it is a
+    dated outage, which is why the two nodes that carry the way in have expiry
+    switched off (D-071). The rest keep it, so this exists to say "in thirty
+    days, that phone will stop" while somebody can still act on it.
+
+    Names, not addresses: this file is read by a job that writes a public
+    issue.
+    """
+    token = tailscale_token()
+    status, body = call("GET", "/tailnet/-/devices?fields=all", token)
+    if status != 200:
+        die(f"reading devices returned HTTP {status}")
+    now = dt.datetime.now(dt.timezone.utc)
+    soon = []
+    for d in json.loads(body).get("devices", []):
+        if d.get("keyExpiryDisabled"):
+            continue
+        raw = d.get("expires") or ""
+        try:
+            when = dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if when.year < 2000:          # the API says this for "no expiry"
+            continue
+        days = round((when - now).total_seconds() / 86400)
+        soon.append({"name": d.get("hostname") or d.get("name", "").split(".")[0],
+                     "days": days, "expires": when.strftime("%Y-%m-%d"),
+                     "tagged": bool(d.get("tags"))})
+    soon.sort(key=lambda x: x["days"])
+    out = {"checked_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "nodes": soon}
+    pathlib.Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(out_path).write_text(json.dumps(out, indent=2) + "\n")
+    print(f"OK: {len(soon)} nodes with an expiring key -> {out_path}")
+    for n in soon:
+        print(f"  {n['days']:>5} days  {n['name']}")
+
+
 def cmd_inventory(out_path):
     """Aggregate the device list into counts. The output feeds a public page,
     so it is built from an allowlist of derived numbers -- nothing from the
@@ -285,10 +328,12 @@ def dt_now():
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift", "inventory"):
+    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift", "inventory", "keys"):
         die(__doc__.split("\n\n")[1])
     if sys.argv[1] == "inventory":
         sys.exit(cmd_inventory(sys.argv[2]))
+    if sys.argv[1] == "keys":
+        sys.exit(cmd_keys(sys.argv[2]))
     path = pathlib.Path(sys.argv[2])
     if not path.is_file():
         die(f"{path} not found -- render it first: scripts/render-policy.py --from-env")
