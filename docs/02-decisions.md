@@ -3908,10 +3908,17 @@ So the threat model splits by device class, and so does the control:
 
 - **Devices that travel** keep key expiry. There it means what it says: a stolen
   laptop stops working eventually even if nobody notices it is gone.
-- **Devices that stay** — the hub and the appliance that will carry the standby
-  route — have expiry switched off. Loss cannot happen; what can happen is
-  compromise, and expiry does nothing about that. An attacker inside the box
-  re-authenticates the box exactly as its owner would.
+- **Devices that stay** — the hub, the appliance that will carry the standby
+  route, and the home server — have expiry switched off. Loss cannot happen;
+  what can happen is compromise, and expiry does nothing about that. An attacker
+  inside the box re-authenticates the box exactly as its owner would.
+
+  The home server was added the same evening, on the owner's reading of the same
+  rule: it never leaves the flat either. It is the one of the three that is
+  *user-owned* rather than tagged, so its key carries a person's identity and
+  the grants that come with it — which makes the compromise question sharper
+  there and the expiry question no different. What limits it is what an operator
+  may reach, and that is asserted in the tests.
 
 What actually contains a compromised stationary node is what its tag may reach:
 the hub may push telemetry to one port and nothing else; the appliance
