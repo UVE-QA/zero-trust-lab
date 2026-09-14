@@ -3882,3 +3882,51 @@ hash check never depended on the API and still does not.
 
 The live read is not gone: it is the fallback and the freshness path, and it
 still backs off, still reports the budget, and still says whose limit it is.
+
+---
+
+## D-071 — the same control is prudent on a phone and theatre on a television
+
+**2026-09-14.** Two facts arrived together and changed a decision I had already
+half-made. First: the tailnet is the **only** way into this house — the vendor
+router is the carrier's own box, behind CGNAT, with no port forwarding, no
+address reservations, nothing — and naming the carrier here would be one more
+identifying detail for no gain, which is the rule this repository already keeps
+about hostnames and addresses. Second: every node key was six months old and expiring in
+the same week of March, including the hub's, and a key that expires takes its
+node off the network until somebody signs in again *on that device*. For a
+headless machine in a flat that is a dated outage: the house becomes unreachable
+until a person is physically in it.
+
+My first argument for switching expiry off was that revocation is instant if a
+device is lost. The owner's reply took it apart: **the television does not go
+anywhere.** Loss is a threat to a laptop, a phone and a tablet. It is not a
+threat to a set-top box bolted to a living room, and a control justified by a
+scenario that cannot happen is theatre.
+
+So the threat model splits by device class, and so does the control:
+
+- **Devices that travel** keep key expiry. There it means what it says: a stolen
+  laptop stops working eventually even if nobody notices it is gone.
+- **Devices that stay** — the hub and the appliance that will carry the standby
+  route — have expiry switched off. Loss cannot happen; what can happen is
+  compromise, and expiry does nothing about that. An attacker inside the box
+  re-authenticates the box exactly as its owner would.
+
+What actually contains a compromised stationary node is what its tag may reach:
+the hub may push telemetry to one port and nothing else; the appliance
+originates nothing; the standby carries other people's packets and starts none
+of its own. That containment is in the policy, asserted by tests, and it does
+not depend on a calendar.
+
+The owner also rejected the other half of my reasoning, and was right to: fast
+revocation is a control for *losing* a device, not a substitute for having a
+second path — and in a house with one way in it is itself a hazard, since an
+accidental click during an experiment cuts the only door. Redundancy has to come
+from a second path, not from being quick with the axe.
+
+**Kept, so the removal is not silent:** a weekly job reads the tailnet
+read-only and opens an issue thirty days before any remaining key expires
+([keys-due.yml](../.github/workflows/keys-due.yml)). If one of the two nodes
+with expiry disabled ever appears in that issue, somebody has turned it back on,
+and the issue says so.
