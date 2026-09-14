@@ -464,7 +464,9 @@ def render(policy_text, agg=None, home=None):
                '<label><input type="checkbox" data-layer="control" checked> <span class="k cf"></span>who changes what</label>'
                '<label><input type="checkbox" data-layer="data" checked> <span class="k hd"></span>data inside the house</label></div>')
     legend = ('<p class="legend">Green arrows are grants parsed from the policy, with the port each names; '
-              'dashed green goes to a role with no host yet. Red arrows are refusals asserted by the policy tests. '
+              'dashed green is a grant with nothing live at one end -- a role declared in the policy with no host, '
+              'or an identity kept suspended between drills; it starts working the moment that end does, with no '
+              'change to the policy. Red arrows are refusals asserted by the policy tests. '
               'Dotted green is data moving inside the house, where the tailnet has no path. '
               'Everything not drawn is refused by default.</p>')
     if unplaced:
