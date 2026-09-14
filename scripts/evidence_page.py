@@ -365,6 +365,11 @@ h3{{font-size:16px;margin:0}}p{{margin:6px 0}}a{{color:var(--link)}}code{{font:1
 .verify .sub{{color:var(--mut);font-size:14px;display:block}}
 pre.cmd{{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
 overflow-x:auto;font-size:13px}}
+.livebar{{margin:10px 0 0;font-size:14px;line-height:2}}
+.livebar span{{color:var(--mut);margin-right:2px}}
+.livebar a{{margin-right:14px;white-space:nowrap}}
+@media (max-width:560px){{.livebar a{{white-space:normal}}}}
+:target{{scroll-margin-top:12px}}
 .lede{{color:var(--mut);max-width:640px}}.built{{font-size:14px;color:var(--mut);margin-top:14px}}
 .card{{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--none);border-radius:8px;padding:14px 16px;margin:10px 0}}
 .card.pass{{border-left-color:var(--pass)}}.card.fail{{border-left-color:var(--fail)}}.card.stale{{border-left-color:var(--stale)}}
@@ -397,6 +402,13 @@ turns amber on its own.</p>
 <a href="{SERVER}/{REPO}">repository</a> · <a href="{blob}/STATUS.md">status and plan</a> ·
 <a href="{blob}/docs/02-decisions.md">decision log</a></p>
 
+<p class="livebar"><span>Live here:</span>
+<a href="#now">running now</a>
+<a href="#map">the map, moving</a>
+<a href="#checks">live checks</a>
+<a href="#drills">measured drills</a>
+<a href="#verify">verify it yourself — or run one</a></p>
+
 <div class="brief">
 <div><h3>The one number</h3><p class="big">{routes_n} of ~{home.get("total_about")}</p>
 <p>devices the automation hub knows are reachable from the network overlay — each by one grant, on one port
@@ -416,7 +428,7 @@ provider's console — was exercised on 2026-09-13: it works, and it means the c
 overlay, is the boundary around that host (D-042).</p></div>
 </div>
 
-<section class="now" aria-live="polite"><div class="nowhead"><h2>Now</h2>
+<section class="now" id="now" aria-live="polite"><div class="nowhead"><h2>Now</h2>
 <button id="now-refresh" type="button">Refresh</button></div>
 <p id="now-meta" class="meta">Reading GitHub…</p>
 <div id="now-body"><p class="why">This panel reads GitHub's public Actions API from your browser: what is
@@ -424,7 +436,7 @@ running this minute, step by step, and the last runs. Everything else on the pag
 <noscript><p class="why">Without JavaScript the page shows what was true when it was built.</p></noscript>
 </section>
 
-<h2>The lab on one picture</h2>
+<h2 id="map">The lab on one picture</h2>
 <p class="why col">Where each part lives, which tool manages it, and who may reach what. Contours
 and words are drawn by hand; <strong>every access arrow is parsed from the policy file</strong>,
 so the picture cannot show a path the policy does not grant. Counts on the tiles are {agg_note}.</p>
@@ -433,19 +445,19 @@ so the picture cannot show a path the policy does not grant. Counts on the tiles
 <details class="parts col"><summary>What each part is for, and why it is managed the way it is</summary>{diagram[2]}</details>
 
 <div class="col">
-<h2>Checked against the live network</h2>
+<h2 id="checks">Checked against the live network</h2>
 {live}
 
 <h2>Checked on every change</h2>
 {every}
 
-<h2>Measured by watching the system</h2>
+<h2 id="drills">Measured by watching the system</h2>
 <p class="why">Not a check that passes or fails: numbers observed while something was
 deliberately broken, counted from both ends, and written down once. They change only when
 the drill is run again.</p>
 {drills}
 
-<h2>Verify this yourself</h2>
+<h2 id="verify">Verify this yourself</h2>
 <p class="why col">Three kinds of claim are on this page and they are not equally checkable, so
 they are separated rather than blended. The checks below run <strong>in your browser</strong>, against
 GitHub, with no account and nothing of mine in the path.</p>
