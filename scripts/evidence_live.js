@@ -77,8 +77,16 @@
       }).join("");
     });
   }
-  function verify() {
-    if (!vBox || !vList || !window.crypto || !crypto.subtle) return;
+  var verified = false;
+  function verify(runs) {
+    // runs === null means the panel could not read GitHub at all -- usually a
+    // visitor's own hourly quota. The hash check below does not touch the API
+    // and still runs; the two rows that need the list say why they cannot, and
+    // point at the public history. Leaving them on "Reading GitHub..." for ever
+    // was the bug this fixes (D-065).
+    if (verified || !vBox || !vList || !window.crypto || !crypto.subtle) return;
+    verified = true;
+    runs = runs || [];
     var want = vBox.getAttribute("data-tmpl-sha");
     var path = vBox.getAttribute("data-tmpl-path");
     var at = vBox.getAttribute("data-build-sha") || "main";
@@ -98,9 +106,12 @@
       })
       .catch(function (e) { rows[0] = vRow("wait", "Could not fetch the policy file to hash it.", esc(e.message)); draw(); });
 
-    get("/actions/workflows/evidence-page.yml/runs?per_page=5&status=success").then(function (d) {
-      var run = (d.workflow_runs || [])[0];
-      if (!run) throw new Error("no successful build found");
+    // Both rows below are read out of the list the Now panel already fetched.
+    // Asking GitHub separately cost two requests of a visitor's sixty an hour,
+    // for answers that were already on this page (D-065).
+    Promise.resolve().then(function () {
+      var run = runs.filter(function (r) { return wfFile(r) === "evidence-page.yml" && r.conclusion === "success"; })[0];
+      if (!run) throw new Error(runs.length ? "no successful build in the last runs read" : "the runs list could not be read from here");
       var same = run.head_sha && run.head_sha.slice(0, 7) === at.slice(0, 7);
       rows[1] = vRow(same ? "ok" : "wait",
         same ? "This page was built by GitHub Actions from that commit."
@@ -109,12 +120,18 @@
         "</a>, " + esc(age(run.created_at)) + ", from <code>" + esc((run.head_sha || "").slice(0, 7)) +
         "</code>. Nobody uploads this page by hand: the workflow that publishes it holds no network or cloud credential.");
       draw();
-    }).catch(function (e) { rows[1] = vRow("wait", "Could not read the build history.", esc(e.message)); draw(); });
+    }).catch(function (e) {
+      rows[1] = vRow("wait", runs.length ? "The last build is not among the runs just read."
+                                          : "GitHub's run list could not be read from your address just now.",
+        esc(e.message) + '. <a href="https://github.com/' + REPO + '/actions/workflows/evidence-page.yml">The build history</a> is public.');
+      draw();
+    });
 
-    get("/actions/workflows/tailnet-check.yml/runs?per_page=10&branch=main").then(function (d) {
-      var runs = (d.workflow_runs || []).filter(function (r) { return r.status === "completed"; });
-      var run = runs[0];
-      if (!run) throw new Error("no completed run found");
+    Promise.resolve().then(function () {
+      var run = runs.filter(function (r) {
+        return wfFile(r) === "tailnet-check.yml" && r.status === "completed" && r.head_branch === "main";
+      })[0];
+      if (!run) throw new Error(runs.length ? "no completed run among the runs just read" : "the runs list could not be read from here");
       var ok = run.conclusion === "success";
       rows[2] = vRow(ok ? "ok" : "no",
         ok ? "The live network agreed with that policy, and GitHub says so."
@@ -123,7 +140,12 @@
         ". The job renders the template with values held as secrets, asks the tailnet for the policy actually in force, and compares byte for byte. " +
         "You are trusting GitHub's record of a job you can read, not my summary of it \u2014 but you are not seeing the network itself.");
       draw();
-    }).catch(function (e) { rows[2] = vRow("wait", "Could not read the network check.", esc(e.message)); draw(); });
+    }).catch(function (e) {
+      rows[2] = vRow("wait", runs.length ? "The network check is not among the runs just read."
+                                          : "Neither could the network check's last run — same reason, same quota.",
+        esc(e.message) + '. <a href="https://github.com/' + REPO + '/actions/workflows/tailnet-check.yml">Its history</a> is public, and it runs daily.');
+      draw();
+    });
 
     rows[3] = vRow("ok", "You can make the network check run, now, yourself.",
       'Write <code>run the checks</code> in <a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">this issue</a>' +
@@ -132,7 +154,6 @@
       "Everything else on this page only reads.");
     draw();
   }
-  verify();
 
   // --- the Now panel -------------------------------------------------------
   function icon(st, c) {
@@ -237,8 +258,15 @@
 
   function showMeta(next, err) {
     if (!meta) return;
-    meta.textContent = (err ? "GitHub not reachable: " + err + " · " : "") +
-      (lastRead ? "read from GitHub " + lastRead.toLocaleTimeString() : "not read yet") +
+    // GitHub allows 60 unauthenticated requests an hour PER ADDRESS, shared with
+    // everything else the visitor does. Running out is their quota, not this
+    // lab failing, and saying "GitHub not reachable" invited exactly the wrong
+    // conclusion (D-065).
+    var spent = budget === 0 && err && /\b(403|429)\b/.test(err);
+    meta.textContent = (spent
+        ? "GitHub's anonymous limit for your address is used up — 60 requests an hour, shared with anything else you do from here, not with this page. What you see below is what was true when the page was built · "
+        : err ? "GitHub not reachable: " + err + " · " : "") +
+      (lastRead ? "read from GitHub " + lastRead.toLocaleTimeString() : spent ? "waiting for the limit to reset" : "not read yet") +
       (budget !== null ? " · budget: " + budget + " of 60 requests left this hour" : "") +
       (next ? " · next read in " + Math.round(next) + " s" : "");
   }
@@ -259,12 +287,13 @@
       })).then(function (running) {
         body.innerHTML = running.length ? renderRunning(running) : renderRecent(runs);
         light(running);
+        verify(runs);
         return updateCards(runs).then(function () {
           ages();
           schedule(running.length ? ACTIVE : IDLE);
         });
       });
-    }).catch(function (e) { schedule(IDLE, e.message); });
+    }).catch(function (e) { verify(null); schedule(IDLE, e.message); });
   }
 
   var btn = document.getElementById("now-refresh");
