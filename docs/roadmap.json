@@ -44,11 +44,11 @@
       "ref": "docs/designs/viewer-verification.md"
     },
     {
-      "what": "Two stale route advertisements",
-      "state": "owner decision",
-      "why": "Two user devices advertise a whole /24 that was never approved, so nothing is routed. Harmless, and a finding.",
-      "takes": "the owners switch the advertisement off",
-      "ref": "D-047"
+      "what": "The standby way into the house",
+      "state": "policy done, devices pending",
+      "why": "Two personal devices advertise the whole home /24 as a deliberate second way in, approved by nobody. Approval is all-or-nothing per prefix, so switching the standby on would have opened the entire subnet -- and it would not have worked anyway, since the grant names one gateway. The always-on appliance now carries a standby role and will advertise the same two /32s as the primary, giving automatic failover with no widening (D-069).",
+      "takes": "two device-side steps by the owner, then approving exactly those routes; and a drill, because the failover has never been exercised",
+      "ref": "D-069"
     },
     {
       "what": "Just-in-time access to the action tier",

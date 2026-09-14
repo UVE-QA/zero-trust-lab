@@ -440,7 +440,7 @@ def render(policy_text, agg=None, home=None):
 <text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
 <rect x="12" y="632" width="1176" height="290" rx="14" class="ct home"/>
 <text x="40" y="766" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
-<text x="40" y="794" class="ctn">one /32 route per exposed device, through the hub · the /24 itself is never advertised</text>
+<text x="40" y="794" class="ctn">one /32 route per exposed device, through the hub · the /24 is advertised by two personal devices and approved by none — being narrowed to the same two /32s (D-069)</text>
 {proto}
 <text x="40" y="906" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
