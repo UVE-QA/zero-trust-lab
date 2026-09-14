@@ -3756,3 +3756,44 @@ One small thing worth keeping. `GetObject` on a key that does not exist
 returned **404** rather than 403, because the role does hold `ListBucket` on
 that bucket — AWS distinguishes the two, and so the probe accidentally
 confirmed a permission it was not testing for.
+
+---
+
+## D-068 — the tablet is a person's device that also shows a dashboard
+
+**2026-09-14.** Since Phase 2 the plan has carried an item: give the wall
+tablet a role of its own, so that it may reach the house's dashboard and
+nothing else. It sounded obviously right — a screen on a wall does not need
+production SSH — and it was listed as waiting for the owner's yes.
+
+The owner's answer removes the premise. The tablet is not a kiosk. It shows the
+dashboard, and it is also a personal device that leaves the house and is used
+away from it. A machine role would take the second use away along with the
+first, because a tagged node stops carrying its owner's identity: everything
+the person reaches from that tablet when they are out stops working, and the
+policy would have no way to tell "the owner, on the tablet" from "the tablet".
+
+So the tablet stays a member device, and this stops being a gap and becomes a
+decision. It was verified rather than assumed before writing that down:
+untagged, owned by the operator, advertising no routes, key expiry six months,
+and passing both device postures — including the one that gates production SSH.
+
+**The residual risk, stated rather than dressed up.** An unlocked tablet in
+someone else's hands holds what its owner holds: the house's dashboard and
+shell, production's SSH, the socket in the flat. No tag would have changed that
+for the laptop or the phone, which is the same argument one level up — the lab
+has always depended on device custody plus fast revocation, not on the network
+being able to tell which of the owner's devices is in the owner's hands.
+
+What answers it is the drill run the same night (D-061): suspending the user
+cut every path in **under two seconds**, from a device that had been switched
+off during the revocation, and from one that never learned it had been revoked.
+That is the control this device rests on, and it is measured rather than
+promised.
+
+**What could improve it, and what each would cost.** Device posture is the only
+lever this plan offers that distinguishes devices rather than people, and it is
+self-reported — it already gates the action tier and production. Anything
+stronger is the MDM tile on the growth path: attestation from a fleet manager
+instead of the device's own word, at $8 per user per month. Named on the page,
+not bought.
