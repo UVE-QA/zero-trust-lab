@@ -70,7 +70,17 @@ own system, so it goes through the owner rather than through this lab.
 
 ## The check that would have caught it
 
-None existed. The policy tests assert the operator reaches the hub over the
-tailnet, which stayed true throughout. A test for this class of break has to
-name the path as the household uses it, which means writing the table above
-first — and that is the actual fix.
+None existed when it happened. The policy tests assert the operator reaches the
+hub over the tailnet, which stayed true throughout, while the path the
+household used died somewhere the tests were not looking.
+
+There is one now, and it watches the half of the system that lives outside this
+repository: [`routes_check.py`](../../scripts/routes_check.py) runs in the daily
+tailnet job and fails when an address a grant names has no approved route behind
+it (D-074). It also names, without failing, any approved route that no grant
+needs — the shape a forgotten "just for now" approval takes.
+
+What it still does not cover is the experience itself: whether a person outside
+the house can open the house. That is the fourth line in every drill's
+pre-flight — a device on mobile data, not on the home Wi-Fi — and it is a pair
+of hands rather than a job.

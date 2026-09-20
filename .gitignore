@@ -26,3 +26,6 @@ apply.log
 *.key
 .env
 .DS_Store
+
+# Written inside a job from the live tailnet; real addresses, never committed.
+routes/

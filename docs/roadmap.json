@@ -24,9 +24,9 @@
     },
     {
       "what": "A check that the household's own paths still work",
-      "state": "not built",
-      "why": "The policy's tests assert what the lab knows about. They stayed green for two weeks while the owner's phone could not reach the house from outside, because the path it used -- the hub's LAN address through an approved subnet route -- was never written down (D-073). The paths people actually use are now listed in a runbook; nothing yet checks them.",
-      "takes": "a probe from a device that is outside the house, which is the part this lab does not have",
+      "state": "half built",
+      "why": "The half that can be automated is running: a daily job fails when an address a grant names has no approved route behind it, which is exactly what went silently missing for two weeks (D-074). The half that cannot is the experience -- whether a person outside the house can open the house -- and that is now the fourth line of every drill's pre-flight rather than a job.",
+      "takes": "a device that stays outside the home network and reports: a spare tablet on mobile data, or a single-board computer with an LTE stick, about $30 plus data",
       "ref": "D-073"
     },
     {

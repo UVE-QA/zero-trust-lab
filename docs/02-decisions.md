@@ -4037,3 +4037,47 @@ thing to check before a grant is narrowed, and the second-order lesson is
 sharper: an application that silently falls back to a LAN address will fail
 without an error anywhere — no refusal in a log, no failed check, just a spinner
 in somebody's hand.
+
+---
+
+## D-074 — a grant that names an address is a promise somebody else can quietly break
+
+**2026-09-20.** D-073 ended with a gap and no check to close it. This is the
+check, and it is narrower and more useful than the one first proposed.
+
+The obvious idea was to assert in the policy that the operator must reach the
+hub by its LAN address. That is wrong: the lab closed that path deliberately,
+so the assertion would have to fail. The useful version is the one the incident
+actually demands.
+
+**A grant that names an address depends on something outside this
+repository.** Most destinations here are tags or identities, and for those the
+policy is the whole truth. Two are not: the sockets in the flat are named by
+address, reachable only because a node advertises a route to them and an
+administrator approved it. Approval lives in the console, changes with a click,
+leaves nothing in the repository, and says nothing when it goes away. Every
+check here stayed green through two weeks of a household path being dead,
+because every check was reading the half of the system that had not changed.
+
+So `routes_check.py` reads the live route table and the rendered policy, and
+fails when an address a grant names has no approved route behind it. It also
+reports, without failing, two things worth seeing: an approved route no grant
+needs — a road nobody may walk, which is how a `/24` gets approved "for now"
+and forgotten — and routes that are advertised and not approved, which is the
+resting state of the two standby advertisements.
+
+Measured against the live tailnet today: one granted address, behind an
+approved `/32`; one approved `/32` that no grant needs, which is the refused
+socket and is meant to be there; two `/24` advertisements awaiting approval.
+Simulating the D-073 failure — removing the granted socket's approval — fails
+the job, which is the point.
+
+It prints prefix lengths and node names and no addresses at all, because its
+output lands in a public log.
+
+**And the drills gained a fourth pre-flight line:** open the house from a
+device that is not on the home network, the tablet on mobile data or a phone
+away from the flat. A device on the home Wi-Fi proves nothing about the path a
+change is about to alter — it has a shorter one. The tablet is not always at
+home, which cuts both ways, and the runbooks say what to do when no outside
+device is available: record that, rather than skip the line quietly.
