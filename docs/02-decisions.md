@@ -3964,3 +3964,59 @@ household it runs in. It is also the honest version of a claim the page makes
 elsewhere: that the experiments are safe to run. They are safe because of a
 procedure, not because of luck, and the procedure is now written down where the
 person running it will read it.
+
+---
+
+## D-073 — the lab took the household's remote access away, quietly, and nobody noticed for two weeks
+
+**2026-09-20.** The owner could not reach the house's automation from a phone on
+mobile data. The network was not at fault: the phone was connected, the hub was
+online, the policy granted the operator the hub's UI, and the same request from
+a laptop returned HTTP 200.
+
+What had broken was older and quieter than any of tonight's changes.
+
+**How remote access used to work.** The phone's companion app had no external
+address configured, so it used its *internal* one everywhere — the hub's
+address on the home LAN. Away from the house that only resolves into a path if
+two things are true at once: some node routes the home subnet, and the policy
+permits that address. Both were true before this lab existed. The handoff
+recorded the home server advertising the whole `/24` with the route **approved
+and in use**, and the policy at the time was a single allow-all grant.
+
+This lab removed both, deliberately and in the right order — deny-by-default
+first, with grants that name the hub by its tailnet identity rather than by a
+LAN address; then the subnet advertisements left unapproved. Neither step
+mentioned the phone, because nothing in the repository knew the phone depended
+on them.
+
+**Nothing detected it.** Every check passed throughout: the policy's own tests
+assert the operator reaches the hub's UI, and that assertion was true the whole
+time — over the tailnet address. The path the household actually used was a
+different one, and no test named it. The gap is not that a test failed; it is
+that the thing being used was never written down.
+
+**Verified before writing this,** and worth saying how, because the same claim
+was made carelessly earlier in the week. The console shows the hub's two `/32`
+routes under *Approved* and both `/24` advertisements under *Awaiting
+Approval*. The hub's approved routes are the control: they prove the console
+displays approvals where they exist, so the empty list for the other two nodes
+is a measurement rather than an absence of evidence. The earlier version of
+this claim rested on reading a netmap, which cannot see approved routes a node
+has no grant into — a negative with no control, which this project has a rule
+against.
+
+**The fix is on the device, not in the network.** The app now carries an
+external address that is the hub's tailnet address, so both paths — at home
+over Wi-Fi and away over the tunnel — name a thing the policy actually grants.
+The app warns that the URL is unencrypted, which is true of the URL and false
+of the path: it travels inside WireGuard. Giving the hub a real certificate is
+a change to the hub's configuration and belongs to the household, not here.
+
+**What this changes about how the lab should work.** Replacing a permissive
+network with an explicit one means enumerating what people actually use, not
+what the policy file knows about. The household's own paths are now the first
+thing to check before a grant is narrowed, and the second-order lesson is
+sharper: an application that silently falls back to a LAN address will fail
+without an error anywhere — no refusal in a log, no failed check, just a spinner
+in somebody's hand.

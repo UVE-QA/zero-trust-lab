@@ -23,6 +23,13 @@
       "ref": "D-068"
     },
     {
+      "what": "A check that the household's own paths still work",
+      "state": "not built",
+      "why": "The policy's tests assert what the lab knows about. They stayed green for two weeks while the owner's phone could not reach the house from outside, because the path it used -- the hub's LAN address through an approved subnet route -- was never written down (D-073). The paths people actually use are now listed in a runbook; nothing yet checks them.",
+      "takes": "a probe from a device that is outside the house, which is the part this lab does not have",
+      "ref": "D-073"
+    },
+    {
       "what": "Lost comms on the household side",
       "state": "planned",
       "why": "Measured so far only where the lab could break its own link. The hub's link and the control plane are the house's.",
