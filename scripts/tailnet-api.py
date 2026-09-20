@@ -209,6 +209,38 @@ def cmd_drift(policy):
     return 1
 
 
+def cmd_routes(out_path):
+    """Which subnet routes are approved, and which are only advertised.
+
+    Written for the coverage check (D-074): a grant that names an address is
+    worth nothing unless some node routes that address AND an admin approved
+    it. Approval lives in the console, changes without touching this
+    repository, and its disappearance is silent -- which is exactly how the
+    household lost remote access for two weeks (D-073).
+
+    Addresses are real values, so this file is written inside the job and
+    never uploaded.
+    """
+    token = tailscale_token()
+    status, body = call("GET", "/tailnet/-/devices?fields=all", token)
+    if status != 200:
+        die(f"reading devices returned HTTP {status}")
+    approved, advertised_only = {}, {}
+    for d in json.loads(body).get("devices", []):
+        name = d.get("hostname") or d.get("name", "").split(".")[0]
+        a = set(d.get("enabledRoutes") or [])
+        adv = set(d.get("advertisedRoutes") or [])
+        for r in sorted(a):
+            approved.setdefault(r, []).append(name)
+        for r in sorted(adv - a):
+            advertised_only.setdefault(r, []).append(name)
+    out = {"checked_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "approved": approved, "advertised_not_approved": advertised_only}
+    pathlib.Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(out_path).write_text(json.dumps(out, indent=2) + "\n")
+    print(f"OK: {len(approved)} approved route(s), {len(advertised_only)} advertised but not approved -> {out_path}")
+
+
 def cmd_keys(out_path):
     """Which node keys expire soon, written as a small JSON file.
 
@@ -328,12 +360,14 @@ def dt_now():
 
 
 def main():
-    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift", "inventory", "keys"):
+    if len(sys.argv) != 3 or sys.argv[1] not in ("validate", "drift", "inventory", "keys", "routes"):
         die(__doc__.split("\n\n")[1])
     if sys.argv[1] == "inventory":
         sys.exit(cmd_inventory(sys.argv[2]))
     if sys.argv[1] == "keys":
         sys.exit(cmd_keys(sys.argv[2]))
+    if sys.argv[1] == "routes":
+        sys.exit(cmd_routes(sys.argv[2]))
     path = pathlib.Path(sys.argv[2])
     if not path.is_file():
         die(f"{path} not found -- render it first: scripts/render-policy.py --from-env")

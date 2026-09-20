@@ -23,11 +23,22 @@ access. So, every time, in this order (D-072):
 2. **Check that a second path into the house answers** — the standby gateway,
    or a house node other than the one this drill touches. If it does not
    answer, fix that first: the drill can wait, the house cannot.
-3. **Confirm the way back exists without the network you are about to disturb.**
+3. **Open the house from a device that is not on the home network.** The
+   tablet on mobile data, with Wi-Fi off, or a phone away from the flat. A
+   device sitting on the home Wi-Fi proves nothing: it reaches the house by a
+   short path that the change you are about to make cannot touch. This is the
+   check that would have caught D-073, and it takes half a minute.
+
+   The tablet is not always at home, which cuts both ways: when it is away it
+   is already the outside device you need, and when it is away *with someone*
+   the check has to be somebody else's phone. If no device outside the home
+   network is available, say so in the record rather than skipping the line
+   quietly.
+4. **Confirm the way back exists without the network you are about to disturb.**
    The console is reachable from any browser; the cloud break-glass is
    documented and was exercised. Neither depends on the tailnet.
 
-If any of the three is not true, do not start. A measurement is worth less than
+If any of the four is not true, do not start. A measurement is worth less than
 a working house, and the drill will still be there tomorrow.
 
 

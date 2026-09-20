@@ -92,6 +92,20 @@ jobs:
       - name: compare with the policy in force
         run: ./scripts/tailnet-api.py drift policy/.rendered/policy.hujson
 
+      # A grant that names an address is only kept while a route to that
+      # address is approved -- and approval lives in the console, changes with
+      # a click, and says nothing when it goes. That is how the household lost
+      # remote access for two weeks with every check green (D-073, D-074).
+      #
+      # The route file holds real addresses, so it is written here, read here,
+      # and never uploaded. The check prints prefix lengths and node names
+      # only.
+      - name: every granted address still has an approved route
+        if: ${{ !cancelled() }}
+        run: |
+          ./scripts/tailnet-api.py routes routes/routes.json
+          ./scripts/routes_check.py policy/.rendered/policy.hujson routes/routes.json
+
       # Counts only -- nodes by role, OS and state, routes by prefix length --
       # for the public evidence page, which holds no tailnet credential of its
       # own and reads this artifact instead. The file is swept before upload:
