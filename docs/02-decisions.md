@@ -4013,6 +4013,23 @@ The app warns that the URL is unencrypted, which is true of the URL and false
 of the path: it travels inside WireGuard. Giving the hub a real certificate is
 a change to the hub's configuration and belongs to the household, not here.
 
+**Confirmed from the other end,** by the household's own session, read-only:
+after the app was given the hub's tailnet address, the phone's entities in the
+automation platform went from frozen at 2026-09-14 23:14 to **1.2 minutes old**,
+and the log holds no failures from the phone's address at all. Successful API
+calls are not logged there, so fresh entities plus silence is the whole
+available confirmation — and it is enough, because the frozen timestamps were
+the symptom.
+
+The same session contributed a fact that belongs in the runbook rather than
+here: an account marked *local only* in the automation platform **cannot
+authenticate over the tailnet**, measured with one token in one minute — LAN
+IPv4 200, link-local IPv6 200, global IPv6 401, tailnet address 401. The
+network permits the connection and the application refuses the credential,
+which looks exactly like a wrong password and is not one. It is the mirror
+image of this decision: the lab pushes everything towards tailnet addresses,
+and there is one class of caller for which that is precisely wrong.
+
 **What this changes about how the lab should work.** Replacing a permissive
 network with an explicit one means enumerating what people actually use, not
 what the policy file knows about. The household's own paths are now the first
