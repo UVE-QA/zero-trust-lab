@@ -227,7 +227,11 @@ def cmd_routes(out_path):
         die(f"reading devices returned HTTP {status}")
     approved, advertised_only = {}, {}
     for d in json.loads(body).get("devices", []):
-        name = d.get("hostname") or d.get("name", "").split(".")[0]
+        # The MACHINE name, not the OS hostname. Both identify the device;
+        # only the first is what the disclosure denylist knows, so printing the
+        # second puts an unmasked real name in a public job log -- which is how
+        # "iMac (3)" reached one (D-074).
+        name = d.get("name", "").split(".")[0] or d.get("hostname") or "?"
         a = set(d.get("enabledRoutes") or [])
         adv = set(d.get("advertisedRoutes") or [])
         for r in sorted(a):
