@@ -33,6 +33,34 @@ Ask, in this order:
 Anything not in this table has not been thought about. Add a row before
 narrowing something, not after somebody complains.
 
+## A local-only account cannot authenticate over the tailnet
+
+Measured by the household's own session on 2026-09-16, with one token inside a
+single minute: the hub's LAN IPv4 address answered **200**, its link-local IPv6
+answered **200**, its global IPv6 answered **401**, and its **tailnet address
+answered 401**.
+
+The automation platform decides whether an account marked *local only* may log
+in by looking at the source address, and a tailnet address is not local by that
+definition. No network policy changes this: the connection is permitted, the
+request arrives, and the application refuses it. It looks exactly like a wrong
+password and is not one.
+
+What follows for anything scripted against the house:
+
+- A script that authenticates as a local-only account must reach the hub by its
+  **LAN IPv4** address — which means it must run on the LAN.
+- Anything reaching the hub **over the tailnet** needs an account that is not
+  marked local only.
+- A hostname is not an address. The house's own hostname also resolves to a
+  global IPv6 address; a client that happened to pick it got 401 with a valid
+  token. That produced about 190 failed logins over two weeks before anyone
+  read them as a routing problem rather than a credential one.
+
+This is the household's own constraint rather than the lab's, and it is written
+here because the lab keeps telling people to use tailnet addresses — which is
+right for the phone and wrong for a local-only account.
+
 ## Why the automation hub has no external address of its own
 
 The hub publishes neither an external URL nor a cloud service, so a client that
