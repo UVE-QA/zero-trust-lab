@@ -54,66 +54,72 @@ COL = {"future": "#9aa0a6", "home": "#3f8624", "tailnet": "#5b4fd6", "cloud": "#
        "ci": "#57606a", "cp": "#1f6feb", "planned": "#8c8c8c", "off": "#8c8c8c"}
 
 TW, TH = 180, 62
-W, H = 1200, 1094
+W, H = 1200, 1214
 VB_TOP = -28
 
 NODES = {
-    "gha":       (28, 48, "flow", "ci", "GitHub Actions", "validate · drift · plan",
+    "gha": (28, 48, "flow", "ci", "GitHub Actions", "validate · drift · plan",
                   "workflows", [], "Runs every check. Holds no network or cloud key: each job "
                   "gets a short-lived token by OIDC.", "D-041"),
-    "tscp":      (262, 48, "dots", "cp", "Tailscale", "control plane · {tests} tests",
+    "tscp": (262, 48, "dots", "cp", "Tailscale", "control plane · {tests} tests",
                   "policy as code", [], "Evaluates the policy and refuses a save whose tests fail. "
                   "The policy is not in Terraform: two tools writing one global file fight.", "D-001"),
-    "iam":       (488, 48, "key", "cloud", "CI plan role", "OIDC · 0 IAM users",
+    "iam": (488, 48, "key", "cloud", "CI plan role", "OIDC · 0 IAM users",
                   "terraform", [], "Lets CI run terraform plan and nothing more. Its trust names "
                   "this repository by immutable id; wildcards are refused three ways.", "D-028"),
-    "bucket":    (686, 48, "bucket", "cloud", "Archive bucket", "S3 · encrypted · Glacier",
+    "bucket": (686, 48, "bucket", "cloud", "Archive bucket", "S3 · encrypted · Glacier",
                   "terraform", [], "Where the collector's data is meant to land. It exists so the "
                   "certificate credential has something real to authorise.", "D-039"),
-    "ra":        (884, 48, "cert", "cloud", "Roles Anywhere", "certificate → role · live",
+    "ra": (884, 48, "cert", "cloud", "Roles Anywhere", "certificate → role · live",
                   "terraform", [], "Cloud access for a machine that holds a certificate, not a key. "
                   "The collector presents its certificate and gets an hour of credentials that may "
                   "write to the archive and nothing else -- measured: PUT 200, GET and DELETE 403.", "D-067"),
-    "state":     (1082, 48, "db", "cloud", "Terraform state", "existing bucket · lockfile",
+    "state": (1082, 48, "db", "cloud", "Terraform state", "existing bucket · lockfile",
                   "terraform", [], "State joins the account's existing bucket rather than "
                   "creating one; locking is the native lockfile.", "D-029"),
 
-    "laptop":    (40, 246, "laptop", "tailnet", "Operator laptop", "posture: self-reported",
+    "laptop": (40, 246, "laptop", "tailnet", "Operator laptop", "posture: self-reported",
                   "by hand", ["autogroup:member"], "The physical console. Applies the policy "
                   "by hand after CI has validated it. Its posture attributes are reported by the "
                   "client on the device itself: they establish configuration, not integrity.", "D-040"),
-    "phones":    (40, 330, "phone", "tailnet", "Operator phones", "break-glass path",
+    "phones": (40, 330, "phone", "tailnet", "Operator phones", "break-glass path",
                   "by hand", ["autogroup:member"], "Posture subjects, and the way back in "
                   "if everything else fails — verified off-network.", "D-016"),
-    "desktop":   (40, 432, "desktop", "tailnet", "Home server", "user-owned · untagged",
+    "desktop": (40, 432, "desktop", "tailnet", "Home server", "user-owned · untagged",
                   "by hand", ["autogroup:self"], "Runs the camera recorder and the house's duty "
                   "timers, and is someone's daily machine, so it stays user-owned with no machine "
                   "identity. Members reach their own devices on SSH only -- the house's recovery "
                   "path, restored after the lab's policy had cut it.", "D-051"),
+    "workstation": (40, 532, "desktop", "tailnet", "Work machine", "tag:workstation",
+                  "tag", ["tag:workstation"], "Somebody's work computer, joined so it can be opened "
+                  "from home. It is reached and it reaches nothing: there is no grant anywhere with "
+                  "this role as the source, and the tests say so for every destination in the house. "
+                  "It advertises no routes and is no exit node, so the tailnet cannot reach its "
+                  "employer's network either.", "D-075"),
     "appliance": (250, 432, "tv", "tailnet", "Media appliance", "tag:appliance",
                   "tag", ["tag:appliance"], "A device on the network that should reach "
                   "nothing — and is tested to reach nothing. It is also the one destination the "
                   "test user is granted: a real device the household owns, rather than a container "
                   "raised for the demonstration, and one whose worst case is audible from the "
                   "sofa.", "D-059"),
-    "gateway":   (500, 330, "hub", "tailnet", "Automation hub", "tag:gateway-home",
+    "gateway": (500, 330, "hub", "tailnet", "Automation hub", "tag:gateway-home",
                   "tag", ["tag:gateway-home"], "The only door into the home: it advertises "
                   "one /32 route per exposed device, never the subnet.", "D-024"),
     "collector": (760, 330, "inbox", "tailnet", "Collector", "tag:collector · container",
                   "tag", ["tag:collector"], "Telemetry sink: a container on the cloud dev host, "
                   "outside the house. The hub pushes readings to it on one port; it has no way "
                   "in, and the tests assert that.", "D-049"),
-    "drone":     (760, 432, "drone", "planned", "Mobile units", "tag:drone · not built, by choice",
+    "drone": (760, 432, "drone", "planned", "Mobile units", "tag:drone · not built, by choice",
                   "decided", ["tag:drone"], "A unit that takes commands over the tailnet. The candidate "
                   "was the house's robot vacuum; a command channel was built, reviewed and then retired "
                   "when the owner chose to have the house trigger it itself. The role stays empty on "
                   "purpose: nothing outside the house can move that machine.", "D-056"),
-    "sensor":    (980, 330, "antenna", "planned", "Sensors", "tag:sensor · not built",
+    "sensor": (980, 330, "antenna", "planned", "Sensors", "tag:sensor · not built",
                   "deferred", ["tag:sensor"], "Push-only field units. The house's own sensors cannot "
                   "run a client, so their readings arrive through the hub. Simulated ones would run "
                   "on the cloud dev host, which serves two projects on 2 GB and no swap: deferred. "
                   "A real one is a single-board computer and a sensor, about $30.", "Phase 6"),
-    "tester":    (980, 432, "idp", "planned", "Test user", "group:testers · suspended",
+    "tester": (980, 432, "idp", "planned", "Test user", "group:testers · suspended",
                   "dormant", ["group:testers"], "A second person, kept for drills. In the tailnet "
                   "and in a group worth exactly one port on one real device -- the media appliance's "
                   "AirPlay port, and nothing else anywhere. Suspended between drills, so the grant is "
@@ -121,25 +127,25 @@ NODES = {
                   "measured at 0 of 10 destinations while suspended, 1 of 10 when restored -- the "
                   "appliance answering on its own port -- and the switch between the two takes under "
                   "two seconds (D-058, D-059).", "D-059"),
-    "prod":      (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
+    "prod": (980, 246, "server", "tailnet", "Production VM", "tag:prod · Lightsail",
                   "by hand", ["tag:prod"], "The production stand-in. A destination, never "
                   "a source. Outside Terraform; also where a person runs terraform apply.", "D-036"),
 
-    "plug_g":    (460, 670, "plug", "home", "Smart plug", "granted · posture",
+    "plug_g": (460, 790, "plug", "home", "Smart plug", "granted · posture",
                   "one /32", ["actuator-granted"], "The action tier: operators may switch it, "
                   "only from a device whose client reports the required posture. On this plan the "
                   "report comes from the device itself, so a compromised node is not constrained by "
                   "it — which is what the device-management tile below would change.", "D-040"),
-    "plug_c":    (670, 670, "plug", "home", "Smart plug", "identical · refused",
+    "plug_c": (670, 790, "plug", "home", "Smart plug", "identical · refused",
                   "one /32", ["actuator-control"], "The same model on the same port, never "
                   "granted. Proves least privilege is per host, not per protocol.", "D-010"),
     # Home devices the lab uses without any route to them.
-    "catcam":    (40, 670, "camera", "home", "Cat camera", "released · events only",
+    "catcam": (40, 790, "camera", "home", "Cat camera", "released · events only",
                   "no route", [], "The one camera the owner released for the lab. Nothing on the "
                   "tailnet can reach it: the recorder in the house watches it, and at the end of each "
                   "visit the hub pushes the event -- id, times, scores, no image -- to the collector. "
                   "Named in the recorder, never addressed.", "D-049"),
-    "vacuum":    (250, 670, "vacuum", "home", "Robot vacuum", "reports only",
+    "vacuum": (250, 790, "vacuum", "home", "Robot vacuum", "reports only",
                   "no route", [], "The lab's only moving machine. It cannot run a client, and the hub "
                   "reaches it through the vendor's cloud rather than the home network. It reports state, "
                   "battery, task and area through the hub; the house alone starts it, on its own trigger "
@@ -150,22 +156,22 @@ NODES = {
 # and where each part would plug in. Drawn so a reader can see the lab's
 # shape grow, never mistaken for something that exists.
 NODES.update({
-    "idp":  (28, 992, "idp", "future", "Identity provider", "SSO · users, groups",
+    "idp": (28, 1112, "idp", "future", "Identity provider", "SSO · users, groups",
              "Standard $8/user/mo", [], "One login for many people; their groups become policy sources "
              "instead of every member. Plugs into the control plane and cloud sign-in.", "multi-user"),
-    "mdm":  (224, 992, "mdm", "future", "MDM / EDR", "posture from the fleet",
+    "mdm": (224, 1112, "mdm", "future", "MDM / EDR", "posture from the fleet",
              "Standard $8/user/mo", [], "Posture from the fleet's management system instead of the client's "
              "own report. An integration a paid plan adds.", "D-040"),
-    "jit":  (420, 992, "clock", "future", "Just-in-time", "grants that expire",
+    "jit": (420, 1112, "clock", "future", "Just-in-time", "grants that expire",
              "Premium $18/user/mo", [], "Standing access to the action tier replaced by grants that "
              "expire. Needs a paid plan: one time-boxed month.", "Phase 4"),
-    "siem": (616, 992, "logs", "future", "Log streaming", "flow + audit → SIEM",
+    "siem": (616, 1112, "logs", "future", "Log streaming", "flow + audit → SIEM",
              "Premium $18/user/mo", [], "Who connected to what, kept and searchable. The drills in "
              "Phase 6 would read it.", "Phase 6"),
-    "sso":  (812, 992, "org", "future", "Identity Center", "people's cloud sign-in",
+    "sso": (812, 1112, "org", "future", "Identity Center", "people's cloud sign-in",
              "AWS: no charge", [], "Cloud sign-in for people through the identity provider. Lives in "
              "the organisation's management account, not this stack.", "D-030"),
-    "ca":   (1008, 992, "ca", "future", "Managed private CA", "hardware custody · audit trail",
+    "ca": (1008, 1112, "ca", "future", "Managed private CA", "hardware custody · audit trail",
              "$400/mo", [], "The lab's CA is an openssl key on the operator's laptop, which already "
              "buys the property that matters: the machine using a certificate cannot mint one. What "
              "money would add is custody, an audit trail and per-certificate revocation.", "D-064"),
@@ -193,8 +199,9 @@ def role_to_node(role):
 ROUTES = {
     ("operators", "gateway"):           ([(220, 345), (500, 345)], (362, 345)),
     ("operators", "gateway", "plug_g"): ([(220, 372), (500, 372)], None),
-    ("gateway", "plug_g"):              ([(550, 392), (550, 670)], (550, 620)),
+    ("gateway", "plug_g"):              ([(550, 392), (550, 790)], (550, 730)),
     ("operators", "desktop"):           ([(130, 392), (130, 432)], (160, 412)),
+    ("operators", "workstation"):       ([(75, 392), (75, 412), (28, 412), (28, 563), (40, 563)], (120, 513)),
     ("operators", "prod"):              ([(220, 277), (980, 277)], (640, 277)),
     ("operators", "drone"):             ([(220, 388), (238, 388), (238, 414), (738, 414), (738, 463), (760, 463)], (420, 414)),
     ("gateway", "collector"):           ([(680, 348), (760, 348)], (720, 348)),
@@ -205,7 +212,7 @@ ROUTES = {
     # refusals, drawn from the tests
     ("prod", "gateway"):                ([(980, 302), (640, 302), (640, 330)], (880, 302)),
     ("appliance", "gateway"):           ([(430, 463), (470, 463), (470, 386), (500, 386)], (560, 452)),
-    ("gateway", "plug_c"):              ([(650, 392), (650, 606), (760, 606), (760, 670)], (846, 606)),
+    ("gateway", "plug_c"):              ([(650, 392), (650, 726), (760, 726), (760, 790)], (846, 726)),
 }
 
 
@@ -392,19 +399,19 @@ def render(policy_text, agg=None, home=None):
         layers["control"].append(label(lx, ly, txt, c, "lbl f"))
 
     # --- data inside the house: no tailnet path, drawn by hand ---------------
-    arrow("data", [(130, 670), (130, 540), (505, 540), (505, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
-    layers["data"].append(label(300, 540, "visit events · LAN", "#3f8624", "lbl f"))
+    arrow("data", [(130, 790), (130, 660), (505, 660), (505, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(300, 660, "visit events · LAN", "#3f8624", "lbl f"))
     # The robot's own line reaches the hub the long way round -- out to the
     # vendor's cloud and back -- which the label says and the drawing cannot.
-    arrow("data", [(340, 670), (340, 582), (520, 582), (520, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
-    layers["data"].append(label(380, 582, "state · via the vendor's cloud", "#3f8624", "lbl f"))
+    arrow("data", [(340, 790), (340, 702), (520, 702), (520, 392)], "#3f8624", ' stroke-dasharray="2 4"', "home", 1.6)
+    layers["data"].append(label(380, 702, "state · via the vendor's cloud", "#3f8624", "lbl f"))
 
     counts = live_counts(agg)
     tiles = "".join(tile(n, counts, n_tests) for n in NODES)
 
     proto, rest = "", ""
     if home:
-        proto = (f'<text x="40" y="816" class="ctn">connected over: '
+        proto = (f'<text x="40" y="1026" class="ctn">connected over: '
                  f'{E(" · ".join(home.get("protocols", [])))}</text>')
         cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
         x0, y0 = 900, 656
@@ -434,18 +441,18 @@ def render(policy_text, agg=None, home=None):
 <rect x="480" y="10" width="708" height="120" rx="12" class="ct cloud"/>
 <text x="1176" y="30" text-anchor="end" class="ctl">Cloud · AWS us-west-2 — managed by Terraform</text>
 <text x="492" y="124" class="ctn">planned by CI · applied by a person</text>
-<rect x="12" y="222" width="1176" height="290" rx="14" class="ct tailnet"/>
-<text x="24" y="506" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
+<rect x="12" y="222" width="1176" height="410" rx="14" class="ct tailnet"/>
+<text x="24" y="620" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
 <text x="110" y="240" class="ctn">laptop + phones = one policy role</text>
-<text x="1176" y="506" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
-<rect x="12" y="632" width="1176" height="290" rx="14" class="ct home"/>
-<text x="40" y="766" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
-<text x="40" y="794" class="ctn">one /32 route per exposed device, through the hub · the /24 is advertised by two personal devices and approved by none — being narrowed to the same two /32s (D-069)</text>
+<text x="1176" y="620" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
+<rect x="12" y="752" width="1176" height="290" rx="14" class="ct home"/>
+<text x="40" y="886" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
+<text x="40" y="914" class="ctn">one /32 route per exposed device, through the hub · the /24 is advertised by two personal devices and approved by none — being narrowed to the same two /32s (D-069)</text>
 {proto}
-<text x="40" y="906" class="ctl">Home network — flat private /24 · reached only through the hub</text>
+<text x="40" y="1026" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
-<rect x="12" y="942" width="1176" height="146" rx="14" class="ct future"/>
-<text x="24" y="966" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
+<rect x="12" y="1062" width="1176" height="146" rx="14" class="ct future"/>
+<text x="24" y="1086" class="ctl">Growth path — not built. What a multi-user or company deployment adds, what it plugs into, and what it would cost</text>
 """
     defs = "".join(
         f'<marker id="m-{k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '

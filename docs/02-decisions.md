@@ -4081,3 +4081,51 @@ away from the flat. A device on the home Wi-Fi proves nothing about the path a
 change is about to alter — it has a shorter one. The tablet is not always at
 home, which cuts both ways, and the runbooks say what to do when no outside
 device is available: record that, rather than skip the line quietly.
+
+---
+
+## D-075 — a machine that is reached and reaches nothing
+
+**2026-09-22.** A work computer joined the tailnet. The owner wants to open it
+from home and wants it to have no way into the house. Those are two different
+sentences in this policy language, which is the whole reason the language is
+worth having: a grant has a direction, and the second sentence is written by
+not writing a grant at all.
+
+**What it arrived as, and why that had to change first.** It registered under
+the owner's identity, which made it a member device — and members here are
+operators. For as long as that was true, a computer on somebody else's
+corporate network held the house's automation UI, the house's shell,
+production's SSH and a socket in the flat. Tagging it is what takes that away:
+a tagged node stops carrying a person and becomes a role, and this role appears
+in exactly one grant, as a destination.
+
+So `tag:workstation` is reachable from `group:operators` on SSH and RDP, and
+appears nowhere as a source. Two assertions state both halves, and the second
+is the interesting one: from this machine, the hub's UI, the hub's shell, the
+broker, production, the collector, the appliance and both sockets are all
+refused, one line each.
+
+**Checked before writing, not assumed.** The node advertises no subnet routes
+and is not an exit node, so nothing in this tailnet can reach the employer's
+network through it either — the protection runs in both directions, and only
+one of them was asked for. Nothing answered on SSH, RDP, VNC, SMB or any
+RustDesk port when probed; the tunnel itself is fine, proven by a tailnet ping
+returning in 118 ms while every port stayed shut. Those services are simply not
+enabled yet, which is the owner's side of this.
+
+**The remote-desktop tool, and the line between its two modes.** Connecting by
+its identifier goes through the vendor's own servers: the machine reaches out,
+nobody reaches in, and this network plays no part — tagging changes nothing
+about it and no grant is needed. Connecting by address is the other mode, it
+does cross this network, and the owner uses it, so the grant carries that port
+as well.
+
+The number is the tool's default and is editable in its own settings, which is
+written into the policy as a comment rather than trusted: a port that is right
+in a file and wrong on a machine fails the way D-073 failed, silently, with
+nothing in any log. It is to be re-read from the application and corrected
+here if it differs — one line.
+
+The diagram gained a fourth row inside the tailnet contour for this, which is
+the first time the picture has grown rather than been rearranged.
