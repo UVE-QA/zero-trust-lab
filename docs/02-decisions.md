@@ -4114,13 +4114,18 @@ RustDesk port when probed; the tunnel itself is fine, proven by a tailnet ping
 returning in 118 ms while every port stayed shut. Those services are simply not
 enabled yet, which is the owner's side of this.
 
-**What the policy deliberately does not cover.** Remote-desktop tools that
-connect through their vendor's own servers — the machine reaching out to them,
-not somebody reaching in — are outside this network entirely. Tagging changes
-nothing about them, and a grant for one would only be needed if it were pointed
-at the tailnet address directly. Better to say that than to paste a port number
-from memory into a policy: a wrong port there fails the way D-073 failed, in
-silence.
+**The remote-desktop tool, and the line between its two modes.** Connecting by
+its identifier goes through the vendor's own servers: the machine reaches out,
+nobody reaches in, and this network plays no part — tagging changes nothing
+about it and no grant is needed. Connecting by address is the other mode, it
+does cross this network, and the owner uses it, so the grant carries that port
+as well.
+
+The number is the tool's default and is editable in its own settings, which is
+written into the policy as a comment rather than trusted: a port that is right
+in a file and wrong on a machine fails the way D-073 failed, silently, with
+nothing in any log. It is to be re-read from the application and corrected
+here if it differs — one line.
 
 The diagram gained a fourth row inside the tailnet contour for this, which is
 the first time the picture has grown rather than been rearranged.

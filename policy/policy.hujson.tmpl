@@ -243,10 +243,16 @@
 		// no second grant: operators open a session TO this machine, and no
 		// rule anywhere lets it open one to anything. The assertions below say
 		// so for every destination in the house (D-075).
+		// The third port is the remote-desktop tool's DIRECT connection, the
+		// one that goes over this network instead of through the vendor's
+		// servers. 21118 is that tool's default and it is configurable in its
+		// own settings, so it is worth re-reading there rather than trusting
+		// this line: a wrong port fails silently, which is the failure this
+		// lab has already had once (D-073).
 		{
 			"src": ["group:operators"],
 			"dst": ["tag:workstation"],
-			"ip":  ["tcp:22", "tcp:3389"],
+			"ip":  ["tcp:22", "tcp:3389", "tcp:21118"],
 		},
 
 		// --- Control channel to mobile units ------------------------------
@@ -450,7 +456,7 @@
 		// nothing. Two assertions, because one of them is the interesting one.
 		{
 			"src":    "{{operator_identity}}",
-			"accept": ["tag:workstation:22", "tag:workstation:3389"],
+			"accept": ["tag:workstation:22", "tag:workstation:3389", "tag:workstation:21118"],
 		},
 
 		{
