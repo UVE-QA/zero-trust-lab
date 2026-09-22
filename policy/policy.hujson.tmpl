@@ -50,6 +50,12 @@
 		// to travel, and the assertions below keep those apart.
 		"tag:gateway-standby": ["autogroup:admin"], // second subnet router, same routes
 
+		// A machine that is reached and reaches nothing. It is somebody's work
+		// computer, joined so it can be opened from home; it must not carry
+		// the operator's rights, and a tag is what takes them away -- a tagged
+		// node stops being a person's device and becomes a role (D-075).
+		"tag:workstation": ["autogroup:admin"], // reachable from home, originates nothing
+
 		// The collector is a live node: a container on the cloud dev host
 		// (D-048). The other two are declared but UNHOMED -- filled by units
 		// the fleet scripts create in later phases. Saying so avoids implying
@@ -230,6 +236,17 @@
 			"ip":         ["tcp:52432"],
 			"via":        ["tag:gateway-home", "tag:gateway-standby"],
 			"srcPosture": ["posture:trustedOperator"],
+		},
+
+		// --- A machine reached from home, and only that direction ---------
+		// The asymmetry is the whole point, and it is expressed by there being
+		// no second grant: operators open a session TO this machine, and no
+		// rule anywhere lets it open one to anything. The assertions below say
+		// so for every destination in the house (D-075).
+		{
+			"src": ["group:operators"],
+			"dst": ["tag:workstation"],
+			"ip":  ["tcp:22", "tcp:3389"],
 		},
 
 		// --- Control channel to mobile units ------------------------------
@@ -426,6 +443,27 @@
 				"tag:collector:8443",
 				"actuator-granted:52432",
 				"actuator-control:52432",
+			],
+		},
+
+		// The operator reaches the work machine; the work machine reaches
+		// nothing. Two assertions, because one of them is the interesting one.
+		{
+			"src":    "{{operator_identity}}",
+			"accept": ["tag:workstation:22", "tag:workstation:3389"],
+		},
+
+		{
+			"src": "tag:workstation",
+			"deny": [
+				"tag:gateway-home:8123", // not the house's automation UI
+				"tag:gateway-home:22", // not the house's shell
+				"tag:gateway-home:1883", // not the broker
+				"tag:prod:22", // not production
+				"tag:collector:8443", // not the telemetry stream
+				"tag:appliance:7000", // not the appliance
+				"actuator-granted:52432", // not a socket in the house
+				"actuator-control:52432", // nor the other one
 			],
 		},
 
