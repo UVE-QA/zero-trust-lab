@@ -4129,3 +4129,22 @@ here if it differs — one line.
 
 The diagram gained a fourth row inside the tailnet contour for this, which is
 the first time the picture has grown rather than been rearranged.
+
+**Measured after the tag was assigned.** The console now reports the machine as
+managed by the tag rather than by a person, which is the moment its access to
+the house ended. From an operator's laptop: the node is still listed — it would
+have disappeared entirely had no grant named it — the tunnel answers in 23 ms,
+and **RDP and the remote-desktop tool's direct port both answer**. SSH does not,
+because that service is not installed; the grant sits there unused, which is
+visible rather than hidden.
+
+The direct port is worth one line of its own: 21118 was written from the tool's
+documented default with a comment saying to re-read it, and the measurement now
+says the default was right. That is the order this lab prefers — write the
+doubt down, then replace it with a number.
+
+What is asserted but not yet watched by hand: the other direction. The policy
+tests refuse this role the hub's UI and shell, the broker, production, the
+collector, the appliance and both sockets, and the live tailnet evaluates them
+on every change. Opening the hub's address from the machine itself would turn
+that from an assertion into an observation, and it costs one browser tab.
