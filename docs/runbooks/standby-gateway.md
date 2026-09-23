@@ -59,6 +59,20 @@ half of the old arrangement and the standby no longer needs it.
 routes. Approve nothing wider; if a `/24` is still listed, the device step is
 not finished.
 
+## The device forgets after a reboot
+
+Measured 2026-09-23: the appliance had been off the network for six days after a
+system update rebooted it, because its client does not start by itself and
+nobody opens the application on a television (D-076). A standby that disappears
+after an update is not a standby, so two things follow.
+
+- After any update to that device, open its client and confirm it says
+  connected. The daily role check now raises an issue when this role has no live
+  node, so the reminder arrives on its own — but the fix is a person with a
+  remote.
+- If this keeps happening, the standby belongs on a machine that comes back by
+  itself. That is a decision, not a workaround, and it is the owner's.
+
 ## Checking it, and the honest gap
 
 With both approved, `tailscale status --json` on an operator device lists the

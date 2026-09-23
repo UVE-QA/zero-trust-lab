@@ -76,6 +76,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      # The role-liveness check writes one issue and closes it again; nothing
+      # else in this workflow writes anything, anywhere.
+      issues: write
     env:
       # Not secret by Tailscale's definition, but held as secrets so they are
       # masked: a variable is printed verbatim in every step's log (D-043).
@@ -113,6 +116,16 @@ jobs:
       - name: count the network (aggregates only)
         if: ${{ !cancelled() }}
         run: ./scripts/tailnet-api.py inventory tailnet-aggregate/aggregate.json
+
+      # A role that empties looks exactly like a role that works: the policy
+      # still names it, the tests still pass, and a drill against it returns a
+      # reassuring zero. The appliance was gone for six days after a system
+      # update and nothing said a word (D-076).
+      - name: every role that should be live has a live node
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/roles_check.py tailnet-aggregate/aggregate.json docs/roles-expected.json
 
       - name: sweep the aggregate before it is uploaded
         if: ${{ !cancelled() }}
