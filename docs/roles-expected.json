@@ -1,0 +1,15 @@
+{
+  "_what": "Roles that are supposed to have a live node behind them, and why. A role that quietly empties looks exactly like a role that is working: the policy still names it, the tests still pass, and a drill against it returns a reassuring zero. This file is what roles_check.py compares the live network against (D-076).",
+  "expected_live": {
+    "tag:gateway-home": "The only way into the house. If this is empty nothing in the home network is reachable at all.",
+    "tag:prod": "The production stand-in, and the host two projects run on.",
+    "tag:collector": "The telemetry sink. An empty collector loses readings silently -- the hub keeps pushing into nothing.",
+    "tag:appliance": "The test user's only destination, and the intended standby route into the house. It went offline for six days after a system update and nobody noticed (D-076)."
+  },
+  "expected_empty": {
+    "tag:sensor": "Declared, not built -- simulated sensors are deferred.",
+    "tag:drone": "Declared and deliberately never filled: nothing outside the house may move the robot.",
+    "tag:gateway-standby": "Waiting on the appliance's routes being narrowed and approved (D-069).",
+    "tag:workstation": "Filled 2026-09-22; kept here until it has been live for a week, since a work machine may legitimately be switched off."
+  }
+}

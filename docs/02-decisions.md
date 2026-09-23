@@ -4148,3 +4148,49 @@ tests refuse this role the hub's UI and shell, the broker, production, the
 collector, the appliance and both sockets, and the live tailnet evaluates them
 on every change. Opening the hub's address from the machine itself would turn
 that from an assertion into an observation, and it costs one browser tab.
+
+---
+
+## D-076 — a role that empties looks exactly like a role that works
+
+**2026-09-23.** The media appliance had been off the network since **16
+September, 20:43** — six days — and nothing in this lab said so. The page
+displayed `0/1 online` on its tile the whole time, which is a fact printed in
+small type rather than a thing that reaches anybody.
+
+The cause, from the owner: a system update rebooted the television, and the
+client did not come back. On that platform it does not start by itself after a
+restart; somebody has to open the application. So the failure is not exotic —
+it is the most ordinary thing a device does.
+
+**Why no check caught it.** Every check here asks whether the rules are right:
+the policy in force equals `main`, the tests pass on the live network, a granted
+address still has an approved route. None of them asks whether anybody is home.
+A test says what a role *may reach*, never that the role *is there*.
+
+That gap is worse than a blind spot, because it produces confident wrong
+answers. Two of them were waiting:
+
+- The test user's only destination is that appliance (D-059). A drill run this
+  week would have reported **0 of 10 reachable** — the shape of a perfect
+  result — when the honest reading was "the target is switched off".
+- The standby way into the house was to be carried by the same device,
+  explicitly because it is "always on and does nothing else" (D-069). The
+  measurement refutes the premise: as a standby it would have been absent
+  exactly when it was needed.
+
+So `roles_check.py` runs in the daily job and opens an issue when a role that
+should have a live node has none, closing it again when the node returns. The
+list of which roles must be live, and why each one matters, is
+[`docs/roles-expected.json`](roles-expected.json) — a file that is reviewed in a
+pull request rather than a rule buried in a script. It also reports the reverse:
+a role expected to be empty that suddenly is not, which is how a newly tagged
+machine announces itself.
+
+The check reads counts and prints counts. No names, no addresses — it writes a
+public issue.
+
+**What this does not fix.** The appliance still loses its client on every
+reboot, so the standby-gateway plan rests on a device that forgets. Whether that
+device stays the standby is the owner's call; what has changed is that the lab
+will now notice within a day rather than within a drill.
