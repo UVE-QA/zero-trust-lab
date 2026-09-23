@@ -383,7 +383,7 @@ def render(policy_text, agg=None, home=None):
 
     # --- who changes what: the design, drawn by hand -------------------------
     control = [
-        ([(208, 79), (262, 79)], mu, "", "mu", (235, 36), "read-only"),
+        ([(208, 79), (262, 79)], mu, "", "mu", (217, 36), "read-only"),
         ([(190, 48), (190, -6), (578, -6), (578, 48)], mu, "", "mu", (384, -6), "terraform plan · OIDC"),
         ([(100, 246), (100, 172), (300, 172), (300, 110)], cp, ' stroke-dasharray="6 4"', "cp",
          (200, 172), "policy apply · a person"),
@@ -411,10 +411,17 @@ def render(policy_text, agg=None, home=None):
 
     proto, rest = "", ""
     if home:
-        proto = (f'<text x="40" y="1026" class="ctn">connected over: '
+        # 936, not 1026: the first contour shift moved this line onto a value the
+        # next rule in the same pass also matched, so it travelled twice and landed
+        # on the home caption. Sequential string replacement, one rule feeding the
+        # next -- the kind of thing only a rendered picture shows.
+        proto = (f'<text x="40" y="936" class="ctn">connected over: '
                  f'{E(" · ".join(home.get("protocols", [])))}</text>')
         cats = [c for c in home.get("categories", []) if isinstance(c.get("count"), int)]
-        x0, y0 = 900, 656
+        # Not in NODES, so the two contour-growing passes (D-075) missed it and
+        # left it floating between the tailnet box and the house. Same offset as
+        # everything else below the tailnet contour: +120.
+        x0, y0 = 900, 776
         rows = []
         # One column: two made the longer category names collide.
         for i, c in enumerate(cats):
@@ -443,11 +450,12 @@ def render(policy_text, agg=None, home=None):
 <text x="492" y="124" class="ctn">planned by CI · applied by a person</text>
 <rect x="12" y="222" width="1176" height="410" rx="14" class="ct tailnet"/>
 <text x="24" y="620" class="ctl">Tailnet — WireGuard overlay · 100.64/10 · one identity per node · deny by default</text>
+<rect x="30" y="232" width="200" height="160" rx="10" class="grp"/>
 <text x="110" y="240" class="ctn">laptop + phones = one policy role</text>
 <text x="1176" y="620" text-anchor="end" class="ctn">grey: roles declared in the policy, no host yet — see "not built yet" below</text>
 <rect x="12" y="752" width="1176" height="290" rx="14" class="ct home"/>
 <text x="40" y="886" class="ctn">the vacuum answers to the hub through its vendor's cloud, not this network — and to nobody else</text>
-<text x="40" y="914" class="ctn">one /32 route per exposed device, through the hub · the /24 is advertised by two personal devices and approved by none — being narrowed to the same two /32s (D-069)</text>
+<text x="40" y="914" class="ctn">one /32 route per exposed device, through the hub · the /24 is advertised by two devices, approved by none, being narrowed to those /32s (D-069)</text>
 {proto}
 <text x="40" y="1026" class="ctl">Home network — flat private /24 · reached only through the hub</text>
 {rest}
