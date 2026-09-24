@@ -4194,3 +4194,40 @@ public issue.
 reboot, so the standby-gateway plan rests on a device that forgets. Whether that
 device stays the standby is the owner's call; what has changed is that the lab
 will now notice within a day rather than within a drill.
+
+---
+
+## D-077 — the screen is the other half of the recovery path
+
+**2026-09-24.** Prepared at the household session's request; applied only on the
+owner's word.
+
+The policy lets the owner's devices reach each other on SSH and nothing else
+(D-051). That covered the failures that can be typed. It does not cover the
+ones that are a dialog waiting for a click, a login flow half finished, or an
+application stuck showing something only a person can read — and those need the
+screen.
+
+The gap stopped being theoretical on **2026-09-23**. The laptop holds its own
+tool login in its own keychain, so when that login expired no session running on
+that laptop could repair it, and the owner was away. A shell from the other
+machine now covers the headless half. The screen is the rest of it, and today it
+works only from inside the house, which is exactly when nobody needs it.
+
+Measured from both ends before writing anything. From the desktop to the
+laptop's tailnet address, and from the laptop to the desktop's: **SSH opens,
+5900 is refused**, while the same port over the home network opens on both. The
+service is running; the policy is what stops it. Same signature as the two paths
+this lab dropped in September, and the reason those took weeks to notice is that
+nothing asserted them.
+
+So the existing grant gains one port, `group:operators → autogroup:self` on 22
+and 5900, and the assertion beside it names both. Nothing else changes: this
+reaches only a person's own devices, never a tagged node, never somebody else's.
+
+**Two limits no grant can lift, written here rather than discovered later.**
+After a reboot the laptop sits at the disk-encryption unlock screen: no shell,
+no screen, nothing on the network at all until somebody types a password on the
+keyboard. And on battery it sleeps within a minute and cannot be woken over the
+network. Remote repair means "while it is awake and unlocked" — which is most of
+the time, and is not all of it.
