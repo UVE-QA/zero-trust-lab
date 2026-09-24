@@ -4225,6 +4225,18 @@ So the existing grant gains one port, `group:operators → autogroup:self` on 22
 and 5900, and the assertion beside it names both. Nothing else changes: this
 reaches only a person's own devices, never a tagged node, never somebody else's.
 
+**Applied and measured the same hour.** From the laptop to the desktop over the
+tailnet, 5900 now opens where it was refused, and the control holds: the same
+port on the automation hub stays refused, because that is a tagged role and
+this grant reaches only a person's own devices.
+
+The console reformatted the save, twice in its two known ways: it expanded the
+two-entry accept array into one entry per line with a trailing comma, and it
+collapsed the alignment after `"src":` because the object now contains a
+multi-line array (D-051, D-060). The template says what the console says, so the
+drift check stays byte-exact; the first save attempt also failed silently with
+the button still enabled, and only re-reading the stored file caught it.
+
 **Two limits no grant can lift, written here rather than discovered later.**
 After a reboot the laptop sits at the disk-encryption unlock screen: no shell,
 no screen, nothing on the network at all until somebody types a password on the
