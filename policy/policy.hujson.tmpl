@@ -158,10 +158,15 @@
 		// the laptop's remote wake. Phase 2 dropped it and no test noticed
 		// (D-051). `autogroup:self` is each person's own devices, so this
 		// reaches nothing a member does not already own, and no tagged node.
+		// The screen is the second half of the same recovery path. A shell
+		// repairs what can be typed; some failures are a dialog waiting to be
+		// clicked, a login flow to finish, an application stuck showing
+		// something. Until now that worked only from inside the house, which
+		// is precisely when it is not needed (D-077).
 		{
 			"src": ["group:operators"],
 			"dst": ["autogroup:self"],
-			"ip":  ["tcp:22"],
+			"ip":  ["tcp:22", "tcp:5900"],
 		},
 
 		// --- Operator to the production stand-in --------------------------
@@ -305,11 +310,12 @@
 			"deny":   ["tag:gateway-home:1883"],
 		},
 
-		// The household's SSH between its own devices, asserted: a user as
-		// the destination means that user's devices.
+		// The household's own devices, asserted: a user as the destination
+		// means that user's devices. Both ports, because losing either one
+		// silently is how the recovery path was lost the first time (D-051).
 		{
 			"src":    "{{operator_identity}}",
-			"accept": ["{{operator_identity}}:22"],
+			"accept": ["{{operator_identity}}:22", "{{operator_identity}}:5900"],
 		},
 
 		// The only way into the production stand-in. Its SSH port is closed

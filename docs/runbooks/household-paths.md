@@ -28,6 +28,7 @@ Ask, in this order:
 | companion app on the phone | the automation hub's UI | the hub's **tailnet** address, as the app's external URL; the LAN address as its internal URL, bound to the home Wi-Fi | fixed 2026-09-20 after two weeks broken (D-073) |
 | companion app on the tablet | same | same | the tablet leaves the house too (D-068) |
 | operator laptop | hub UI and shell, production SSH, the granted socket | tailnet identities, asserted in the policy tests | |
+| the owner's devices, each other | shell and screen — 22 and 5900 | tailnet addresses, both asserted | the screen half added 2026-09-24 (D-077); at the unlock screen after a reboot, or asleep on battery, neither works |
 | the house itself | the socket it switches on an event | the hub's own LAN, not the tailnet | unaffected by any policy here |
 
 Anything not in this table has not been thought about. Add a row before
