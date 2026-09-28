@@ -314,8 +314,11 @@
 		// means that user's devices. Both ports, because losing either one
 		// silently is how the recovery path was lost the first time (D-051).
 		{
-			"src":    "{{operator_identity}}",
-			"accept": ["{{operator_identity}}:22", "{{operator_identity}}:5900"],
+			"src": "{{operator_identity}}",
+			"accept": [
+				"{{operator_identity}}:22",
+				"{{operator_identity}}:5900",
+			],
 		},
 
 		// The only way into the production stand-in. Its SSH port is closed
