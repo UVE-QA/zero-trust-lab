@@ -6,7 +6,7 @@ CloudFront distribution that fetches the page from GitHub Pages and keeps
 CloudFront's standard access log. Publishing does not change: GitHub still
 builds and deploys the page, with no cloud credential (D-079).
 
-**Status:** prepared 2026-10-03; nothing applied.
+**Status:** steps 1–3 applied 2026-10-04; step 4 is its own change.
 
 Every step that writes is a person's. CI can read what this creates and
 cannot change it. Machine: the operator's laptop. Directory: `terraform/aws`.
@@ -92,17 +92,37 @@ are replaced by aliases to the distribution.
 - a new `aws_route53_record.site`, A and AAAA, aliases the distribution with
   `allow_overwrite = true`, so it upserts over the values in place.
 
-The name is never without an answer. Then, in the same minute, remove the
-repository's Pages custom domain — with it set, GitHub would redirect the
-distribution back to itself — and apply:
+The name is never without an answer. Three commands, back to back, in this
+order:
+
+```bash
+terraform apply -var="collector_ca_certificate_pem=$(cat ../../local/ca/ca.crt)"
+```
 
 ```bash
 gh api -X PUT repos/UVE-QA/zero-trust-lab/pages --input - <<< '{"cname":null}'
 ```
 
 ```bash
-terraform apply -var="collector_ca_certificate_pem=$(cat ../../local/ca/ca.crt)"
+aws cloudfront create-invalidation --distribution-id "$(terraform output -raw site_distribution_id)" --paths '/*'
 ```
+
+**Why this order.** The DNS change goes first because it is the one that can
+fail: if the upsert is refused, nothing has changed and GitHub still serves
+the page. Once it succeeds, the repository's custom domain must go at once —
+with it set, GitHub answers the distribution with a redirect back to the
+custom domain, which is now the distribution: a loop.
+
+**Why the invalidation.** Step 3's check put that redirect in the
+distribution's cache, and so does any request before the custom domain is
+removed. GitHub sends the redirect without a `Cache-Control`, and the managed
+caching policy then keeps it for up to a day. Measured on 2026-10-04: a second
+request for `/` was a cache hit, age 44 seconds. Without the invalidation the
+switch would serve a redirect loop from cache long after it was fixed.
+
+For about a minute — the old records' TTL — some resolvers still send visitors
+to GitHub directly, where the custom domain is already gone; they get GitHub's
+404 until their resolver catches up.
 
 **Check:**
 
@@ -110,11 +130,10 @@ terraform apply -var="collector_ca_certificate_pem=$(cat ../../local/ca/ca.crt)"
 curl -sI https://lab.uveapp.net/ | grep -iE '^HTTP|^via|^x-cache'
 ```
 
-Expected: `200`, and `via` naming CloudFront. Then open the page in a browser
-with a query string and confirm the address bar is plain after load and the
-page's live layer still runs. The first log object appears under `lab/` in the
-logs bucket within about an hour; CloudFront's standard logs are not
-immediate.
+Expected: `200`, and `via` naming CloudFront. Then open the page with a query
+string and confirm the address bar is plain after load and the live layer
+still runs. The first log object appears under `lab/` in the logs bucket
+within about an hour; CloudFront's standard logs are not immediate.
 
 ## Undo
 

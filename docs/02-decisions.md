@@ -4294,7 +4294,7 @@ if the tailnet path fails, and it has still never been exercised.
 
 ## D-079 — who opened the page
 
-**2026-10-03.** Prepared; not applied.
+**2026-10-03.** Prepared. Steps 1–3 applied 2026-10-04; the switch follows.
 
 The page records every check it shows and nothing about who looks at it.
 GitHub Pages, which serves it, keeps no log a repository owner can read, so a
@@ -4353,3 +4353,26 @@ was applied.
   logged address is the one that is linked.
 - The data is personal — addresses and browsers — and is kept 90 days and read
   by one script.
+
+### Applied, and what the switch needed that the plan did not show
+
+**2026-10-04.** The zone with GitHub Pages' addresses first: three resources.
+Asked directly, it answered with GitHub's addresses before anything pointed at
+it. The owner then replaced the parent zone's CNAME with the delegation; the
+parent answered with the referral and nothing else, public resolvers returned
+the same addresses from the new zone, and the page kept answering 200. Then the
+certificate and the distribution: four added, two changed, the two being the
+CI roles' read statements. The certificate validated in a second; the
+distribution took three minutes. A local plan afterwards said `No changes`, and
+so did the plan in CI — the window in which the CI roles could not yet read the
+zone lasted only as long as the delegation took.
+
+The distribution reached GitHub on the first request: a redirect to the custom
+domain, which is what GitHub answers while the repository still has one. A
+second request for the same path was a cache hit, 44 seconds old. GitHub sends
+that redirect without a `Cache-Control`, and the managed caching policy then
+keeps a response for up to a day. Left alone, the switch would have served a
+redirect loop from cache well after the custom domain was gone. So the switch
+is three commands, not two: the DNS upsert first, because it is the one that
+can be refused and leave everything as it was; the custom domain removed at
+once; then an invalidation of every path.
