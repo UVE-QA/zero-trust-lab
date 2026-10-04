@@ -6,7 +6,7 @@ CloudFront distribution that fetches the page from GitHub Pages and keeps
 CloudFront's standard access log. Publishing does not change: GitHub still
 builds and deploys the page, with no cloud credential (D-079).
 
-**Status:** steps 1–3 applied 2026-10-04; step 4 is its own change.
+**Status:** applied 2026-10-04; the switch at 15:38 UTC.
 
 Every step that writes is a person's. CI can read what this creates and
 cannot change it. Machine: the operator's laptop. Directory: `terraform/aws`.
