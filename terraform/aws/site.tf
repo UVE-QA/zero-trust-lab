@@ -17,8 +17,9 @@
 # DNS. lab.uveapp.net becomes a zone of its own in this account, delegated by
 # one NS record in the parent zone, which lives in another account and is
 # edited by hand -- the same arrangement as the sibling project's subdomain.
-# Until the switch, the zone answers with GitHub Pages' published addresses, so
-# the delegation itself changes nothing a visitor sees.
+# The zone first answered with GitHub Pages' published addresses, so the
+# delegation itself changed nothing a visitor saw; it now aliases the
+# distribution.
 #
 # Applied by a person, not by CI: the apply role is not given CloudFront, ACM
 # or Route 53 writes. Both CI roles can read these resources, so the weekly
@@ -49,10 +50,6 @@ locals {
   # stack names it and never manages it.
   site_logs_bucket = "aws-devops-sdet-demo-site-logs-${var.account_id}"
 
-  # GitHub Pages' published apex addresses, served until the CDN takes over.
-  github_pages_ipv4 = ["185.199.108.153", "185.199.109.153", "185.199.110.153", "185.199.111.153"]
-  github_pages_ipv6 = ["2606:50c0:8000::153", "2606:50c0:8001::153", "2606:50c0:8002::153", "2606:50c0:8003::153"]
-
   # AWS managed cache policy "CachingOptimized". It honours the origin's own
   # Cache-Control, and GitHub Pages sends max-age=600 -- the same ten minutes
   # GitHub's own CDN keeps the page today. Query strings are not part of the
@@ -66,28 +63,33 @@ resource "aws_route53_zone" "site" {
   comment = "Evidence page; delegated from the parent zone by one NS record (D-079)"
 }
 
-# GitHub Pages' addresses, with a one-minute TTL, while the switch is pending.
-# Deliberately independent of the distribution: the zone and these records come
-# first, the parent zone delegates to them, and only then can the certificate
-# validate and the distribution be built. A record that referred to the
-# distribution would wait for all of that before it existed, and the
-# delegation would point at an empty zone in the meantime.
+# The name now answers with the distribution (the switch, D-079).
 #
-# The switch replaces these with aliases to the distribution in one change
-# (docs/runbooks/evidence-page-cdn.md): the alias records upsert over these
-# values, and these are dropped from the state with `removed`, not deleted, so
-# the name is never without an answer.
-resource "aws_route53_record" "site_pages" {
-  for_each = {
-    A    = local.github_pages_ipv4
-    AAAA = local.github_pages_ipv6
-  }
+# Until the switch the zone held GitHub Pages' own addresses, so the
+# delegation from the parent zone changed nothing a visitor saw. Those records
+# are dropped from the state here without being deleted; the aliases below
+# upsert over them in place, so the name is never without an answer.
+removed {
+  from = aws_route53_record.site_pages
 
-  zone_id = aws_route53_zone.site.zone_id
-  name    = local.site_domain
-  type    = each.key
-  ttl     = 60
-  records = each.value
+  lifecycle {
+    destroy = false
+  }
+}
+
+resource "aws_route53_record" "site" {
+  for_each = toset(["A", "AAAA"])
+
+  zone_id         = aws_route53_zone.site.zone_id
+  name            = local.site_domain
+  type            = each.key
+  allow_overwrite = true
+
+  alias {
+    name                   = aws_cloudfront_distribution.site.domain_name
+    zone_id                = aws_cloudfront_distribution.site.hosted_zone_id
+    evaluate_target_health = false
+  }
 }
 
 resource "aws_acm_certificate" "site" {
@@ -200,6 +202,11 @@ locals {
 output "site_name_servers" {
   description = "The four NS values the parent zone's `lab` record must name (D-079)."
   value       = aws_route53_zone.site.name_servers
+}
+
+output "site_distribution_id" {
+  description = "For the cache invalidation that ends the switch (docs/runbooks/evidence-page-cdn.md)."
+  value       = aws_cloudfront_distribution.site.id
 }
 
 output "site_distribution_domain" {
