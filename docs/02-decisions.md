@@ -4290,11 +4290,13 @@ lasted. Not fixed here.
 Same day: the instance snapshot taken before the public SSH rule was closed
 (D-042) was deleted, three weeks after the rule, with SSH over the tailnet in
 daily use since. That leaves the provider's browser console as the only way in
-if the tailnet path fails, and it has still never been exercised.
+if the tailnet path fails. It was exercised on 2026-09-13 and worked on the
+second attempt (D-042, closed). This entry first said it never had been,
+having read the open item in D-042 and not the later entry that closed it.
 
 ## D-079 — who opened the page
 
-**2026-10-03.** Prepared. Steps 1–3 applied 2026-10-04; the switch follows.
+**2026-10-03.** Prepared. Applied 2026-10-04, the switch at 15:38 UTC.
 
 The page records every check it shows and nothing about who looks at it.
 GitHub Pages, which serves it, keeps no log a repository owner can read, so a
@@ -4376,3 +4378,28 @@ redirect loop from cache well after the custom domain was gone. So the switch
 is three commands, not two: the DNS upsert first, because it is the one that
 can be refused and leave everything as it was; the custom domain removed at
 once; then an invalidation of every path.
+
+### The switch, measured
+
+**2026-10-04, 15:37–15:42 UTC.** The upsert from GitHub's addresses to the
+alias was accepted, the custom domain removed a second later, every path
+invalidated. The page was unreachable for some visitors for about four minutes,
+not the one the TTL promised, for two reasons. The first check through the
+distribution ran seconds after the custom domain went, while GitHub was still
+redirecting, and put that redirect back in the cache: the failure the
+invalidation step exists to prevent, caused by the check after it. A second
+invalidation cleared it. The rest was clients: resolvers and browsers that
+held GitHub's address, or an open connection to it, got GitHub's own 404 for
+the name until they let go — one browser until a private window was opened.
+
+Measured afterwards, from the log rather than from the outside: a browser
+request with a query string arrived with the query intact, and the page's live
+layer loaded from the new address and read GitHub's API as before.
+
+The log showed something else in its first ten minutes. Seven minutes after
+the switch an automated scanner asked for `/.env` and some fifty variations
+of it and of `/.git/HEAD`, first over HTTP, then over HTTPS. Every one was a
+404: the page is static and has nothing of the kind. The certificate issued an
+hour earlier is the likely lead — certificates are published to public
+transparency logs, and scanners read them. None of this is new traffic. It is
+traffic that GitHub Pages served without anyone being able to see it.
