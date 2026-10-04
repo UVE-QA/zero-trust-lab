@@ -204,6 +204,13 @@ data "aws_iam_policy_document" "github_deploy_permissions" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid       = "ReadTheEvidencePageCdn"
+    effect    = "Allow"
+    actions   = local.site_read_actions
+    resources = local.site_read_resources
+  }
 }
 
 resource "aws_iam_role_policy" "github_deploy" {

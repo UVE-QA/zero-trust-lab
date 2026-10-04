@@ -4291,3 +4291,65 @@ Same day: the instance snapshot taken before the public SSH rule was closed
 (D-042) was deleted, three weeks after the rule, with SSH over the tailnet in
 daily use since. That leaves the provider's browser console as the only way in
 if the tailnet path fails, and it has still never been exercised.
+
+## D-079 — who opened the page
+
+**2026-10-03.** Prepared; not applied.
+
+The page records every check it shows and nothing about who looks at it.
+GitHub Pages, which serves it, keeps no log a repository owner can read, so a
+visit left no trace at all. The owner asked for the same arrangement as the
+sibling project's dashboard (aws-devops-sdet-demo, ADR-0104 there): CloudFront's
+standard access logs and a script, no analytics, nothing sent from the page.
+
+### Decision
+
+- **A CloudFront distribution in front of GitHub Pages.** GitHub still builds
+  and publishes the page with no cloud credential; the distribution only
+  carries the request. Moving the page into a bucket, as the sibling project
+  does, was the other way, and it would have given the page's publishing job a
+  credential that can write to the cloud account. Delivery moved; publishing
+  did not.
+- **Logs into the sibling project's logs bucket, under a prefix of their own.**
+  Same account, private, SSE-S3, public access blocked, every object expired
+  after 90 days, no cookies. One bucket means one retention rule, one reader,
+  and one place in the account that holds viewers' addresses, rather than two.
+  This stack names the bucket and does not manage it.
+- **Read on the operator's host, on request.** The sibling project's script
+  reads both prefixes and tells the sites apart by the host header. It prints
+  counts, places and devices, never an address. Nothing is published.
+- **The page sends nothing.** No beacon, no pixel, no third party. What is
+  logged is the request that fetched the page, which is the only request the
+  page was always going to make.
+
+### How it is switched without a gap
+
+`lab.uveapp.net` becomes a zone in this account, delegated by one NS record in
+the parent zone, which lives in another account and is edited by hand. The
+zone first answers with GitHub Pages' own addresses, so the delegation changes
+nothing a visitor sees; only then can the certificate validate and the
+distribution be built. The switch itself replaces those records with aliases
+in one upsert, and removes the repository's Pages custom domain in the same
+minute — with it set, GitHub redirects the distribution back to the custom
+domain, a loop. The steps and their checks are in
+`docs/runbooks/evidence-page-cdn.md`.
+
+The first draft had the records refer to the distribution, with a variable to
+choose between GitHub's addresses and the alias. A reference creates a
+dependency whether or not the branch is taken, so the records would have
+waited for the distribution, the distribution for the certificate, the
+certificate for the delegation — and the delegation, added first, would have
+pointed visitors at an empty zone. A targeted plan showed it before anything
+was applied.
+
+### Consequences
+
+- Applied by a person. The apply role gets no CloudFront, ACM or Route 53
+  write; both CI roles get read on exactly these three resources, so the weekly
+  plan covers them and the cloud tile stays a reading of the whole stack.
+- CloudFront honours GitHub's own `max-age=600`, so a new build reaches
+  visitors in at most ten minutes, as it does through GitHub's CDN today.
+- The page's `github.io` address keeps serving it, and is not logged. The
+  logged address is the one that is linked.
+- The data is personal — addresses and browsers — and is kept 90 days and read
+  by one script.
