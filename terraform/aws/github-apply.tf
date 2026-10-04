@@ -225,6 +225,15 @@ data "aws_iam_policy_document" "github_apply_permissions" {
       values   = ["zero-trust-lab"]
     }
   }
+
+  # The evidence page's CDN: read, never write. Its changes are applied by a
+  # person (D-079); CI only has to see it to plan the rest of the stack.
+  statement {
+    sid       = "ReadTheEvidencePageCdn"
+    effect    = "Allow"
+    actions   = local.site_read_actions
+    resources = local.site_read_resources
+  }
 }
 
 resource "aws_iam_role" "github_apply" {
