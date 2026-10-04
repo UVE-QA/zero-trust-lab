@@ -4243,3 +4243,51 @@ no screen, nothing on the network at all until somebody types a password on the
 keyboard. And on battery it sleeps within a minute and cannot be woken over the
 network. Remote repair means "while it is awake and unlocked" — which is most of
 the time, and is not all of it.
+
+## D-078 — one missing byte kept the cloud tile red for two weeks
+
+**2026-10-02.**
+
+The evidence page claims that the cloud account matches its code, and it does
+not take the plan job's word for it: the job must succeed *and* its log must say
+`No changes`. From **2026-09-14** that claim failed on every weekly run, and on
+every pull request before them. The job itself kept succeeding. The plan said
+`0 to add, 3 to change, 0 to destroy`, the tile said fail, and nobody looked.
+
+The three changes were one. The Roles Anywhere trust anchor was created by a
+local apply (D-066), and its certificate in the account is the CA file byte for
+byte: 619 bytes, ending in a newline. CI passes the same certificate from an
+environment secret, and that value arrives one byte shorter. The two IAM
+documents that reference the anchor then become unknown at plan time and show
+up as changes of their own.
+
+Measured before changing anything, read-only, on 2026-09-28: the anchor's stored
+certificate equals the local file exactly; a local plan given the whole file says
+`No changes`; the same plan given `$(cat file)`, which strips the trailing
+newline, reports the same three changes CI does.
+
+The first fix was the obvious one: set the secret again from the file on
+standard input. CI still reported three changes. Somewhere on the way into a CI
+secret the trailing newline is dropped. A secret cannot be read back, so whether
+the CLI or the platform drops it cannot be told from here, and it does not
+matter: a value whose meaning depends on its final byte should not depend on how
+it was carried.
+
+So Terraform now normalises the certificate before giving it to the anchor:
+surrounding whitespace removed, exactly one newline added. Verified locally,
+read-only: the stripped spelling (618 bytes, as CI sends it) and the file itself
+(619 bytes) both plan to `No changes`. A certificate with CRLF line endings still
+plans as a change; that is a different file, not a different way of passing the
+same one, and it is left to say so.
+
+**What this shows about the page.** It caught the drift — that is the reason it
+reads the log rather than the job status. But a red tile is not an alarm.
+Nothing on the page notifies anyone when it turns red; the only check that opens
+an issue is role liveness (D-076). The policy drift check sat red for three days
+in late September for the same reason, and two weeks is how long this one
+lasted. Not fixed here.
+
+Same day: the instance snapshot taken before the public SSH rule was closed
+(D-042) was deleted, three weeks after the rule, with SSH over the tailnet in
+daily use since. That leaves the provider's browser console as the only way in
+if the tailnet path fails, and it has still never been exercised.
