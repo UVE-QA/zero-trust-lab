@@ -15,7 +15,15 @@
 # ---------------------------------------------------------------------------
 
 locals {
-  roles_anywhere_enabled = var.collector_ca_certificate_pem != ""
+  roles_anywhere_enabled = trimspace(var.collector_ca_certificate_pem) != ""
+
+  # One spelling of the certificate, however it arrived. A PEM file ends with
+  # a newline; `$(cat file)` strips it, and so, it turned out, does the path
+  # into the CI secret. The trust anchor stores the bytes it is given, so the
+  # one missing byte made every CI plan report three changes for two weeks
+  # while a local plan was clean (D-078). Normalising here removes the
+  # question of how the value was passed.
+  collector_ca_pem = "${trimspace(var.collector_ca_certificate_pem)}\n"
 }
 
 resource "aws_rolesanywhere_trust_anchor" "collector" {
@@ -26,7 +34,7 @@ resource "aws_rolesanywhere_trust_anchor" "collector" {
   source {
     source_type = "CERTIFICATE_BUNDLE"
     source_data {
-      x509_certificate_data = var.collector_ca_certificate_pem
+      x509_certificate_data = local.collector_ca_pem
     }
   }
 }
