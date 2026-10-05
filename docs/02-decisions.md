@@ -4294,47 +4294,28 @@ if the tailnet path fails. It was exercised on 2026-09-13 and worked on the
 second attempt (D-042, closed). This entry first said it never had been,
 having read the open item in D-042 and not the later entry that closed it.
 
-## D-079 — who opened the page
+## D-079 — the page behind a CDN of its own
 
-**2026-10-03.** Prepared. Applied 2026-10-04, the switch at 15:38 UTC.
+**2026-10-03.** Applied 2026-10-04, the switch at 15:38 UTC.
 
-The page records every check it shows and nothing about who looks at it.
-GitHub Pages, which serves it, keeps no log a repository owner can read, so a
-visit left no trace at all. The owner asked for the same arrangement as the
-sibling project's dashboard (aws-devops-sdet-demo, ADR-0104 there): CloudFront's
-standard access logs and a script, no analytics, nothing sent from the page.
+The owner wanted the page's address served from his own cloud account, as the
+sibling project's dashboard is, rather than straight from GitHub Pages. GitHub
+still builds and publishes the page with no cloud credential; a CloudFront
+distribution in front of GitHub Pages now carries the request. Moving the page
+into a bucket, as the sibling project does, was the other way, and it would
+have given the page's publishing job a credential that can write to the cloud
+account. Delivery moved; publishing did not.
 
-### Decision
+### How it was switched without a gap
 
-- **A CloudFront distribution in front of GitHub Pages.** GitHub still builds
-  and publishes the page with no cloud credential; the distribution only
-  carries the request. Moving the page into a bucket, as the sibling project
-  does, was the other way, and it would have given the page's publishing job a
-  credential that can write to the cloud account. Delivery moved; publishing
-  did not.
-- **Logs into the sibling project's logs bucket, under a prefix of their own.**
-  Same account, private, SSE-S3, public access blocked, every object expired
-  after 90 days, no cookies. One bucket means one retention rule, one reader,
-  and one place in the account that holds viewers' addresses, rather than two.
-  This stack names the bucket and does not manage it.
-- **Read on the operator's host, on request.** The sibling project's script
-  reads both prefixes and tells the sites apart by the host header. It prints
-  counts, places and devices, never an address. Nothing is published.
-- **The page sends nothing.** No beacon, no pixel, no third party. What is
-  logged is the request that fetched the page, which is the only request the
-  page was always going to make.
-
-### How it is switched without a gap
-
-`lab.uveapp.net` becomes a zone in this account, delegated by one NS record in
-the parent zone, which lives in another account and is edited by hand. The
-zone first answers with GitHub Pages' own addresses, so the delegation changes
-nothing a visitor sees; only then can the certificate validate and the
-distribution be built. The switch itself replaces those records with aliases
-in one upsert, and removes the repository's Pages custom domain in the same
-minute — with it set, GitHub redirects the distribution back to the custom
-domain, a loop. The steps and their checks are in
-`docs/runbooks/evidence-page-cdn.md`.
+`lab.uveapp.net` became a zone in the workload account, delegated by one NS
+record in the parent zone, which lives in another account and is edited by
+hand. The zone first answered with GitHub Pages' own addresses, so the
+delegation changed nothing a visitor saw; only then could the certificate
+validate and the distribution be built. The switch replaced those records with
+aliases in one upsert, and removed the repository's Pages custom domain in the
+same minute — with it set, GitHub redirects the distribution back to the custom
+domain, a loop.
 
 The first draft had the records refer to the distribution, with a variable to
 choose between GitHub's addresses and the alias. A reference creates a
@@ -4344,30 +4325,7 @@ certificate for the delegation — and the delegation, added first, would have
 pointed visitors at an empty zone. A targeted plan showed it before anything
 was applied.
 
-### Consequences
-
-- Applied by a person. The apply role gets no CloudFront, ACM or Route 53
-  write; both CI roles get read on exactly these three resources, so the weekly
-  plan covers them and the cloud tile stays a reading of the whole stack.
-- CloudFront honours GitHub's own `max-age=600`, so a new build reaches
-  visitors in at most ten minutes, as it does through GitHub's CDN today.
-- The page's `github.io` address keeps serving it, and is not logged. The
-  logged address is the one that is linked.
-- The data is personal — addresses and browsers — and is kept 90 days and read
-  by one script.
-
-### Applied, and what the switch needed that the plan did not show
-
-**2026-10-04.** The zone with GitHub Pages' addresses first: three resources.
-Asked directly, it answered with GitHub's addresses before anything pointed at
-it. The owner then replaced the parent zone's CNAME with the delegation; the
-parent answered with the referral and nothing else, public resolvers returned
-the same addresses from the new zone, and the page kept answering 200. Then the
-certificate and the distribution: four added, two changed, the two being the
-CI roles' read statements. The certificate validated in a second; the
-distribution took three minutes. A local plan afterwards said `No changes`, and
-so did the plan in CI — the window in which the CI roles could not yet read the
-zone lasted only as long as the delegation took.
+### The redirect in the cache
 
 The distribution reached GitHub on the first request: a redirect to the custom
 domain, which is what GitHub answers while the repository still has one. A
@@ -4375,7 +4333,7 @@ second request for the same path was a cache hit, 44 seconds old. GitHub sends
 that redirect without a `Cache-Control`, and the managed caching policy then
 keeps a response for up to a day. Left alone, the switch would have served a
 redirect loop from cache well after the custom domain was gone. So the switch
-is three commands, not two: the DNS upsert first, because it is the one that
+was three commands, not two: the DNS upsert first, because it is the one that
 can be refused and leave everything as it was; the custom domain removed at
 once; then an invalidation of every path.
 
@@ -4395,13 +4353,14 @@ the name until they let go — one browser until a private window was opened.
 Measured afterwards: the page's live layer loaded from the new address and read
 GitHub's API as before.
 
-The log showed something else in its first ten minutes. Seven minutes after
-the switch an automated scanner asked for `/.env` and some fifty variations
-of it and of `/.git/HEAD`, first over HTTP, then over HTTPS. Every one was a
-404: the page is static and has nothing of the kind. The certificate issued an
-hour earlier is the likely lead — certificates are published to public
-transparency logs, and scanners read them. None of this is new traffic. It is
-traffic that GitHub Pages served without anyone being able to see it.
+### Consequences
+
+- CloudFront honours GitHub's own `max-age=600`, so a new build reaches
+  visitors in at most ten minutes, as it did through GitHub's CDN.
+- The page's `github.io` address keeps serving it too.
+- Applied by a person. The apply role gets no CloudFront, ACM or Route 53
+  write; both CI roles read exactly these resources, so the weekly plan covers
+  them.
 
 ## D-080 — a red tile is not an alarm
 
