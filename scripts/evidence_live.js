@@ -168,12 +168,27 @@
       draw();
     });
 
-    rows[3] = vRow("ok", "You can make the network check run, now, yourself.",
-      'Comment <code class="phrase" title="click to copy">run the checks</code> \u2014 those three words, nothing else \u2014 in ' +
-      '<a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">this issue</a>' +
-      ", and GitHub re-runs the two checks above and answers in the thread. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
+    // The one thing a stranger can start, written as steps: the first person
+    // who tried it opened a new issue, because the link landed on a list
+    // whose biggest button is "New issue". Only a comment in this one issue
+    // is read.
+    var ISSUE = document.body.getAttribute("data-check-issue");
+    var issueUrl = "https://github.com/" + REPO + "/issues/" + ISSUE;
+    rows[3] = ISSUE ? vRow("ok", "You can make the network check run, now, yourself.",
+      '<ol class="steps">' +
+      "<li>Sign in to GitHub. Any account will do.</li>" +
+      '<li>Open <a class="go" href="' + issueUrl + '">issue #' + ISSUE + " \u2014 Run the checks yourself</a>. " +
+      "<strong>Do not open a new issue</strong>: only comments in that one are read.</li>" +
+      '<li>In the comment box at the bottom of it, write <code class="phrase" title="click to copy">run the checks</code> ' +
+      "\u2014 those three words, nothing else; click them to copy \u2014 and press <em>Comment</em>.</li>" +
+      "<li>Within about a minute GitHub answers in the same thread with the result and a link to the run. " +
+      "Reload the issue if the answer does not appear by itself.</li></ol>" +
+      "It re-runs the two checks above. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
       "the credential is minted for that run and can only read the policy, and there is no path from it to the home network. " +
-      "Everything else on this page only reads.");
+      "Everything else on this page only reads.")
+      : vRow("wait", "Running a check yourself is switched off right now.",
+      "The issue that accepts the request is closed or unlabelled, which is how the owner withdraws the invitation. " +
+      "The same checks still run on their own schedule.");
     draw();
   }
 

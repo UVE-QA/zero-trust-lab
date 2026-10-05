@@ -59,6 +59,18 @@ def gh(path):
         return None
 
 
+def check_issue():
+    """The open issue a visitor comments in to run a check (D-063), by label.
+
+    Looked up rather than written down, so the page always points at the issue
+    the workflow actually listens to; None if there is none open, and the page
+    then says so instead of linking to nothing.
+    """
+    found = gh(f"/repos/{REPO}/issues?labels=public-check&state=open&per_page=5") or []
+    found = [i for i in found if "pull_request" not in i]
+    return min(i["number"] for i in found) if found else None
+
+
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *a, **k):
         return None
@@ -296,7 +308,8 @@ def card(claim, why, result, stale_hours, expect_failure=False):
             f'<span class="pill">{E(label)}</span></div><p class="why">{E(why)}</p>{ev}</article>')
 
 
-def render(measured, pol, dec, built, diagram, agg, home, tmpl_sha="", build_sha_full="main"):
+def render(measured, pol, dec, built, diagram, agg, home, tmpl_sha="", build_sha_full="main",
+           check_issue_number=None):
     build_sha = build_sha_full[:7]
     blob = f"{SERVER}/{REPO}/blob/main"
     rt = (agg or {}).get("routes_into_other_networks") or {}
@@ -378,6 +391,8 @@ overflow-x:auto;font-size:13px}}
 .phrase{{display:inline-block;font:600 13.5px ui-monospace,SFMono-Regular,Menlo,monospace;
 background:var(--passbg);color:var(--pass);border:1px solid var(--pass);border-radius:7px;
 padding:3px 9px;margin:0 2px;cursor:copy;user-select:all}}
+.steps{{margin:.5em 0 .6em 1.3em;padding:0}}.steps li{{margin:.3em 0}}
+a.go{{font-weight:600}}
 .phrase:hover{{filter:brightness(.97)}}.phrase.copied{{background:var(--pass);color:var(--card)}}
 .phrase[data-said]::after{{content:" \2713 " attr(data-said);font-weight:600}}
 .livebar{{margin:10px 0 0;font-size:14px;line-height:2}}
@@ -407,7 +422,7 @@ footer{{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);color:
 @keyframes flow{{to{{stroke-dashoffset:-12}}}}@media (prefers-reduced-motion:reduce){{#labmap path.running{{animation:none}}}}
 .tw{{overflow-x:auto}}table.road td:first-child{{min-width:170px}}.st{{display:inline-block;font-size:12px;padding:1px 8px;border-radius:9px;background:var(--nonebg);color:var(--none);white-space:nowrap}}
 .st.over{{background:var(--stalebg);color:var(--stale)}}
-</style></head><body data-repo="{E(REPO)}"><main>
+</style></head><body data-repo="{E(REPO)}" data-check-issue="{check_issue_number or ''}"><main>
 <h1>zero-trust-lab · live evidence</h1>
 <p class="lede">A Zero Trust access model on a real home network, built in the open.
 Every status below was read from GitHub Actions when this page was built, and links to
@@ -639,7 +654,7 @@ def main():
     page = render({"live": [(c, w, r, s, *x) for c, w, r, s, *x in live],
                    "every": [(c, w, r, s) for c, w, r, s in every]},
                   policy_figures(), decision_figures(), built, diagram, agg, home,
-                  tmpl_sha, build_sha_full)
+                  tmpl_sha, build_sha_full, check_issue())
 
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
