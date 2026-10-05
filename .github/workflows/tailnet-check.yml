@@ -76,8 +76,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      # The role-liveness check writes one issue and closes it again; nothing
-      # else in this workflow writes anything, anywhere.
+      # The role-liveness check and the drift alarm each write one issue and
+      # close it again; nothing else in this workflow writes anything, anywhere.
       issues: write
     env:
       # Not secret by Tailscale's definition, but held as secrets so they are
@@ -93,7 +93,23 @@ jobs:
       - name: render from environment secrets
         run: ./scripts/render-policy.py --from-env
       - name: compare with the policy in force
+        id: drift
         run: ./scripts/tailnet-api.py drift policy/.rendered/policy.hujson
+
+      # A red tile notifies nobody: this check sat red for three days in
+      # September before anyone looked (D-080). The issue opens when the policy
+      # in force is not main's, or could not be compared at all, and closes
+      # itself on the next green run.
+      - name: raise or clear the drift alarm
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.drift.outcome }}
+        run: |
+          if [ "$OUTCOME" = "success" ]; then state=pass; else state=fail; fi
+          ./scripts/alarm.py --state "$state" \
+            --title "The policy in force is not the policy on main" \
+            --why "The drift check's outcome was **$OUTCOME**. Either an apply is pending, the policy was edited in the console, or the comparison could not run. The run's log has both hashes; docs/runbooks/policy-change.md has the steps."
 
       # A grant that names an address is only kept while a route to that
       # address is approved -- and approval lives in the console, changes with
