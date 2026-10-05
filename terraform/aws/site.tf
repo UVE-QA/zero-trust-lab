@@ -53,8 +53,7 @@ locals {
   # AWS managed cache policy "CachingOptimized". It honours the origin's own
   # Cache-Control, and GitHub Pages sends max-age=600 -- the same ten minutes
   # GitHub's own CDN keeps the page today. Query strings are not part of the
-  # cache key and are not sent to GitHub; they are still in the access log,
-  # which records the viewer's request, not the origin's.
+  # cache key and are not sent to GitHub.
   caching_optimized = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 }
 
