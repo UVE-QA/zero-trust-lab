@@ -67,6 +67,8 @@ jobs:
     name: plan
     runs-on: ubuntu-latest
     environment: aws-plan
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
     steps:
       - uses: actions/checkout@v4
 
@@ -92,10 +94,16 @@ jobs:
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
 
+      # -detailed-exitcode tells "no changes" (0) from "changes" (2) from an
+      # error (1). Only an error fails the step: on a pull request changes are
+      # the point, and on main they are reported by the alarm job below rather
+      # than by stopping this one before it counts the account's principals.
       - name: plan
+        id: plan
         working-directory: terraform/aws
         run: |
-          terraform plan -input=false \
+          set +e
+          terraform plan -input=false -detailed-exitcode \
             -var="account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="profile=" \
             -var="region=${{ vars.AWS_REGION }}" \
@@ -106,6 +114,10 @@ jobs:
             -var="github_repo_id=${{ github.repository_id }}" \
             -var="github_oidc_provider_exists=true" \
             -var="collector_ca_certificate_pem=${{ secrets.COLLECTOR_CA_CERTIFICATE_PEM }}"
+          code=$?
+          set -e
+          if [ "$code" = 1 ]; then exit 1; fi
+          if [ "$code" = 2 ]; then echo "changes=true" >> "$GITHUB_OUTPUT"; else echo "changes=false" >> "$GITHUB_OUTPUT"; fi
 
       # One claim on the evidence page is that nobody has a long-lived key in
       # this account: no IAM users, no root access keys. Counted here, with the
@@ -130,3 +142,29 @@ jobs:
           name: cloud-identity
           path: cloud-identity/
           retention-days: 90
+
+  # A red tile notifies nobody: the cloud tile was red for two weeks in
+  # September before anyone looked (D-078, D-080). On main, an issue opens when
+  # the plan reports changes or fails to run, and closes itself on the next
+  # clean plan. A job of its own, so the token that may write an issue holds
+  # no cloud role, and the one that holds the cloud role writes nothing.
+  alarm:
+    name: raise or clear the cloud alarm
+    needs: terraform
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: raise or clear
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.terraform.result }}
+          CHANGES: ${{ needs.terraform.outputs.changes }}
+        run: |
+          if [ "$RESULT" = "success" ] && [ "$CHANGES" = "false" ]; then state=pass; else state=fail; fi
+          ./scripts/alarm.py --state "$state" \
+            --title "The cloud account does not match its code" \
+            --why "The plan job's result was **$RESULT**; changes reported: **${CHANGES:-unknown}**. Either something in the account was changed outside Terraform, a change on main is not applied yet, or the plan could not run. Run the same plan locally, read-only, before changing anything."

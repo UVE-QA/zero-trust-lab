@@ -4403,3 +4403,43 @@ of it and of `/.git/HEAD`, first over HTTP, then over HTTPS. Every one was a
 hour earlier is the likely lead — certificates are published to public
 transparency logs, and scanners read them. None of this is new traffic. It is
 traffic that GitHub Pages served without anyone being able to see it.
+
+## D-080 — a red tile is not an alarm
+
+**2026-10-05.**
+
+The evidence page caught both failures this lab had in September, and told
+nobody about either. The cloud tile was red for two weeks (D-078) and the
+policy drift check for three days, while the page showed it to every visitor
+and the owner heard nothing. The one check that already raised an issue was
+role liveness (D-076); the two that guard the claims at the top of the page did
+not.
+
+So both now do, the same way: an issue with a fixed title opens when the check
+on main is red, is updated with a comment on every red run after that, and
+closes itself with a comment on the next green one. The repository's owner is
+notified when an issue opens. An open issue therefore always means something
+is red now, and the issue's history is the record of how long it was.
+
+- **Policy drift**, daily and on every push to main: red when the policy in
+  force is not main's render, or when the comparison could not run at all. A
+  normal policy change opens it for the minutes between merge and apply,
+  which is true, and closes on the re-run the runbook already asks for.
+- **The cloud plan**, weekly and on demand: red when the plan reports changes
+  or fails. The plan now runs with `-detailed-exitcode`, so "changes" is a
+  value the workflow sees rather than a sentence the page reads in the log. On
+  pull requests changes are the point and nothing is raised.
+
+The alarm for the plan is a job of its own. It holds a token that may write
+an issue and no cloud role; the plan job keeps the cloud role and writes
+nothing. Writing an issue is a small permission, and it still does not belong
+to the job that executes the branch's Terraform.
+
+Checked locally against a stub of the API, not against the repository: open,
+update, close, nothing to do, and a different title left alone. The first real
+open will be the first real failure.
+
+Not covered, and written down: a check that stops running at all. The page
+turns such a tile amber on its own, but an amber tile notifies nobody either,
+and GitHub disables scheduled workflows in a repository with no activity for
+sixty days.
