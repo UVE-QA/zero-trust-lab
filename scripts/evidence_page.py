@@ -332,6 +332,16 @@ def render(measured, pol, dec, built, diagram, agg, home, tmpl_sha="", build_sha
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>zero-trust-lab · live evidence</title>
 <meta name="description" content="A home Zero Trust lab. Every status on this page is read from the CI run that checked it.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="zero-trust-lab">
+<meta property="og:title" content="Zero Trust Access Model — live evidence">
+<meta property="og:description" content="A home Zero Trust lab. Every status on this page is read from the CI run that checked it.">
+<meta property="og:url" content="https://lab.uveapp.net/">
+<meta property="og:image" content="https://lab.uveapp.net/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="zero-trust-lab: Zero Trust Access Model, live evidence">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root{{--bg:#fbfaf8;--fg:#1d1d1b;--mut:#6b6a66;--line:#e4e1dc;--card:#fff;--pass:#1f7a4d;--passbg:#e6f4ec;--fail:#b3261e;--failbg:#fbe9e7;--none:#6b6a66;--nonebg:#efedea;--stale:#8a5a00;--stalebg:#fff4d6;--link:#1a56b8;--cp:#1f6feb;--cl:#c2410c}}
 @media (prefers-color-scheme:dark){{:root{{--bg:#131312;--fg:#ecebe8;--mut:#a3a19b;--line:#2e2d2a;--card:#1b1b19;--pass:#6fd19c;--passbg:#15301f;--fail:#ff8a80;--failbg:#3a1714;--none:#a3a19b;--nonebg:#262522;--stale:#ffcf66;--stalebg:#3a2e10;--link:#8ab4ff;--cp:#6ea8ff;--cl:#f0883e}}}}
@@ -636,6 +646,10 @@ def main():
     (out / "index.html").write_text(page)
     (out / ".nojekyll").write_text("")
     (out / "live.js").write_text((ROOT / "scripts" / "evidence_live.js").read_text())
+    # The link-preview card the og:image tag names: the model redrawn large
+    # enough to read in a feed, made by scripts/og_card.py from a built page and
+    # rendered by hand (see its docstring).
+    (out / "og.png").write_bytes((ROOT / "scripts" / "assets" / "og.png").read_bytes())
     (out / "runs.json").write_text(json.dumps(runs_snapshot(), separators=(",", ":")))
     summary = {c: (None if r is None else r["ok"]) for c, _, r, *_ in live + every}
     summary["_aggregate"] = bool(agg)
