@@ -2,24 +2,15 @@
 # The evidence page, served through a CDN of its own (D-079).
 #
 # The page is still built and published by GitHub, with no cloud credential at
-# all; that does not change. What changes is the path a visitor's request takes:
-# lab.uveapp.net now resolves to CloudFront, which fetches the page from GitHub
-# Pages and keeps CloudFront's standard access log of the request.
+# all; that does not change. What changed is the path a visitor's request takes:
+# lab.uveapp.net resolves to CloudFront, which fetches the page from GitHub
+# Pages.
 #
-# The log is the reason. GitHub Pages keeps none, so nothing recorded that the
-# page was opened at all. The log lines go to the bucket the sibling project's
-# dashboard already logs into (aws-devops-sdet-demo, ADR-0104): same account,
-# private, SSE-S3, every object expired after 90 days, read by one script on
-# the operator's host that prints counts and never an address. One bucket
-# rather than two means one retention rule and one place that holds viewers'
-# addresses, not two. The page itself sends nothing anywhere.
-#
-# DNS. lab.uveapp.net becomes a zone of its own in this account, delegated by
-# one NS record in the parent zone, which lives in another account and is
-# edited by hand -- the same arrangement as the sibling project's subdomain.
-# The zone first answered with GitHub Pages' published addresses, so the
-# delegation itself changed nothing a visitor saw; it now aliases the
-# distribution.
+# DNS. lab.uveapp.net is a zone of its own in this account, delegated by one
+# NS record in the parent zone, which lives in another account and is edited by
+# hand -- the same arrangement as the sibling project's subdomain. The zone
+# first answered with GitHub Pages' published addresses, so the delegation
+# itself changed nothing a visitor saw; it now aliases the distribution.
 #
 # Applied by a person, not by CI: the apply role is not given CloudFront, ACM
 # or Route 53 writes. Both CI roles can read these resources, so the weekly
@@ -46,14 +37,9 @@ locals {
   site_origin      = "${lower(var.github_owner)}.github.io"
   site_origin_path = "/${var.github_repo}"
 
-  # Owned by the sibling project's public-site level, not by this stack: this
-  # stack names it and never manages it.
-  site_logs_bucket = "aws-devops-sdet-demo-site-logs-${var.account_id}"
-
   # AWS managed cache policy "CachingOptimized". It honours the origin's own
   # Cache-Control, and GitHub Pages sends max-age=600 -- the same ten minutes
-  # GitHub's own CDN keeps the page today. Query strings are not part of the
-  # cache key and are not sent to GitHub.
+  # GitHub's own CDN kept the page.
   caching_optimized = "658327ea-f89d-4fab-a63d-7e88639e58f6"
 }
 
@@ -157,13 +143,6 @@ resource "aws_cloudfront_distribution" "site" {
     cache_policy_id        = local.caching_optimized
   }
 
-  # One line per request into the shared logs bucket, under a prefix of its
-  # own. No cookies: the page sets none, and a log should not start keeping them.
-  logging_config {
-    bucket          = "${local.site_logs_bucket}.s3.amazonaws.com"
-    prefix          = "lab/"
-    include_cookies = false
-  }
 
   restrictions {
     geo_restriction {
