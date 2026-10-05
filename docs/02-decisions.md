@@ -4392,9 +4392,8 @@ invalidation cleared it. The rest was clients: resolvers and browsers that
 held GitHub's address, or an open connection to it, got GitHub's own 404 for
 the name until they let go — one browser until a private window was opened.
 
-Measured afterwards, from the log rather than from the outside: a browser
-request with a query string arrived with the query intact, and the page's live
-layer loaded from the new address and read GitHub's API as before.
+Measured afterwards: the page's live layer loaded from the new address and read
+GitHub's API as before.
 
 The log showed something else in its first ten minutes. Seven minutes after
 the switch an automated scanner asked for `/.env` and some fifty variations

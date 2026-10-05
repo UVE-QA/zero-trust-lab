@@ -18,16 +18,12 @@
 // every 30 seconds; never while the tab is hidden; and it backs off to the
 // reset time when fewer than 8 requests are left.
 
-// The page reads no query parameters. `s` is taken out of the address bar on
-// load, so the address shown is the plain one; anything else in it, `me`
-// included, is left as it was. Whatever logs the request has done so before
-// this runs (D-079); nothing here sends anything.
+// The page reads no query parameters, so it takes them out of the address bar
+// on load: the address shown, and copied, is the plain one.
 (function () {
   try {
-    var parts = location.search.replace(/^\?/, "").split("&").filter(Boolean);
-    var kept = parts.filter(function (p) { return p.split("=")[0] !== "s"; });
-    if (kept.length === parts.length) return;
-    history.replaceState(history.state, "", location.pathname + (kept.length ? "?" + kept.join("&") : "") + location.hash);
+    if (!location.search) return;
+    history.replaceState(history.state, "", location.pathname + location.hash);
   } catch (e) { /* an address the browser will not rewrite stays as it is */ }
 })();
 

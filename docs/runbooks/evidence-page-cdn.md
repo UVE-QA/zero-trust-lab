@@ -130,10 +130,10 @@ to GitHub directly, where the custom domain is already gone; they get GitHub's
 curl -sI https://lab.uveapp.net/ | grep -iE '^HTTP|^via|^x-cache'
 ```
 
-Expected: `200`, and `via` naming CloudFront. Then open the page with a query
-string and confirm the address bar is plain after load and the live layer
-still runs. The first log object appears under `lab/` in the logs bucket
-within about an hour; CloudFront's standard logs are not immediate.
+Expected: `200`, and `via` naming CloudFront. Then open the page in a browser
+and confirm the live layer still runs. The first log object appears under
+`lab/` in the logs bucket within about an hour; CloudFront's standard logs are
+not immediate.
 
 ## Undo
 
