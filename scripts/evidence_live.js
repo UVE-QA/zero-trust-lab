@@ -186,9 +186,10 @@
       "It re-runs the two checks above. It takes no argument \u2014 the phrase matches or nothing happens \u2014 " +
       "the credential is minted for that run and can only read the policy, and there is no path from it to the home network. " +
       "Everything else on this page only reads.")
-      : vRow("wait", "Running a check yourself is switched off right now.",
-      "The issue that accepts the request is closed or unlabelled, which is how the owner withdraws the invitation. " +
-      "The same checks still run on their own schedule.");
+      : vRow("wait", "The issue that runs a check was not found when this page was built.",
+      'Look for an open issue labelled <a href="https://github.com/' + REPO + '/issues?q=is%3Aissue+is%3Aopen+label%3Apublic-check">public-check</a> ' +
+      "and comment <code class=\"phrase\" title=\"click to copy\">run the checks</code> in it \u2014 not in a new issue. " +
+      "If there is none, the owner has withdrawn the invitation; the same checks still run on their own schedule.");
     draw();
   }
 

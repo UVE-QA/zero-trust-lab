@@ -42,6 +42,7 @@ jobs:
     permissions:
       contents: read
       actions: write        # read run history; re-enable scheduled workflows
+      issues: read          # find the issue visitors comment in to run a check
       checks: read          # the negative-control pull request's check result
       pull-requests: read
     steps:
